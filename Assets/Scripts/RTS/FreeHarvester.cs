@@ -1,0 +1,19 @@
+using UnityEngine;
+
+[RequireComponent(typeof(Refinery))]
+public class FreeHarvester : MonoBehaviour
+{
+    [SerializeField] SelectableUnit harvesterPrefab;
+    [SerializeField] float exitSpeed = 4f;
+
+    void OnConstructed()
+    {
+        Vector3 dock = GetComponent<Refinery>().DockPosition;
+        Vector3 outDir = dock - transform.position; outDir.y = 0f;
+        Vector3 inside = transform.position - outDir.normalized * 2.5f; 
+        inside.y = dock.y;
+
+        var unit = Instantiate(harvesterPrefab, dock, Quaternion.LookRotation(outDir));
+        unit.WalkOut(inside, dock, exitSpeed);
+    }
+}

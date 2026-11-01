@@ -1,0 +1,15 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CrusherTarantula
+  m_Controller: {fileID: 9100000, guid: d9f56b125768c5e41907352526fe31c7, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: 7400000, guid: 7e32810bf99f8f84e8203c282648ab97, type: 2}
+    m_OverrideClip: {fileID: -1609281748187839663, guid: c6d0141015bae1f46a8c7f07edf9a438, type: 3}
+  - m_OriginalClip: {fileID: 7400000, guid: b1fe2cc06b87e1246bcc50bedfb94901, type: 2}
+    m_OverrideClip: {fileID: -623603649343465320, guid: c6d0141015bae1f46a8c7f07edf9a438, type: 3}

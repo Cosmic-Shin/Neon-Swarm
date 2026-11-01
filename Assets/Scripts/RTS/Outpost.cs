@@ -1,0 +1,85 @@
+using UnityEngine;
+
+// Glue between the pack's OutpostCapture and our combat.
+// Owned: it can be shot (at 0 HP it drops back to neutral and kicks the garrison out) and it shoots
+// enemies in range, harder and further for every unit stationed inside. Neutral: not a target.
+[RequireComponent(typeof(OutpostCapture), typeof(Health))]
+public class Outpost : MonoBehaviour
+{
+    [SerializeField] Material laserMaterial;
+    [SerializeField] float range = 20f;      // empty outpost; garrisoned units' range x garrisonRangeBonus if longer
+    [SerializeField] float baseDamage = 6f;  // empty outpost; each garrisoned unit adds its own damage
+    [SerializeField] float cooldown = 1f;
+
+    OutpostCapture capture;
+    Health health;
+    LineRenderer laser;
+    float nextShot, laserOff;
+
+    void Awake()
+    {
+        capture = GetComponent<OutpostCapture>();
+        health = GetComponent<Health>();
+        health.onDeath = Fall;
+        capture.OnOwnerChanged += OwnerChanged;
+
+        laser = new GameObject("Laser").AddComponent<LineRenderer>();
+        laser.transform.SetParent(transform, false);
+        laser.material = laserMaterial;
+        laser.widthMultiplier = 0.25f;
+        laser.positionCount = 2;
+        laser.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        laser.enabled = false;
+
+        OwnerChanged(capture.ownerTeam);
+    }
+
+    void OwnerChanged(int team)
+    {
+        if (team == 0) Alerts.Show("Outpost captured", Alerts.Good);
+        else if (health.team == 0) Alerts.Show("Outpost lost", Alerts.Bad);
+        health.team = team;
+        health.Revive();
+        health.enabled = team >= 0; // neutral ruins aren't a target
+        laser.material.color = TeamMember.ColorOf(team) * 3f;
+    }
+
+    // Shot down: empty it and let OutpostCapture decay it to neutral (it does once hold time and progress hit 0).
+    void Fall()
+    {
+        capture.EjectAll();
+        capture.holdTimeLeft = 0f;
+        capture.progress = 0f;
+    }
+
+    void Update()
+    {
+        if (laser.enabled && Time.time >= laserOff) laser.enabled = false;
+        if (!capture.IsOwned || Time.time < nextShot) return;
+
+        float damage = baseDamage, reach = range;
+        foreach (var g in capture.Garrison)
+        {
+            if (g == null || !g.TryGetComponent(out SelectableUnit u)) continue;
+            damage += u.Data.damage;
+            reach = Mathf.Max(reach, u.Data.range * capture.garrisonRangeBonus);
+        }
+
+        Health target = null;
+        float best = reach * reach;
+        foreach (var h in Health.All)
+        {
+            if (h.team == capture.ownerTeam || h.CloakedFrom(transform.position)) continue;
+            float sqr = (h.transform.position - transform.position).sqrMagnitude;
+            if (sqr < best) { best = sqr; target = h; }
+        }
+        if (target == null) return;
+
+        nextShot = Time.time + cooldown;
+        laser.SetPosition(0, transform.position + Vector3.up * 6f);
+        laser.SetPosition(1, target.transform.position + Vector3.up * 1f);
+        laser.enabled = true;
+        laserOff = Time.time + 0.1f;
+        target.TakeDamage(damage, health);
+    }
+}

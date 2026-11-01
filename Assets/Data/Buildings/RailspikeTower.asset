@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
+  m_Name: RailspikeTower
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  displayName: RailspikeTower
+  description: Defence tower. Huge 70-damage rail shot every 3.5s from 36m, the longest
+    range in the game. Offline when low on power.
+  prefab: {fileID: 2856029492227827674, guid: 8255fce483705144aa0573ed965b7dba, type: 3}
+  icon: {fileID: 21300000, guid: 1b9f835965743f849b164c9436af7cd3, type: 3}
+  cost: 600
+  buildTime: 8

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
+  m_Name: CloakFieldGenerator
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  displayName: CloakFieldGenerator
+  description: 'Hides your units and buildings within 28m: enemies can''t target
+    them unless they get within 8m. Offline when low on power.'
+  prefab: {fileID: 4648560868765458671, guid: e3e2facdcbce65a4c8cd3a8c3e902989, type: 3}
+  icon: {fileID: 21300000, guid: e731bfc6a3db26d4cba68c89880f8d0d, type: 3}
+  cost: 900
+  buildTime: 12
