@@ -12,6 +12,11 @@ public class GoodSelectionManager : MonoBehaviour
     public event Action<OreNode> OnHarvestCommand; // right-clicked ore: workers go mine it
     public event Action<Health> OnAttackCommand;   // right-clicked an enemy: armed units attack it
     public event Action<OutpostCapture> OnGarrisonCommand; // right-clicked our outpost: armed units go inside
+    public event Action<List<Vector3>> OnAttackMoveCommand; // A + click: walk there, fighting anything met on the way
+    public event Action OnStopCommand; // S
+    public event Action OnHoldCommand; // H: stay put, shoot only what's in range
+
+    public enum Formation { Circle, Line, Box }
 
 
     [Header("Raycasting")]
@@ -31,8 +36,17 @@ public class GoodSelectionManager : MonoBehaviour
     [Header("Formation")]
     [SerializeField] float formationSpacing = 2f; // gap between rings
     [SerializeField] float minRadius = 1.5f;      // first ring radius
+    [SerializeField] float slotSpacing = 2.5f;    // line/box: gap between units
+    [SerializeField] int lineWidth = 10;          // line: units per row
+    [SerializeField] Formation formation = Formation.Circle; // F cycles it
 
     readonly List<SelectableUnit> selected = new();
+    public static bool UnitsSelected { get; private set; } // A/S/H are orders then, so the camera ignores WASD
+    public Vector3 Facing { get; private set; } // which way the last move's formation faces (zero = don't turn)
+    bool attackMoveArmed; // A pressed: next left-click is an attack-move
+    bool rightPressing, rightDragging;
+    Vector2 rightStart;
+    LineRenderer dragLine; // preview of a right-drag formation line
     public IReadOnlyList<SelectableUnit> SelectedUnits => selected;
     Vector2 dragStart;
     bool isPressing;
@@ -51,6 +65,20 @@ public class GoodSelectionManager : MonoBehaviour
         if (cam == null) cam = Camera.main;
         if (selectionBox != null) selectionBox.gameObject.SetActive(false);
         if (targetMarker != null) targetMarker.SetActive(false);
+
+        dragLine = new GameObject("FormationLine").AddComponent<LineRenderer>();
+        dragLine.material = new Material(Shader.Find("Sprites/Default"));
+        dragLine.startColor = dragLine.endColor = new Color(0.3f, 1f, 1f, 0.8f);
+        dragLine.widthMultiplier = 0.3f;
+        dragLine.positionCount = 2;
+        dragLine.enabled = false;
+    }
+
+    // Disabled while a building is being placed.
+    void OnDisable()
+    {
+        UnitsSelected = rightPressing = rightDragging = attackMoveArmed = false;
+        if (dragLine != null) dragLine.enabled = false;
     }
 
     void Update()
@@ -60,8 +88,17 @@ public class GoodSelectionManager : MonoBehaviour
         Vector2 mousePos = mouse.position.ReadValue();
 
         bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+        UnitsSelected = selected.Exists(u => u != null); // keep dead slots: units remember their index
 
-        if (mouse.leftButton.wasPressedThisFrame && !overUI)
+        OrderKeys();
+
+        // Attack-move armed: this click is the order, not a selection.
+        if (attackMoveArmed && mouse.leftButton.wasPressedThisFrame && !overUI)
+        {
+            attackMoveArmed = false;
+            IssueAttackMove(mousePos);
+        }
+        else if (mouse.leftButton.wasPressedThisFrame && !overUI)
         {
             dragStart = mousePos;
             isPressing = true;
@@ -93,7 +130,29 @@ public class GoodSelectionManager : MonoBehaviour
             isDragging = false;
         }
 
-        if (mouse.rightButton.wasPressedThisFrame && !overUI) IssueMoveCommand(mousePos);
+        // Right-click: move. Right-drag: units line up along the dragged line, facing forward.
+        if (mouse.rightButton.wasPressedThisFrame && !overUI)
+        {
+            if (attackMoveArmed) attackMoveArmed = false; // right-click cancels A
+            else { rightPressing = true; rightDragging = false; rightStart = mousePos; }
+        }
+        if (rightPressing && mouse.rightButton.isPressed && selected.Count > 0 &&
+            (mousePos - rightStart).sqrMagnitude > dragThreshold * dragThreshold * 4f &&
+            GroundAt(rightStart, out Vector3 a) && GroundAt(mousePos, out Vector3 b))
+        {
+            rightDragging = true;
+            dragLine.SetPosition(0, a + Vector3.up * 0.3f);
+            dragLine.SetPosition(1, b + Vector3.up * 0.3f);
+            dragLine.enabled = true;
+        }
+        if (rightPressing && mouse.rightButton.wasReleasedThisFrame)
+        {
+            rightPressing = false;
+            dragLine.enabled = false;
+            if (rightDragging && GroundAt(rightStart, out Vector3 a2) && GroundAt(mousePos, out Vector3 b2)) LineMove(a2, b2);
+            else IssueMoveCommand(rightStart);
+            rightDragging = false;
+        }
 
         ControlGroups();
 
@@ -173,6 +232,105 @@ public class GoodSelectionManager : MonoBehaviour
         selectionBox.sizeDelta = new Vector2(Mathf.Abs(la.x - lb.x), Mathf.Abs(la.y - lb.y));
     }
 
+    bool GroundAt(Vector2 screenPos, out Vector3 point)
+    {
+        bool hit = Physics.Raycast(cam.ScreenPointToRay(screenPos), out RaycastHit h, maxRayDistance, groundLayer);
+        point = h.point;
+        return hit;
+    }
+
+    // A = attack-move (then click), S = stop, H = hold position, F = next formation.
+    void OrderKeys()
+    {
+        var kb = Keyboard.current;
+        if (kb == null) return;
+        if (kb.fKey.wasPressedThisFrame)
+        {
+            formation = (Formation)(((int)formation + 1) % 3);
+            Alerts.Show($"Formation: {formation}", Alerts.Info);
+        }
+        if (kb.escapeKey.wasPressedThisFrame) attackMoveArmed = false;
+        if (!UnitsSelected) { attackMoveArmed = false; return; }
+        if (kb.aKey.wasPressedThisFrame) { attackMoveArmed = true; Alerts.Show("Attack-move: left-click a spot", Alerts.Warn); }
+        if (kb.sKey.wasPressedThisFrame) { attackMoveArmed = false; OnStopCommand?.Invoke(); }
+        if (kb.hKey.wasPressedThisFrame) { attackMoveArmed = false; OnHoldCommand?.Invoke(); }
+    }
+
+    void IssueAttackMove(Vector2 screenPos)
+    {
+        Ray ray = cam.ScreenPointToRay(screenPos);
+        if (Physics.Raycast(ray, out RaycastHit target, maxRayDistance, selectableLayer) &&
+            target.collider.TryGetComponent(out Health enemy) && enemy.enabled && enemy.team != 0)
+        {
+            OnAttackCommand?.Invoke(enemy); // clicked right on an enemy: plain attack
+            return;
+        }
+        if (!GroundAt(screenPos, out Vector3 point)) return;
+        OnAttackMoveCommand?.Invoke(GetFormation(point));
+        ShowMarker(point);
+    }
+
+    // Right-drag: units spread along a..b (extra rows behind), facing away from where they stand now.
+    void LineMove(Vector3 a, Vector3 b)
+    {
+        Vector3 along = b - a; along.y = 0f;
+        Vector3 mid = (a + b) * 0.5f;
+        Vector3 facing = Vector3.Cross(along.normalized, Vector3.up);
+        if (Vector3.Dot(facing, mid - Centroid()) < 0f) facing = -facing;
+        int cols = Mathf.Clamp(Mathf.FloorToInt(along.magnitude / slotSpacing) + 1, 1, selected.Count);
+        Facing = facing;
+        OnMoveCommand?.Invoke(Rows(mid, facing, cols, cols > 1 ? along.magnitude / (cols - 1) : 0f));
+        ShowMarker(mid);
+    }
+
+    Vector3 Centroid()
+    {
+        Vector3 sum = Vector3.zero;
+        int n = 0;
+        foreach (var u in selected) if (u != null) { sum += u.transform.position; n++; }
+        return n > 0 ? sum / n : Vector3.zero;
+    }
+
+    // Slots for the current formation around center, facing from the group toward it. Sets Facing.
+    List<Vector3> GetFormation(Vector3 center)
+    {
+        Vector3 facing = center - Centroid(); facing.y = 0f;
+        facing = facing.sqrMagnitude > 0.01f ? facing.normalized : Vector3.forward;
+        Facing = facing;
+        int count = selected.Count;
+        return formation switch
+        {
+            Formation.Line => Rows(center, facing, Mathf.Min(count, lineWidth), slotSpacing),
+            Formation.Box => Rows(center, facing, Mathf.CeilToInt(Mathf.Sqrt(count)), slotSpacing),
+            _ => GetCircleFormation(center, count),
+        };
+    }
+
+    // Rows of `cols` units centred on center, front row first. Units are matched to slots so paths don't cross:
+    // the front-most units take the front row, and go left-to-right within each row.
+    List<Vector3> Rows(Vector3 center, Vector3 facing, int cols, float colSpacing)
+    {
+        int count = selected.Count;
+        Vector3 right = Vector3.Cross(Vector3.up, facing);
+        int rows = Mathf.CeilToInt(count / (float)cols);
+        float Along(int i, Vector3 axis) => selected[i] != null ? Vector3.Dot(selected[i].transform.position, axis) : 0f;
+        var order = new List<int>(count);
+        for (int i = 0; i < count; i++) order.Add(i);
+        order.Sort((x, y) => Along(y, facing).CompareTo(Along(x, facing)));
+
+        var slots = new Vector3[count];
+        for (int r = 0, start = 0; r < rows; r++, start += cols)
+        {
+            int n = Mathf.Min(cols, count - start);
+            var row = order.GetRange(start, n);
+            row.Sort((x, y) => Along(x, right).CompareTo(Along(y, right)));
+            float back = (r - (rows - 1) * 0.5f) * slotSpacing;
+            for (int c = 0; c < n; c++)
+                slots[row[c]] = center + right * ((c - (n - 1) * 0.5f) * colSpacing) - facing * back;
+        }
+        return new List<Vector3>(slots);
+    }
+
     void IssueMoveCommand(Vector2 screenPos)
     {
         Ray ray = cam.ScreenPointToRay(screenPos);
@@ -190,6 +348,7 @@ public class GoodSelectionManager : MonoBehaviour
             // Our outpost? Walk over and garrison it.
             if (target.collider.TryGetComponent(out OutpostCapture outpost) && outpost.ownerTeam == 0)
             {
+                Facing = Vector3.zero;
                 OnMoveCommand.Invoke(GetCircleFormation(outpost.transform.position, selected.Count));
                 OnGarrisonCommand?.Invoke(outpost);
                 return;
@@ -204,7 +363,7 @@ public class GoodSelectionManager : MonoBehaviour
 
         if (!Physics.Raycast(ray, out RaycastHit hit, maxRayDistance, groundLayer)) return;
 
-        OnMoveCommand.Invoke(GetCircleFormation(hit.point, selected.Count));
+        OnMoveCommand.Invoke(GetFormation(hit.point));
 
         // Clicked on ore? Workers switch from the move to mining it.
         if (Physics.Raycast(ray, out RaycastHit any, maxRayDistance) && any.collider.GetComponentInParent<OreNode>() is OreNode ore)
@@ -216,7 +375,7 @@ public class GoodSelectionManager : MonoBehaviour
     // Plain move to a ground point (also used by the minimap): units go there, or it becomes the building's rally point.
     public void MoveSelectedTo(Vector3 point)
     {
-        if (selected.Count > 0) OnMoveCommand?.Invoke(GetCircleFormation(point, selected.Count));
+        if (selected.Count > 0) OnMoveCommand?.Invoke(GetFormation(point));
         else if (selectedBuilding != null) selectedBuilding.Rally = point;
         else return;
         ShowMarker(point);
@@ -234,7 +393,7 @@ public class GoodSelectionManager : MonoBehaviour
     void ControlGroups()
     {
         var kb = Keyboard.current;
-        if (kb == null) return;
+        if (kb == null || BuildingPlacer.MenuOpen) return; // digits pick buildings then
         bool ctrl = kb.leftCtrlKey.isPressed || kb.rightCtrlKey.isPressed;
         for (int i = 1; i <= 9; i++)
         {

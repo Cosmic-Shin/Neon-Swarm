@@ -158,6 +158,7 @@ GameObject:
   - component: {fileID: 6141250456820109008}
   - component: {fileID: 5352128007260563787}
   - component: {fileID: 7514029206027589738}
+  - component: {fileID: 4662655759499162329}
   m_Layer: 9
   m_Name: UplinkTower
   m_TagString: Untagged
@@ -261,6 +262,8 @@ MonoBehaviour:
   debrisShrinkTime: 0.6
   maxPhysicsPieces: 24
   debrisLayer: Ignore Raycast
+  wreckPieces: 8
+  wreckTime: 45
   animator: {fileID: 0}
   deathTrigger: Die
   deathClipLength: 1.67
@@ -297,6 +300,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 05fd02a5a336c80499e239032cbe004b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Radar
+--- !u!114 &4662655759499162329
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6527225675829629699}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51be6cab4d8c90a4eaef7ebd6e098334, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageFx
+  smoke: {fileID: 1068378241412898703, guid: fce3b1827690e4b4396f5d7f3828ea03, type: 3}
+  fire: {fileID: 8623457806621160266, guid: 3a6037cadc939484c86ac1811c23f371, type: 3}
+  spark: {fileID: 2368381330221681213, guid: 6e0553d6e46b9a7418595bfa45d2018c, type: 3}
+  smokeLinger: 10
 --- !u!1 &7786559444733791082
 GameObject:
   m_ObjectHideFlags: 0

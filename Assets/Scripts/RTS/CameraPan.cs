@@ -20,11 +20,13 @@ public class CameraPan : MonoBehaviour
         var mouse = Mouse.current;
         if (kb == null) return;
 
+        // With units selected A/S are orders (attack-move, stop), so the letters stop panning; arrows always pan.
+        bool letters = !GoodSelectionManager.UnitsSelected;
         Vector2 dir = Vector2.zero;
-        if (kb.wKey.isPressed || kb.upArrowKey.isPressed) dir.y += 1f;
-        if (kb.sKey.isPressed || kb.downArrowKey.isPressed) dir.y -= 1f;
-        if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) dir.x += 1f;
-        if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) dir.x -= 1f;
+        if ((letters && kb.wKey.isPressed) || kb.upArrowKey.isPressed) dir.y += 1f;
+        if ((letters && kb.sKey.isPressed) || kb.downArrowKey.isPressed) dir.y -= 1f;
+        if ((letters && kb.dKey.isPressed) || kb.rightArrowKey.isPressed) dir.x += 1f;
+        if ((letters && kb.aKey.isPressed) || kb.leftArrowKey.isPressed) dir.x -= 1f;
 
         Vector3 p = transform.position;
         if (mouse != null)

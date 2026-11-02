@@ -28,6 +28,14 @@ public class BuildingPlacer : MonoBehaviour
     [SerializeField] float rotateSpeed = 120f; // degrees per second while Q/E or the button is held
     [SerializeField] GameObject placementHint; // "Q/E rotate..." shown while placing
 
+    public static bool MenuOpen { get; private set; } // number keys pick buildings while it's open
+
+    // B opens the menu; then 1-9, 0, -, =, Z, X, C pick the buttons left to right.
+    static readonly Key[] Hotkeys = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5, Key.Digit6,
+        Key.Digit7, Key.Digit8, Key.Digit9, Key.Digit0, Key.Minus, Key.Equals, Key.Z, Key.X, Key.C };
+    static readonly string[] HotkeyLabels = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Z", "X", "C" };
+    bool[] lockedShown; // tooltip state per button, rebuilt when it changes
+
     Camera cam;
     Quaternion lastRotation = Quaternion.identity; // next building starts facing the same way
     bool rotateHeld; // ROTATE button is being pressed
@@ -81,10 +89,46 @@ public class BuildingPlacer : MonoBehaviour
             btn.onClick.AddListener(() => StartPlacing(index));
             btn.gameObject.AddComponent<Tooltip>().text = Tooltip.For(buildings[i]);
             optionButtons[i] = btn;
+
+            if (i < HotkeyLabels.Length) // key badge under the price, styled like the time badge
+            {
+                var time = btn.transform.Find("Time").GetComponent<Text>();
+                var key = Instantiate(time, btn.transform);
+                key.name = "Key";
+                key.text = $"[{HotkeyLabels[i]}]";
+                key.alignment = TextAnchor.UpperLeft;
+                var rt = key.rectTransform;
+                rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
+                rt.anchoredPosition = new Vector2(8f, -30f);
+            }
         }
+        lockedShown = new bool[buildings.Length];
+        for (int i = 0; i < buildings.Length; i++) lockedShown[i] = !buildings[i].Unlocked(); // force a first tooltip update
     }
 
     bool CanAfford(int index) => ResourceBank.GetOrCreate().Credits >= buildings[index].cost;
+    bool CanPick(int index) => CanAfford(index) && buildings[index].Unlocked();
+
+    // Shop tooltip plus the tech requirement line (red while missing).
+    string Tip(int i, bool locked)
+    {
+        var d = buildings[i];
+        if (d.requires == null || d.requires.Length == 0) return Tooltip.For(d);
+        string names = string.Join(", ", System.Linq.Enumerable.Select(d.requires, r => r.displayName));
+        return Tooltip.For(d) + $"\n<color={(locked ? "#FF5050" : "#8899AA")}>Requires: {names}</color>";
+    }
+
+    // B toggles the menu, Esc closes it, number keys pick a building.
+    void HandleHotkeys()
+    {
+        var kb = Keyboard.current;
+        if (kb == null || ghost != null) return;
+        if (kb.bKey.wasPressedThisFrame) ToggleMenu();
+        if (!menuPanel.gameObject.activeSelf) return;
+        if (kb.escapeKey.wasPressedThisFrame) { menuPanel.gameObject.SetActive(false); return; }
+        for (int i = 0; i < Hotkeys.Length && i < buildings.Length; i++)
+            if (kb[Hotkeys[i]].wasPressedThisFrame && CanPick(i)) { StartPlacing(i); return; }
+    }
 
     void ToggleMenu()
     {
@@ -168,8 +212,17 @@ public class BuildingPlacer : MonoBehaviour
 
     void Update()
     {
-        if (menuPanel.gameObject.activeSelf)
-            for (int i = 0; i < optionButtons.Length; i++) optionButtons[i].interactable = CanAfford(i); // red when short
+        HandleHotkeys();
+        MenuOpen = menuPanel.gameObject.activeSelf;
+        if (MenuOpen)
+            for (int i = 0; i < optionButtons.Length; i++)
+            {
+                bool locked = !buildings[i].Unlocked();
+                optionButtons[i].interactable = !locked && CanAfford(i); // red when short or not unlocked yet
+                if (locked == lockedShown[i]) continue;
+                lockedShown[i] = locked;
+                optionButtons[i].GetComponent<Tooltip>().text = Tip(i, locked);
+            }
 
         if (ghost == null) return;
         var mouse = Mouse.current;
@@ -219,9 +272,10 @@ public class BuildingPlacer : MonoBehaviour
         }
         int cost = buildings[chosen].cost;
         bool afford = CanAfford(chosen); // credits can drop while placing (units queued)
-        confirmButton.interactable = good > 0 && afford;
+        bool unlocked = buildings[chosen].Unlocked(); // the required building can die while placing
+        confirmButton.interactable = good > 0 && afford && unlocked;
         confirmButton.GetComponentInChildren<Text>().text =
-            good == 0 ? reason : !afford ? "NO CREDITS" : good > 1 ? $"BUILD {good}  ${cost * good}" : $"CONFIRM ${cost}";
+            !unlocked ? "LOCKED" : good == 0 ? reason : !afford ? "NO CREDITS" : good > 1 ? $"BUILD {good}  ${cost * good}" : $"CONFIRM ${cost}";
     }
 
     void Rotate(float degrees)

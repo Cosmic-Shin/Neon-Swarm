@@ -21,6 +21,8 @@ public class SelectableUnit : MonoBehaviour
     public bool IsEnemy => health != null && health.team != 0; // can't be selected; red ring always on
 
     static readonly Color EnemyRing = new(1f, 0.1f, 0.15f);
+    static readonly Color CreepRing = new(1f, 0.55f, 0.1f);
+    Vector3 faceOnArrive; // formation facing; zero = none
 
     NavMeshAgent agent;
     Harvester harvester; // only on workers
@@ -56,8 +58,9 @@ public class SelectableUnit : MonoBehaviour
         if (IsEnemy && selectionRing != null)
         {
             var mat = selectionRing.GetComponent<Renderer>().material; // per-enemy copy
-            mat.color = EnemyRing;
-            mat.SetColor("_EmissionColor", EnemyRing * 2f);
+            Color ring = health.team == Creep.Team ? CreepRing : EnemyRing;
+            mat.color = ring;
+            mat.SetColor("_EmissionColor", ring * 2f);
         }
     }
 
@@ -67,6 +70,15 @@ public class SelectableUnit : MonoBehaviour
         if (agent.enabled && agent.isOnNavMesh && agent.isStopped && !IsStunned) agent.isStopped = false; // stun wore off
         bool slowedNow = Time.time < slowedUntil;
         if (slowedNow != wasSlowed) { agent.speed *= slowedNow ? 0.5f : 2f; wasSlowed = slowedNow; } // only on change (harvesters set their own speed)
+
+        // Formation move done: turn to face the way the formation points (unless busy shooting).
+        if (faceOnArrive != Vector3.zero && agent.enabled && agent.isOnNavMesh && !agent.pathPending &&
+            agent.remainingDistance <= agent.stoppingDistance + 0.2f && (attacker == null || !attacker.HasTarget))
+        {
+            var look = Quaternion.LookRotation(faceOnArrive);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, look, agent.angularSpeed * Time.deltaTime);
+            if (Quaternion.Angle(transform.rotation, look) < 1f) faceOnArrive = Vector3.zero;
+        }
 
         if (garrisonTarget != null && agent.enabled)
         {
@@ -124,6 +136,9 @@ public class SelectableUnit : MonoBehaviour
         manager.OnHarvestCommand += HandleHarvestCommand;
         manager.OnAttackCommand += HandleAttackCommand;
         manager.OnGarrisonCommand += HandleGarrisonCommand;
+        manager.OnAttackMoveCommand += HandleAttackMoveCommand;
+        manager.OnStopCommand += HandleStopCommand;
+        manager.OnHoldCommand += HandleHoldCommand;
         if (selectionRing != null) selectionRing.SetActive(true);
     }
 
@@ -144,6 +159,32 @@ public class SelectableUnit : MonoBehaviour
         if (harvester != null) harvester.Stop(); // a plain move pauses mining
         if (attacker != null) attacker.Stop();   // and drops the current target
         if (agent.isOnNavMesh) agent.SetDestination(slots[formationIndex]);
+        faceOnArrive = manager.Facing;
+    }
+
+    // A + click: armed units fight their way there; others just walk.
+    void HandleAttackMoveCommand(List<Vector3> slots)
+    {
+        if (attacker == null) { HandleMoveCommand(slots); return; }
+        if (formationIndex < 0 || formationIndex >= slots.Count) return;
+        garrisonTarget = null;
+        attacker.AttackMove(slots[formationIndex]);
+        faceOnArrive = manager.Facing;
+    }
+
+    void HandleStopCommand()
+    {
+        garrisonTarget = null;
+        faceOnArrive = Vector3.zero;
+        if (harvester != null) harvester.Stop();
+        if (attacker != null) attacker.Stop();
+        if (agent.isOnNavMesh) agent.ResetPath();
+    }
+
+    void HandleHoldCommand()
+    {
+        HandleStopCommand();
+        if (attacker != null) attacker.Hold();
     }
 
     // Right-clicked ore: workers go mine it; other units ignore it.
@@ -155,6 +196,7 @@ public class SelectableUnit : MonoBehaviour
     // Right-clicked an enemy: armed units go shoot it.
     void HandleAttackCommand(Health target)
     {
+        faceOnArrive = Vector3.zero;
         if (attacker != null) attacker.Attack(target);
     }
 
@@ -171,6 +213,9 @@ public class SelectableUnit : MonoBehaviour
         manager.OnMoveCommand -= HandleMoveCommand;
         manager.OnHarvestCommand -= HandleHarvestCommand;
         manager.OnAttackCommand -= HandleAttackCommand;
+        manager.OnAttackMoveCommand -= HandleAttackMoveCommand;
+        manager.OnStopCommand -= HandleStopCommand;
+        manager.OnHoldCommand -= HandleHoldCommand;
     }
 
     void OnDestroy() => Unsubscribe();

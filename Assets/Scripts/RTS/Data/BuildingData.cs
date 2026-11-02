@@ -11,4 +11,14 @@ public class BuildingData : ScriptableObject
     public int cost = 500;          // credits, paid on Confirm
     public float buildTime = 10f;   // seconds under construction
     public bool dragLine;           // walls: press and drag to lay a line of them
+    public BuildingData[] requires; // tech tree: a finished one of each must be standing
+
+    // Every requirement has a finished building of ours (half-built ones aren't in Structure.All).
+    public bool Unlocked()
+    {
+        if (requires == null) return true;
+        foreach (var r in requires)
+            if (!Structure.All.Exists(s => s.data == r && s.Health.team == 0)) return false;
+        return true;
+    }
 }

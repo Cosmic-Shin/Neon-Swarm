@@ -33,6 +33,9 @@ public class UnitDeath : MonoBehaviour
     public float debrisShrinkTime = 0.6f;
     public int maxPhysicsPieces = 24;
     public string debrisLayer = "";
+    [Tooltip("The biggest pieces stay as a charred wreck this long before sinking away")]
+    public int wreckPieces = 3;
+    public float wreckTime = 20f;
 
     [Header("Animate / swap to wreck")]
     public Animator animator;
@@ -122,7 +125,8 @@ public class UnitDeath : MonoBehaviour
                 rb.AddExplosionForce(explosionForce, origin, explosionRadius, upwardsModifier, ForceMode.Impulse);
                 rb.AddTorque(Random.insideUnitSphere * randomTorque, ForceMode.Impulse);
             }
-            go.AddComponent<DebrisPiece>().Begin(i < maxPhysicsPieces ? debrisLifetime : 0.05f, debrisShrinkTime);
+            float life = i < wreckPieces ? wreckTime : i < maxPhysicsPieces ? debrisLifetime : 0.05f;
+            go.AddComponent<DebrisPiece>().Begin(life, i < wreckPieces ? 2.5f : debrisShrinkTime);
         }
         Destroy(gameObject);
     }
@@ -157,18 +161,46 @@ public class UnitDeath : MonoBehaviour
     }
 }
 
+// A broken-off piece: chars to black, settles, then sinks into the ground while shrinking.
 public class DebrisPiece : MonoBehaviour
 {
+    static readonly int ColorId = Shader.PropertyToID("_Color");
+    static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
+
     public void Begin(float lifetime, float shrinkTime) => StartCoroutine(Run(lifetime, shrinkTime));
     IEnumerator Run(float lifetime, float shrinkTime)
     {
-        yield return new WaitForSeconds(lifetime);
-        Vector3 s0 = transform.localScale;
+        Char();
+        float settle = Mathf.Min(2.5f, lifetime);
+        yield return new WaitForSeconds(settle);
+        if (TryGetComponent(out Rigidbody rb)) rb.isKinematic = true; // at rest: no more physics, can't be kicked around
+        yield return new WaitForSeconds(lifetime - settle);
+
+        Vector3 s0 = transform.localScale, p0 = transform.position;
+        float depth = GetComponent<Renderer>() is Renderer r ? r.bounds.size.y + 0.2f : 1f;
         for (float t = 0; t < shrinkTime; t += Time.deltaTime)
         {
-            transform.localScale = Vector3.Lerp(s0, Vector3.zero, t / shrinkTime);
+            float k = t / shrinkTime;
+            transform.position = p0 + Vector3.down * depth * k;
+            transform.localScale = Vector3.Lerp(s0, s0 * 0.3f, k);
             yield return null;
         }
         Destroy(gameObject);
+    }
+
+    // Burnt look: darker base colour, no neon.
+    void Char()
+    {
+        if (!TryGetComponent(out Renderer r)) return;
+        var block = new MaterialPropertyBlock();
+        var mats = r.sharedMaterials;
+        for (int i = 0; i < mats.Length; i++)
+        {
+            if (mats[i] == null) continue;
+            r.GetPropertyBlock(block, i);
+            if (mats[i].HasProperty(ColorId)) block.SetColor(ColorId, mats[i].GetColor(ColorId) * 0.3f);
+            if (mats[i].HasProperty(EmissionId)) block.SetColor(EmissionId, Color.black);
+            r.SetPropertyBlock(block, i);
+        }
     }
 }

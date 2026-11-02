@@ -18,3 +18,5 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: f1e7702a2064e174aa9064e89bc80de5, type: 3}
   cost: 800
   buildTime: 15
+  dragLine: 0
+  requires: []

@@ -39,13 +39,26 @@ public class Attacker : MonoBehaviour
         laser.enabled = false;
     }
 
-    public void Attack(Health t) { target = t; ordered = true; }
-    public void Stop() { target = null; ordered = false; }
+    Vector3? attackMove; // walking here, but fighting anything met on the way
+    bool resume;         // attack-move was interrupted by a fight: walk on afterwards
+    bool hold;           // hold position: never walk, only shoot what's in range
 
-    // Got shot: answer back unless busy or walking somewhere.
+    public bool HasTarget => target != null;
+    public void Attack(Health t) { Stop(); target = t; ordered = true; }
+    public void Stop() { target = null; ordered = false; attackMove = null; hold = false; }
+    public void Hold() { Stop(); hold = true; if (agent.isOnNavMesh) agent.ResetPath(); }
+
+    public void AttackMove(Vector3 to)
+    {
+        Stop();
+        attackMove = to;
+        if (agent.isOnNavMesh) agent.SetDestination(to);
+    }
+
+    // Got shot: answer back unless busy or walking somewhere (attack-move counts as looking for a fight).
     public void Retaliate(Health from)
     {
-        if (target == null && !IsMoving() && from.team != self.team) target = from;
+        if (target == null && (attackMove != null || !IsMoving()) && from.team != self.team) target = from;
     }
 
     bool IsMoving() => agent.enabled && (agent.pathPending || (agent.hasPath && agent.remainingDistance > agent.stoppingDistance + 0.5f));
@@ -60,9 +73,23 @@ public class Attacker : MonoBehaviour
         if (target == null) // none yet, or it died
         {
             if (ordered) { ordered = false; if (agent.isOnNavMesh) agent.ResetPath(); }
-            if (IsMoving()) return; // a move order beats looking for fights
-            target = FindEnemy(data.range + aggroExtra);
-            if (target == null) return;
+            if (attackMove is Vector3 dest)
+            {
+                target = FindEnemy(data.range + aggroExtra);
+                if (target == null)
+                {
+                    if (resume) { resume = false; if (agent.isOnNavMesh) agent.SetDestination(dest); }
+                    else if (!IsMoving()) attackMove = null; // arrived
+                    return;
+                }
+                resume = true;
+            }
+            else
+            {
+                if (IsMoving()) return; // a move order beats looking for fights
+                target = FindEnemy(hold ? data.range : data.range + aggroExtra);
+                if (target == null) return;
+            }
         }
 
         Vector3 aim = AimPoint(target, transform.position);
@@ -72,6 +99,7 @@ public class Attacker : MonoBehaviour
 
         if (dist > data.range)
         {
+            if (hold && !ordered) { target = null; return; } // holding: don't chase
             if (!ordered && dist > data.range + leashExtra) { target = null; return; } // let it go
             if (agent.isOnNavMesh) agent.SetDestination(aim);
             return;
