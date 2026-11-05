@@ -140,6 +140,15 @@ public class OutpostCapture : MonoBehaviour
         OnOwnerChanged?.Invoke(-1);
     }
 
+    /// <summary>GD5 edit: put the state back from a save (garrison goes back in separately).</summary>
+    public void Restore(int owner, int capturing, float progress01, float holdLeft)
+    {
+        EjectAll();
+        ownerTeam = owner; capturingTeam = capturing; progress = progress01; holdTimeLeft = holdLeft;
+        ApplyState();
+        OnOwnerChanged?.Invoke(owner);
+    }
+
     void ApplyState()
     {
         if (ruined) ruined.SetActive(!IsOwned);

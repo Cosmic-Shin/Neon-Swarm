@@ -1,0 +1,148 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &2125381572905707230
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4432288521543006758, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      propertyPath: m_Name
+      value: SniperMantis_Net
+      objectReference: {fileID: 0}
+    - target: {fileID: 5433083592072846739, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5433083592072846739, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5433083592072846739, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5433083592072846739, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5433083592072846739, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5433083592072846739, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5433083592072846739, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5433083592072846739, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5433083592072846739, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5433083592072846739, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4432288521543006758, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4648692650093684649}
+    - targetCorrespondingSourceObject: {fileID: 4432288521543006758, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 894976645859747701}
+    - targetCorrespondingSourceObject: {fileID: 4432288521543006758, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6426407587225025477}
+  m_SourcePrefab: {fileID: 100100000, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+--- !u!1 &2376908478517615864 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4432288521543006758, guid: 7dd0d99ddb8179444a712cb3a3a178fe, type: 3}
+  m_PrefabInstance: {fileID: 2125381572905707230}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4648692650093684649
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2376908478517615864}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 3118789068
+  SendPriority: 1
+  EnableInterpolation: 1
+  Flags: 262402
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 6426407587225025477}
+  - {fileID: 894976645859747701}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &894976645859747701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2376908478517615864}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c9bb018bce9bc643bd4df254f7c8680, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetEntity
+  _OwnerSlot: 0
+--- !u!114 &6426407587225025477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2376908478517615864}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  ConfigFlags: 0
+  PhysicsSettings:
+    ForecastEnabled: 1
+    DebugPhysics: 0
+    GravityForecast: 2
+    MaxExtrapolationTime: 0.15
+    MinLinearDetectedError: 0.02
+    MinAngularDetectedError: 3
+    DeadzoneVelocityMode: 0
+    MaxLinearError: 0
+    MaxAngularError: 0
+    LowCorrectionProgressThreshold: 0.015
+    HighErrorSimilarityThreshold: 1
+    MaxErrorTotalTime: 0.5
+    MaxRemoteSleepIgnoreTime: 0.5
+    ErrorCorrectionType: 0
+    LinearVelCorrectionMul: 1
+    AngularVelCorrectionMul: 1
+    PositionCorrectionLerp: 0.15
+    RotationCorrectionLerp: 0.15
+    Spring: 75
+    Damper: 2
+    MinImpactfulCollisionAlignment: 0.3
+    ImpactStartCorrectionTime: 0.1
+    ImpactCorrectionTimeComplete: 0.3

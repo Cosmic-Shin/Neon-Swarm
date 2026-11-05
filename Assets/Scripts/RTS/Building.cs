@@ -6,7 +6,7 @@ using UnityEngine;
 public class Building : MonoBehaviour
 {
     [SerializeField] SelectableUnit[] unitPrefabs; // one panel button per entry
-    [SerializeField] UpgradeData[] upgrades;       // research options (Research Lab)
+    [SerializeField] ResearchData[] upgrades;      // research options (Research Lab)
     [SerializeField] Transform spawnPoint;
     [SerializeField] float spawnSpread = 1.5f;
     [SerializeField] float exitSpeed = 4f; // m/s while a new unit walks out of the building
@@ -25,7 +25,7 @@ public class Building : MonoBehaviour
     void Awake()
     {
         unitPrefabs = unitPrefabs.OrderBy(u => u.Cost).ToArray(); // cheapest first
-        upgrades = upgrades.OrderBy(u => u.cost).ToArray();
+        upgrades = upgrades.OrderBy(u => u.tier).ThenBy(u => u.branch).ThenBy(u => u.cost).ToArray();
         structure = GetComponent<Structure>();
 
         rallyLine = new GameObject("RallyLine").AddComponent<LineRenderer>();
@@ -39,26 +39,41 @@ public class Building : MonoBehaviour
 
     public int OptionCount => unitPrefabs.Length + upgrades.Length;
     bool IsUnit(int i) => i < unitPrefabs.Length;
-    UpgradeData Upgrade(int i) => upgrades[i - unitPrefabs.Length];
+    ResearchData Upgrade(int i) => upgrades[i - unitPrefabs.Length];
 
     public string NameOf(int i) => IsUnit(i) ? unitPrefabs[i].DisplayName : Upgrade(i).displayName;
     public Sprite IconOf(int i) => IsUnit(i) ? unitPrefabs[i].Icon : Upgrade(i).icon;
     public int CostOf(int i) => IsUnit(i) ? unitPrefabs[i].Cost : Upgrade(i).cost;
-    public float TimeOf(int i) => IsUnit(i) ? unitPrefabs[i].BuildTime : Upgrade(i).researchTime;
-    public string TooltipOf(int i) => IsUnit(i) ? Tooltip.For(unitPrefabs[i].Data) : Tooltip.For(Upgrade(i));
-    public bool IsResearched(int i) => !IsUnit(i) && Upgrades.IsDone(Upgrade(i));
+    public float TimeOf(int i) => IsUnit(i) ? Stats.Value(Stat.BuildTime, unitPrefabs[i].BuildTime, this) : Upgrade(i).researchTime; // Hive Mk II: -20%
+    public string TooltipOf(int i)
+    {
+        string tip = IsUnit(i) ? Tooltip.For(unitPrefabs[i].Data) : Tooltip.For(Upgrade(i));
+        string why = Blocker(i);
+        return why == null || queue.Contains(i) ? tip : tip + $"\n<color=#FF5050>{why}</color>";
+    }
+    public bool IsResearched(int i) => !IsUnit(i) && ResearchManager.IsDone(Upgrade(i));
 
     public int Producing => queue.Count > 0 ? queue[0] : -1;
     public float Progress01 => queue.Count > 0 ? progress / TimeOf(queue[0]) : 0f;
 
-    // Research: only once, so not while it's already queued or done.
-    public bool CanQueue(int i) =>
-        ResourceBank.GetOrCreate().Credits >= CostOf(i) && (IsUnit(i) || (!IsResearched(i) && !queue.Contains(i)));
+    // Why this option can't be queued right now, credits aside (null = it can).
+    // Elite units need Core Nexus Mk III; research: one project per lab, plus ResearchManager's rules.
+    public string Blocker(int i)
+    {
+        if (IsUnit(i))
+            return unitPrefabs[i].Data.role == UnitData.Role.Elite && ResearchManager.CoreLevel < 3 ? "Needs Core Nexus Mk III" : null;
+        if (queue.Exists(q => !IsUnit(q))) return queue.Contains(i) ? "Researching" : "Lab busy: one project at a time";
+        return ResearchManager.Blocker(Upgrade(i), this);
+    }
+
+    public bool CanQueue(int i) => ResourceBank.GetOrCreate().Credits >= CostOf(i) && Blocker(i) == null;
 
     // Paid up front; refused when short on credits.
     public void Enqueue(int index)
     {
-        if (CanQueue(index) && ResourceBank.GetOrCreate().Spend(CostOf(index))) queue.Add(index);
+        if (!CanQueue(index) || !ResourceBank.GetOrCreate().Spend(CostOf(index))) return;
+        queue.Add(index);
+        if (!IsUnit(index)) ResearchManager.Started(Upgrade(index), this);
     }
 
     // Removes the most recently queued one of this type (C&C right-click) and refunds it.
@@ -68,7 +83,27 @@ public class Building : MonoBehaviour
         if (at < 0) return;
         queue.RemoveAt(at);
         if (at == 0) progress = 0f; // cancelled the one in production
+        if (!IsUnit(index)) ResearchManager.Stopped(Upgrade(index));
         ResourceBank.GetOrCreate().Add(CostOf(index));
+    }
+
+    // Saves: the research project running here and its time left.
+    public ResearchData CurrentResearch => queue.Count > 0 && !IsUnit(queue[0]) ? Upgrade(queue[0]) : null;
+    public float TimeLeft => queue.Count > 0 ? TimeOf(queue[0]) - progress : 0f;
+
+    public void RestoreResearch(ResearchData r, float timeLeft)
+    {
+        int i = System.Array.IndexOf(upgrades, r);
+        if (i < 0) return;
+        queue.Insert(0, unitPrefabs.Length + i);
+        progress = Mathf.Max(0f, r.researchTime - timeLeft);
+        ResearchManager.Started(r, this);
+    }
+
+    // Destroyed mid-project: the research is lost (paid for, not refunded), another lab can start it.
+    void OnDestroy()
+    {
+        foreach (int q in queue) if (!IsUnit(q)) ResearchManager.Stopped(Upgrade(q));
     }
 
     public int QueuedCount(int index)
@@ -97,7 +132,7 @@ public class Building : MonoBehaviour
         queue.RemoveAt(0);
         progress = 0f;
         if (IsUnit(done)) { SummonUnit(done); Alerts.Show($"Unit ready: {NameOf(done)}", Alerts.Info); }
-        else { Upgrades.Apply(Upgrade(done)); Alerts.Show($"Research complete: {NameOf(done)}", Alerts.Good); }
+        else { ResearchManager.Complete(Upgrade(done)); Alerts.Show($"Research complete: {NameOf(done)}", Alerts.Good); }
     }
 
     void SummonUnit(int index)
@@ -109,7 +144,7 @@ public class Building : MonoBehaviour
         Vector3? edge = padEdge != null ? padEdge.position + (exit - spawnPoint.position) * 0.5f : null; // follow the spread, roughly
 
         // Created at the exit (on the navmesh), then walks there from inside the building, then on to the rally point.
-        var unit = Instantiate(unitPrefabs[index], exit, Quaternion.LookRotation(spawnPoint.position - transform.position));
+        var unit = Net.Spawn(unitPrefabs[index], exit, Quaternion.LookRotation(spawnPoint.position - transform.position));
         unit.WalkOut(inside, exit, exitSpeed, edge, Rally);
         if (gate != null) gate.Open(Vector3.Distance(inside, exit) / exitSpeed); // shut once it's through
     }

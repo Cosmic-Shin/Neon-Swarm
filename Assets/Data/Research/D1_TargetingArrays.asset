@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd97921bb84e4b24180dbd8959230b27, type: 3}
+  m_Name: D1_TargetingArrays
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchData
+  id: D1
+  displayName: Targeting Arrays
+  description: All defensive structures +15% range.
+  icon: {fileID: 21300000, guid: 2d65808e37d87834c9bca48458fed1e8, type: 3}
+  branch: 4
+  tier: 1
+  cost: 800
+  researchTime: 60
+  requires: {fileID: 0}
+  effects:
+  - stat: 1
+    percent: 0.15
+    flat: 0
+    roles: 
+    units: []
+    buildings: []
+    defenses: 1

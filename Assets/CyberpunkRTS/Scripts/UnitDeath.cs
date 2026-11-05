@@ -50,6 +50,15 @@ public class UnitDeath : MonoBehaviour
     bool _dead;
     public bool IsDead => _dead;
 
+    /// <summary>GD5 edit: return true to take over removing the object (networked objects get despawned).</summary>
+    public static System.Func<GameObject, bool> RemoveHook;
+
+    void Remove()
+    {
+        if (RemoveHook != null && RemoveHook(gameObject)) return;
+        Destroy(gameObject);
+    }
+
     public void Die()
     {
         if (_dead) return;
@@ -128,7 +137,7 @@ public class UnitDeath : MonoBehaviour
             float life = i < wreckPieces ? wreckTime : i < maxPhysicsPieces ? debrisLifetime : 0.05f;
             go.AddComponent<DebrisPiece>().Begin(life, i < wreckPieces ? 2.5f : debrisShrinkTime);
         }
-        Destroy(gameObject);
+        Remove();
     }
 
     IEnumerator AnimateThenWreck()
@@ -136,7 +145,7 @@ public class UnitDeath : MonoBehaviour
         if (animator) animator.SetTrigger(deathTrigger);
         yield return new WaitForSeconds(deathClipLength);
         SpawnWreck();
-        Destroy(gameObject);
+        Remove();
     }
 
     IEnumerator SinkThenWreck()
@@ -150,7 +159,7 @@ public class UnitDeath : MonoBehaviour
         }
         transform.position = start;
         SpawnWreck();
-        Destroy(gameObject);
+        Remove();
     }
 
     void SpawnWreck()

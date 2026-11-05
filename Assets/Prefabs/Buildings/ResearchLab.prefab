@@ -323,6 +323,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Structure
   data: {fileID: 11400000, guid: 9f84673475348ea43bf26d48423a57db, type: 2}
+  isHQ: 0
   fallbackName: Building
   power: -40
   sight: 0
@@ -341,9 +342,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Building
   unitPrefabs: []
   upgrades:
-  - {fileID: 11400000, guid: 0e6ac7d5b1818f34d83b5a81813e1465, type: 2}
-  - {fileID: 11400000, guid: dee198b24dd2cc74f8dc523a0097c39b, type: 2}
-  - {fileID: 11400000, guid: 661af6aa9c9edba4cb1ea2e4ceac333a, type: 2}
+  - {fileID: 11400000, guid: b0ca17fc960850c4f91c2b6f5482ab49, type: 2}
+  - {fileID: 11400000, guid: ef0309265fc49f64a89b0b1c7b53d5c2, type: 2}
+  - {fileID: 11400000, guid: 08d68bd3c880a1343833b8e2df1f4de2, type: 2}
+  - {fileID: 11400000, guid: df0755144a968f144a03f96e8c28677c, type: 2}
+  - {fileID: 11400000, guid: 625503fde0247aa4da156dc7f566591b, type: 2}
+  - {fileID: 11400000, guid: 1df8de70fa2abe148a1ae1e15ee45799, type: 2}
+  - {fileID: 11400000, guid: 27fe5d436692c78419469fbdef8edcde, type: 2}
+  - {fileID: 11400000, guid: b2b81eb5b4090d847b0328684676e27d, type: 2}
+  - {fileID: 11400000, guid: 65a24ecc3de9f6d40b77d0c9b2e7f4bd, type: 2}
+  - {fileID: 11400000, guid: c0d45f989d740a840844e48948e6a4f8, type: 2}
+  - {fileID: 11400000, guid: 7429fddcfe0f1454a9375965e615c7f7, type: 2}
+  - {fileID: 11400000, guid: 9902762a0bea119408e872efa5ac381d, type: 2}
+  - {fileID: 11400000, guid: ecdcc49854d653e4e9c3e5a8268d4bda, type: 2}
+  - {fileID: 11400000, guid: 056747ade39a3fc48b1932a57891af30, type: 2}
+  - {fileID: 11400000, guid: 8ce4bc1db9f36a14b936749a6bf7df41, type: 2}
+  - {fileID: 11400000, guid: cc91ac2c2cabcb04e9056ada9d84ebda, type: 2}
+  - {fileID: 11400000, guid: 239284321ff3ad0499fb59e0e8337c75, type: 2}
   spawnPoint: {fileID: 3109939365173718982}
   spawnSpread: 1.5
   exitSpeed: 4

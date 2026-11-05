@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Chromejaw
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Chromejaw
+  role: 3
   description: Brawler. Must get right up close, then hits very hard.
   icon: {fileID: 21300000, guid: 874828fc2e7ab1f49907e37efe89b4cf, type: 3}
   cost: 650

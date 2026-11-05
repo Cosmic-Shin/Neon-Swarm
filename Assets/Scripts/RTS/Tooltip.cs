@@ -39,6 +39,7 @@ public class Tooltip : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         return $"<color={Cyan}><b>{d.displayName}</b></color>   ${d.cost}  ·  {d.buildTime:0}s\n{d.description}\n<color={Grey}>HP {health.MaxHealth:0}  ·  {p}</color>";
     }
 
-    public static string For(UpgradeData d) =>
-        $"<color={Cyan}><b>{d.displayName}</b></color>   ${d.cost}  ·  {d.researchTime:0}s\n{d.description}\n<color={Grey}>One-time research</color>";
+    public static string For(ResearchData d) =>
+        $"<color={Cyan}><b>{d.displayName}</b></color>   ${d.cost}  ·  {d.researchTime:0}s\n{d.description}\n<color={Grey}>{d.branch} · Tier {d.tier} research" +
+        (d.effects == null || d.effects.Length == 0 ? "  ·  no gameplay effect yet" : "") + "</color>";
 }

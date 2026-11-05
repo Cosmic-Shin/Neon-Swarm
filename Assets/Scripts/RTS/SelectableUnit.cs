@@ -35,8 +35,13 @@ public class SelectableUnit : MonoBehaviour
 
     // EMP: can't move or shoot for a while.
     public bool IsStunned => Time.time < stunnedUntil;
+    public bool IsRemote { get; set; } // multiplayer: another player's unit, moved by the network
+    Vector3 lastPos;
+    float remoteSpeed;
+
     public void Stun(float seconds)
     {
+        if (IsRemote) { GetComponent<NetEntity>().RPC_Status(seconds, 0f); return; } // its owner applies it
         stunnedUntil = Mathf.Max(stunnedUntil, Time.time + seconds);
         if (agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
     }
@@ -44,7 +49,14 @@ public class SelectableUnit : MonoBehaviour
     // Wire snare: half speed for a while.
     float slowedUntil;
     bool wasSlowed;
-    public void Slow(float seconds) => slowedUntil = Mathf.Max(slowedUntil, Time.time + seconds);
+    public void Slow(float seconds)
+    {
+        if (IsRemote) { GetComponent<NetEntity>().RPC_Status(0f, seconds); return; }
+        slowedUntil = Mathf.Max(slowedUntil, Time.time + seconds);
+    }
+
+    // Before research / veterancy; RefreshStats applies the bonuses.
+    float baseSpeed, baseCapacity, baseHarvestRate, baseUnloadTime;
 
     void Awake()
     {
@@ -53,19 +65,47 @@ public class SelectableUnit : MonoBehaviour
         harvester = GetComponent<Harvester>();
         attacker = GetComponent<Attacker>();
         health = GetComponent<Health>();
-        if (harvester != null && !IsEnemy) harvester.harvestRate *= Upgrades.Harvest; // research
-        if (selectionRing != null) selectionRing.SetActive(IsEnemy);
-        if (IsEnemy && selectionRing != null)
+        baseSpeed = agent.speed;
+        if (harvester != null) (baseCapacity, baseHarvestRate, baseUnloadTime) = (harvester.capacity, harvester.harvestRate, harvester.unloadTime);
+        Stats.Changed += RefreshStats;
+        RefreshStats();
+        ApplyTeamLook();
+    }
+
+    // Enemy ring always on, tinted (multiplayer: that player's colour). Re-run once a network unit knows its team.
+    public void ApplyTeamLook()
+    {
+        if (selectionRing == null) return;
+        selectionRing.SetActive(IsEnemy || IsSelected);
+        if (!IsEnemy) return;
+        var mat = selectionRing.GetComponent<Renderer>().material; // per-enemy copy
+        Color ring = health.team == Creep.Team ? CreepRing : Net.Online ? Net.ColorOf(health.team) : EnemyRing;
+        mat.color = ring;
+        mat.SetColor("_EmissionColor", ring * 2f);
+    }
+
+    void RefreshStats()
+    {
+        if (harvester != null) // it drives its own agent speed
         {
-            var mat = selectionRing.GetComponent<Renderer>().material; // per-enemy copy
-            Color ring = health.team == Creep.Team ? CreepRing : EnemyRing;
-            mat.color = ring;
-            mat.SetColor("_EmissionColor", ring * 2f);
+            harvester.capacity = Stats.Value(Stat.HarvestCapacity, baseCapacity, this);
+            harvester.harvestRate = Stats.Value(Stat.HarvestRate, baseHarvestRate, this);
+            harvester.unloadTime = Stats.Value(Stat.UnloadTime, baseUnloadTime, this);
+            return;
         }
+        agent.speed = Stats.Value(Stat.MoveSpeed, baseSpeed, this) * (wasSlowed ? 0.5f : 1f);
     }
 
     void Update()
     {
+        if (IsRemote) // legs follow how fast the network moves it
+        {
+            float dt = Mathf.Max(Time.deltaTime, 0.0001f);
+            remoteSpeed = Mathf.Lerp(remoteSpeed, (transform.position - lastPos).magnitude / dt, 10f * dt);
+            lastPos = transform.position;
+            if (animator != null) animator.SetFloat(SpeedHash, remoteSpeed);
+            return;
+        }
         if (animator != null && agent.enabled) animator.SetFloat(SpeedHash, agent.velocity.magnitude);
         if (agent.enabled && agent.isOnNavMesh && agent.isStopped && !IsStunned) agent.isStopped = false; // stun wore off
         bool slowedNow = Time.time < slowedUntil;
@@ -218,5 +258,9 @@ public class SelectableUnit : MonoBehaviour
         manager.OnHoldCommand -= HandleHoldCommand;
     }
 
-    void OnDestroy() => Unsubscribe();
+    void OnDestroy()
+    {
+        Unsubscribe();
+        Stats.Changed -= RefreshStats;
+    }
 }

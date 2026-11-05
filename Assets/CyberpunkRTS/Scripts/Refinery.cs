@@ -11,21 +11,33 @@ public class Refinery : MonoBehaviour
     [Tooltip("Multiplies the queue spacing; match the model's scale.")]
     public float queueScale = 1f;
 
-    public Harvester Occupant { get; private set; }
     readonly List<Harvester> queue = new List<Harvester>();
+    // GD5 edit: up to two docks. "Refinery_DockPoint2" sits in the Mk II add-on, so it's only used once that shows.
+    readonly List<Transform> docks = new List<Transform>();
+    readonly Dictionary<Transform, Harvester> occupant = new Dictionary<Transform, Harvester>();
 
     void OnEnable() => All.Add(this);
     void OnDisable() => All.Remove(this);
 
     void Awake()
     {
-        if (!dockPoint)
-            foreach (var t in GetComponentsInChildren<Transform>(true))
-                if (t.name == "Refinery_DockPoint") { dockPoint = t; break; }
+        foreach (var t in GetComponentsInChildren<Transform>(true))
+        {
+            if (!dockPoint && t.name == "Refinery_DockPoint") dockPoint = t;
+            if (t.name == "Refinery_DockPoint2") docks.Add(t);
+        }
         if (!dockPoint) dockPoint = transform;
+        docks.Insert(0, dockPoint);
     }
 
     public Vector3 DockPosition => dockPoint.position;
+    public Vector3 DockPositionOf(Harvester h) => (DockOf(h) ?? dockPoint).position;
+
+    Transform DockOf(Harvester h)
+    {
+        foreach (var kv in occupant) if (kv.Value == h) return kv.Key;
+        return null;
+    }
 
     /// <summary>A docked harvester faces into the refinery.</summary>
     public Quaternion DockFacing
@@ -44,17 +56,25 @@ public class Refinery : MonoBehaviour
 
     public bool TryDock(Harvester h)
     {
-        if (Occupant && Occupant != h && Occupant.isActiveAndEnabled) { if (!queue.Contains(h)) queue.Add(h); return false; }
+        if (DockOf(h) != null) return true;
         queue.RemoveAll(q => !q);
-        if (queue.Count > 0 && queue[0] != h && Occupant != h) { if (!queue.Contains(h)) queue.Add(h); return false; }
-        queue.Remove(h);
-        Occupant = h;
-        return true;
+        if (queue.Count > 0 && queue[0] != h) { if (!queue.Contains(h)) queue.Add(h); return false; } // first come, first served
+        foreach (var d in docks)
+        {
+            if (!d.gameObject.activeInHierarchy) continue; // Mk II dock not built yet
+            if (occupant.TryGetValue(d, out var o) && o && o.isActiveAndEnabled) continue;
+            occupant[d] = h;
+            queue.Remove(h);
+            return true;
+        }
+        if (!queue.Contains(h)) queue.Add(h);
+        return false;
     }
 
     public void Release(Harvester h)
     {
-        if (Occupant == h) Occupant = null;
+        var d = DockOf(h);
+        if (d) occupant.Remove(d);
         queue.Remove(h);
     }
 

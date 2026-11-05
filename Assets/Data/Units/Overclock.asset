@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Overclock
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Overclock
+  role: 5
   description: 'Gatling gunner. Fires four times a second: the highest steady damage
     at mid range.'
   icon: {fileID: 21300000, guid: ea3c4604266001d40a511215d46a06d5, type: 3}

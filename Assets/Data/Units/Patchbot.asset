@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Patchbot
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Patchbot
+  role: 4
   description: 'Field medic. Heals damaged units within 10m. Weak gun: keep it behind
     the fight.'
   icon: {fileID: 21300000, guid: d47954cf72f13c3459a171f6a55bf07b, type: 3}

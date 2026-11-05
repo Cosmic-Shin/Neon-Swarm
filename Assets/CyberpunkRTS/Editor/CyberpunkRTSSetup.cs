@@ -56,6 +56,7 @@ public static class CyberpunkRTSSetup
         SetupIcons();
         BuildPrefabs();
         BuildEnvironmentPrefabs();
+        BuildConstructionResources();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log("[CyberpunkRTS] Setup complete: materials, import settings, death animations, prefabs.");
@@ -225,7 +226,16 @@ public static class CyberpunkRTSSetup
                 string name = Path.GetFileNameWithoutExtension(path);
                 var model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 if (!model) continue;
-                var go = (GameObject)PrefabUtility.InstantiatePrefab(model);
+                var modelGo = (GameObject)PrefabUtility.InstantiatePrefab(model);
+                GameObject go = modelGo;
+                if (folder == "Units")
+                {
+                    // Walk/Idle key the FBX root's transform, so the Animator must not sit on the prefab root
+                    // (it would pin every unit to the origin). Root = empty mover, model = animated child.
+                    go = new GameObject();
+                    modelGo.name = "Model";
+                    modelGo.transform.SetParent(go.transform, false);
+                }
                 go.name = name;
                 AddSelectionCollider(go);
                 var d = go.AddComponent<UnitDeath>();
@@ -233,8 +243,8 @@ public static class CyberpunkRTSSetup
                 Animator anim = null;
                 if (folder == "Units")
                 {
-                    anim = go.GetComponent<Animator>();
-                    if (!anim) anim = go.AddComponent<Animator>();
+                    anim = modelGo.GetComponent<Animator>();
+                    if (!anim) anim = modelGo.AddComponent<Animator>();
                     anim.applyRootMotion = false;
                     anim.runtimeAnimatorController = CreateController(name, path);
                     d.animator = anim;
@@ -265,6 +275,19 @@ public static class CyberpunkRTSSetup
                 {
                     Object.DestroyImmediate(d);          // the outpost is never destroyed, it reverts to ruins
                     go.AddComponent<OutpostCapture>();
+                }
+                if (folder == "Buildings" && go.GetComponentsInChildren<Transform>(true).Any(t => t.name.EndsWith("_Upgrade_Mk2")))
+                {
+                    var up = go.AddComponent<BuildingUpgrade>();
+                    var costs = new Dictionary<string, (int[] c, float[] t)> {
+                        { "CoreNexus",    (new[] { 0, 0, 1500, 3000 }, new[] { 0f, 0f, 60f, 90f }) },
+                        { "AssemblyHive", (new[] { 0, 0, 1000, 0 },    new[] { 0f, 0f, 45f, 0f }) },
+                        { "DataRefinery", (new[] { 0, 0, 1200, 0 },    new[] { 0f, 0f, 45f, 0f }) },
+                        { "NeonTurret",   (new[] { 0, 0, 500, 0 },     new[] { 0f, 0f, 30f, 0f }) },
+                        { "PowerPylon",   (new[] { 0, 0, 400, 0 },     new[] { 0f, 0f, 25f, 0f }) },
+                        { "UplinkTower",  (new[] { 0, 0, 800, 0 },     new[] { 0f, 0f, 40f, 0f }) },
+                    };
+                    if (costs.TryGetValue(name, out var ct)) { up.upgradeCost = ct.c; up.upgradeTime = ct.t; }
                 }
                 PrefabUtility.SaveAsPrefabAsset(go, $"{PrefabDir}/{folder}/{name}.prefab");
                 Object.DestroyImmediate(go);
@@ -381,6 +404,61 @@ public static class CyberpunkRTSSetup
         EditorApplication.ExecuteMenuItem("Tools/Cyberpunk RTS/3. Add Neon Bloom to Open Scene");
         EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene(), $"{Root}/Scenes/CyberpunkRTS_Outpost.unity");
         Debug.Log("[CyberpunkRTS] Outpost demo built. Press Play: 1/2 send squads, G garrison, E eject.");
+    }
+
+    static void BuildConstructionResources()
+    {
+        string dir = Root + "/Resources/Construction";
+        EnsureFolder(dir);
+        foreach (var n in new[] { "Build_Pad", "Build_Pole", "Build_Rail", "Build_ScanFrame", "Build_Drone" })
+        {
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{Models}/Construction/{n}.fbx");
+            if (!model) continue;
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(model);
+            go.name = n;
+            PrefabUtility.SaveAsPrefabAsset(go, $"{dir}/{n}.prefab");
+            Object.DestroyImmediate(go);
+        }
+        AssetDatabase.DeleteAsset($"{dir}/Hologram.mat");
+        AssetDatabase.CopyAsset($"{MatDir}/Shield_Hologram.mat", $"{dir}/Hologram.mat");
+        AssetDatabase.DeleteAsset($"{dir}/Beam.mat");
+        AssetDatabase.CopyAsset($"{MatDir}/Skitter_NeonYellow.mat", $"{dir}/Beam.mat");
+    }
+
+    [MenuItem("Tools/Cyberpunk RTS/6. Build Construction Demo Scene")]
+    public static void BuildConstructionScene()
+    {
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        EnsureFolder(Root + "/Scenes");
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        RenderSettings.skybox = null; RenderSettings.ambientMode = AmbientMode.Flat; RenderSettings.ambientLight = new Color(0.16f, 0.16f, 0.24f);
+        var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        ground.name = "Ground"; ground.transform.localScale = new Vector3(4f, 1f, 4f);
+        var asphalt = AssetDatabase.LoadAssetAtPath<Material>($"{MatDir}/Env_Asphalt.mat");
+        if (asphalt) ground.GetComponent<Renderer>().sharedMaterial = asphalt;
+        var sun = new GameObject("Moonlight").AddComponent<Light>();
+        sun.type = LightType.Directional; sun.intensity = 0.8f; sun.color = new Color(0.75f, 0.8f, 1f);
+        sun.transform.rotation = Quaternion.Euler(50f, -30f, 0f); sun.shadows = LightShadows.Soft;
+        var camGo = new GameObject("Main Camera"); camGo.tag = "MainCamera";
+        var cam = camGo.AddComponent<Camera>();
+        cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.02f, 0.02f, 0.05f); cam.allowHDR = true;
+        camGo.transform.position = new Vector3(0f, 11f, -9f); camGo.transform.rotation = Quaternion.Euler(50f, 0f, 0f);
+        var bank = new GameObject("ResourceBank").AddComponent<ResourceBank>();
+        bank.startingCredits = 20000;
+        var placer = new GameObject("BuildPlacer").AddComponent<BuildPlacer>();
+        var list = new (string n, int c, float t)[] {
+            ("CoreNexus", 3000, 16f), ("AssemblyHive", 1500, 12f), ("DataRefinery", 1200, 12f), ("PowerPylon", 300, 6f),
+            ("NeonTurret", 500, 8f), ("ResearchLab", 1200, 12f), ("UplinkTower", 800, 10f), ("ArcCoil", 900, 10f), ("RailspikeTower", 1100, 10f) };
+        foreach (var e in list)
+        {
+            var p = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/Buildings/{e.n}.prefab");
+            if (p) placer.buildable.Add(new BuildPlacer.Entry { prefab = p, cost = e.c, buildTime = e.t });
+        }
+        var tester = new GameObject("DeathTester").AddComponent<DeathTester>();
+        tester.clickToKill = false;
+        EditorApplication.ExecuteMenuItem("Tools/Cyberpunk RTS/3. Add Neon Bloom to Open Scene");
+        EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene(), $"{Root}/Scenes/CyberpunkRTS_Construction.unity");
+        Debug.Log("[CyberpunkRTS] Construction demo built. Press Play, pick a building with 1-9, click to place.");
     }
 
     [MenuItem("Tools/Cyberpunk RTS/2. Build Test Scene")]

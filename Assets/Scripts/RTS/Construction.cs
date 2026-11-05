@@ -1,46 +1,80 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// Added to a freshly placed building: it rises out of the ground over `duration` seconds with a
-// progress bar above it, and its scripts (unit production, refinery docking) stay off until it's finished.
+// Added to a freshly placed building. The pack's ConstructionSite does the look (pad, scaffold,
+// hologram, scan frame, welding drones, building rising out of the ground); this script keeps the
+// building's own scripts off until it's done and shows our neon progress bar.
+// Multiplayer, another player's building (remote): just the look, following the progress its owner sends.
 public class Construction : MonoBehaviour
 {
     public float duration = 10f;
     public RectTransform barTemplate; // disabled UI template with a "Fill" child (Image, Filled)
+    public float kitScale = 4f;       // our buildings are 4x the pack's size
+    public float startProgress;       // 0..1, loading a save
+    public bool remote;               // set by NetEntity on other players' buildings
 
-    float elapsed;
-    Vector3 fullScale;
-    float fullTop;
+    public float Progress => site != null ? site.Progress : startProgress;
+    public Vector3 PlacedAt { get; private set; } // where it was put down (it sinks while being built)
+
     MonoBehaviour[] features; // the building's own scripts, paused while under construction
+    ConstructionSite site;
     Collider col;
+    float fullTop;
     RectTransform bar;
     Image fill;
     Camera cam;
 
+    void Awake() => PlacedAt = transform.position;
+
     void Start()
     {
+        if (remote)
+        {
+            site = ConstructionSite.Attach(gameObject, 1e6f, kitScale); // never finishes on its own
+            site.Skip(startProgress);
+            SetAbilities(false); // a half-built cloak field or uplink does nothing yet
+            return;
+        }
+
         cam = Camera.main;
-        fullScale = transform.localScale;
         col = GetComponent<Collider>();
-        fullTop = col.bounds.max.y; // finished height, measured before it's squashed
+        fullTop = col.bounds.max.y; // finished height, measured before it sinks
         features = GetComponents<MonoBehaviour>();
-        foreach (var f in features) if (f != this && f is not Health) f.enabled = false; // can be shot while building
+        foreach (var f in features) if (f != this && f is not Health && f is not Fusion.NetworkBehaviour) f.enabled = false; // can be shot while building
 
         bar = Instantiate(barTemplate, barTemplate.parent);
         bar.SetSiblingIndex(barTemplate.GetSiblingIndex() + 1); // stays behind the HUD panels
         bar.gameObject.SetActive(true);
         fill = bar.Find("Fill").GetComponent<Image>();
-        Apply(0f);
+        fill.fillAmount = 0f;
+
+        site = ConstructionSite.Attach(gameObject, duration, kitScale);
+        if (startProgress > 0f) site.Skip(startProgress);
+    }
+
+    // Remote: the owner's progress; done when the owner says so.
+    public void SetRemoteProgress(float p) { if (site != null) site.Skip(p); else startProgress = p; }
+
+    public void FinishRemote()
+    {
+        if (site != null) site.Skip(1f); // the site completes itself next frame
+        SetAbilities(true);
+        Destroy(this);
+    }
+
+    void SetAbilities(bool on)
+    {
+        if (TryGetComponent(out CloakField c)) c.enabled = on;
+        if (TryGetComponent(out Revealer r)) r.enabled = on;
     }
 
     void Update()
     {
-        elapsed += Time.deltaTime;
-        float k = Mathf.Clamp01(elapsed / duration);
-        Apply(k);
-        if (k < 1f) return;
+        if (remote) return;
+        fill.fillAmount = site.Progress;
+        if (site.Progress < 1f) return;
 
-        foreach (var f in features) if (f != this && f != null) f.enabled = true;
+        foreach (var f in features) if (f != this && f != null && f is not Fusion.NetworkBehaviour) f.enabled = true;
         SendMessage("OnConstructed", SendMessageOptions.DontRequireReceiver); // e.g. FreeHarvester
         if (TryGetComponent(out Structure s)) Alerts.Show($"Construction complete: {s.Name}", Alerts.Good);
         Destroy(this);
@@ -48,17 +82,12 @@ public class Construction : MonoBehaviour
 
     void LateUpdate()
     {
+        if (remote) return;
         // Bar floats just above where the finished roof will be.
         Bounds b = col.bounds;
         Vector3 screen = cam.WorldToScreenPoint(new Vector3(b.center.x, fullTop, b.center.z));
         bar.gameObject.SetActive(screen.z > 0f);
         bar.position = screen + Vector3.up * 16f;
-    }
-
-    void Apply(float k)
-    {
-        transform.localScale = new Vector3(fullScale.x, fullScale.y * Mathf.Max(k, 0.02f), fullScale.z);
-        fill.fillAmount = k;
     }
 
     void OnDestroy()

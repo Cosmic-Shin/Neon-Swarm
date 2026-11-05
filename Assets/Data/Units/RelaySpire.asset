@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: RelaySpire
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: RelaySpire
+  role: 4
   description: Spotter. Huge sight range so artillery and snipers can shoot what
     it sees.
   icon: {fileID: 21300000, guid: 14a66a7a1fa1bf14595e2ea56e9c01de, type: 3}

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: NetrunnerHive
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: NetrunnerHive
+  role: 5
   description: 'Hacker. Each hit stuns the target for 1.2s: locks down a dangerous
     unit.'
   icon: {fileID: 21300000, guid: 7188eab6b3883f1409bd43db36ab62a4, type: 3}

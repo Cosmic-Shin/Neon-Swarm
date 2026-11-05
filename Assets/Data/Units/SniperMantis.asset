@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: SniperMantis
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: SniperMantis
+  role: 2
   description: Sniper. Longest range and huge single shots. Kills key units, fragile
     up close.
   icon: {fileID: 21300000, guid: fa965a235e662f64fa54b6c50e065a39, type: 3}

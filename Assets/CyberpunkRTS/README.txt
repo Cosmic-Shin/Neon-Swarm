@@ -1,4 +1,5 @@
 CYBERPUNK RTS KIT (exported from Blender)
+GOODLUCK BUSSENG!
 
 1. Let Unity finish importing.
 2. Menu: Tools > Cyberpunk RTS > 1. Setup Materials, Imports and Prefabs

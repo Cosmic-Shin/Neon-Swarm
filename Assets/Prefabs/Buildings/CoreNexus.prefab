@@ -158,6 +158,9 @@ GameObject:
   - component: {fileID: 7115254961374054736}
   - component: {fileID: 4073113075593126884}
   - component: {fileID: 4389505064126372972}
+  - component: {fileID: 6709731457612380504}
+  - component: {fileID: 8993738178212410500}
+  - component: {fileID: 2957529769510993340}
   m_Layer: 9
   m_Name: CoreNexus
   m_TagString: Untagged
@@ -283,6 +286,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Structure
   data: {fileID: 0}
+  isHQ: 1
   fallbackName: Core Nexus
   power: 100
   sight: 0
@@ -303,6 +307,69 @@ MonoBehaviour:
   fire: {fileID: 8623457806621160266, guid: 3a6037cadc939484c86ac1811c23f371, type: 3}
   spark: {fileID: 2368381330221681213, guid: 6e0553d6e46b9a7418595bfa45d2018c, type: 3}
   smokeLinger: 10
+--- !u!114 &6709731457612380504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6725449398094621704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9aa668d9dc1a5984d8b2bd181f99a24e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildRadius
+  radius: 30
+  ringColor: {r: 0.3, g: 1, b: 0.6, a: 0.6}
+--- !u!114 &8993738178212410500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6725449398094621704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68f47a9b0e554ce479377ed35ea5f354, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingUpgrade
+  level: 1
+  maxLevel: 2
+  upgradeCost: 0000000000000000dc050000b80b0000
+  upgradeTime:
+  - 0
+  - 0
+  - 60
+  - 90
+  revealTime: 0.35
+--- !u!114 &2957529769510993340
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6725449398094621704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfe352e78c0828343ba48874a1e2202e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UpgradeEffects
+  levels:
+  - level: 2
+    displayName: Core Nexus Mk II
+    description: Unlocks Tier 2 research; Core armor +25%.
+    mods:
+    - stat: 3
+      percent: 0.25
+      flat: 0
+      roles: 
+      units: []
+      buildings: []
+      defenses: 0
+  - level: 3
+    displayName: Core Nexus Mk III
+    description: Unlocks Tier 3 research and elite units.
+    mods: []
 --- !u!1 &6807123620625458066
 GameObject:
   m_ObjectHideFlags: 0
@@ -601,6 +668,10 @@ PrefabInstance:
     - target: {fileID: -5485046606082194821, guid: 739615bb32923e94088a37c58ecb1780, type: 3}
       propertyPath: m_Layer
       value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: -5377664622239808693, guid: 739615bb32923e94088a37c58ecb1780, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -5331887593084820729, guid: 739615bb32923e94088a37c58ecb1780, type: 3}
       propertyPath: m_Layer
@@ -1185,6 +1256,10 @@ PrefabInstance:
     - target: {fileID: 8237135949135730875, guid: 739615bb32923e94088a37c58ecb1780, type: 3}
       propertyPath: m_Layer
       value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 8289032742751422041, guid: 739615bb32923e94088a37c58ecb1780, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8425711449713388710, guid: 739615bb32923e94088a37c58ecb1780, type: 3}
       propertyPath: m_Layer

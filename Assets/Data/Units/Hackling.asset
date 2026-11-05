@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Hackling
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Hackling
+  role: 2
   description: Swarm unit. Cheap, fast and fragile. Win by numbers.
   icon: {fileID: 21300000, guid: 68bc1fe6a057cb44fa5af598356ea639, type: 3}
   cost: 300

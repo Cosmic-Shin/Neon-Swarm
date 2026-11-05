@@ -61,8 +61,8 @@ public class Outpost : MonoBehaviour
         foreach (var g in capture.Garrison)
         {
             if (g == null || !g.TryGetComponent(out SelectableUnit u)) continue;
-            damage += u.Data.damage;
-            reach = Mathf.Max(reach, u.Data.range * capture.garrisonRangeBonus);
+            damage += Stats.Value(Stat.Damage, u.Data.damage, u);   // research + veterancy carry inside
+            reach = Mathf.Max(reach, Stats.Value(Stat.Range, u.Data.range, u) * capture.garrisonRangeBonus);
         }
 
         Health target = null;

@@ -8,6 +8,7 @@ public class DeathTester : MonoBehaviour
 {
     public float panSpeed = 14f;
     public float zoomStep = 2.5f;
+    public bool clickToKill = true;
     Camera cam;
     bool walking;
     static readonly int SpeedId = Animator.StringToHash("Speed");
@@ -28,6 +29,7 @@ public class DeathTester : MonoBehaviour
             if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) move.x -= 1;
             kill = kb.kKey.wasPressedThisFrame;
             if (kb.spaceKey.wasPressedThisFrame) ToggleWalk();
+            if (kb.uKey.wasPressedThisFrame) UpgradeNearest();
             fast = kb.leftShiftKey.isPressed;
         }
         if (ms != null)
@@ -43,13 +45,14 @@ public class DeathTester : MonoBehaviour
         click = Input.GetMouseButtonDown(0); kill = Input.GetKeyDown(KeyCode.K);
         mouse = Input.mousePosition; fast = Input.GetKey(KeyCode.LeftShift);
         if (Input.GetKeyDown(KeyCode.Space)) ToggleWalk();
+        if (Input.GetKeyDown(KeyCode.U)) UpgradeNearest();
 #endif
         var t = cam.transform;
         Vector3 fwd = Vector3.ProjectOnPlane(t.forward, Vector3.up).normalized;
         t.position += (t.right * move.x + fwd * move.y) * panSpeed * (fast ? 3f : 1f) * Time.deltaTime;
         if (zoom != 0f) t.position += t.forward * zoom * zoomStep;
 
-        if (click && Physics.Raycast(cam.ScreenPointToRay(mouse), out var hit, 1000f))
+        if (clickToKill && click && Physics.Raycast(cam.ScreenPointToRay(mouse), out var hit, 1000f))
         {
             var d = hit.collider.GetComponentInParent<UnitDeath>();
             if (d) d.Die();
@@ -70,6 +73,21 @@ public class DeathTester : MonoBehaviour
         }
     }
 
+    void UpgradeNearest()
+    {
+        var ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        var ground = new Plane(Vector3.up, Vector3.zero);
+        Vector3 p = ground.Raycast(ray, out float dist) ? ray.GetPoint(dist) : cam.transform.position;
+        BuildingUpgrade best = null; float bestD = float.MaxValue;
+        foreach (var b in FindObjectsByType<BuildingUpgrade>(FindObjectsSortMode.None))
+        {
+            if (!b.CanUpgrade) continue;
+            float d = (b.transform.position - p).sqrMagnitude;
+            if (d < bestD) { bestD = d; best = b; }
+        }
+        if (best) best.SetLevel(best.level + 1, true);   // test key: instant, free
+    }
+
     void ToggleWalk()
     {
         walking = !walking;
@@ -79,6 +97,6 @@ public class DeathTester : MonoBehaviour
 
     void OnGUI()
     {
-        GUI.Label(new Rect(12, 10, 900, 24), "WASD / arrows: pan (Shift = fast)    Scroll: zoom    Space: toggle walk / idle    Click a unit or building: kill it    K: kill nearest");
+        GUI.Label(new Rect(12, 10, 900, 24), "WASD / arrows: pan (Shift = fast)    Scroll: zoom    Space: toggle walk / idle    U: upgrade nearest building    Click a unit or building: kill it    K: kill nearest");
     }
 }

@@ -13,7 +13,7 @@ public class FreeHarvester : MonoBehaviour
         Vector3 inside = transform.position - outDir.normalized * 2.5f; 
         inside.y = dock.y;
 
-        var unit = Instantiate(harvesterPrefab, dock, Quaternion.LookRotation(outDir));
+        var unit = Net.Spawn(harvesterPrefab, dock, Quaternion.LookRotation(outDir));
         unit.WalkOut(inside, dock, exitSpeed);
     }
 }

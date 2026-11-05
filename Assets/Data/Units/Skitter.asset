@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Skitter
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Skitter
+  role: 2
   description: 'Light gunner. Fast, rapid fire: good at picking off light units.'
   icon: {fileID: 21300000, guid: 4afc846d503af2e45956b87adf072ee1, type: 3}
   cost: 450

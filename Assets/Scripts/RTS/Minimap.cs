@@ -43,7 +43,7 @@ public class Minimap : MonoBehaviour, IPointerDownHandler, IDragHandler
             if (!o.IsDepleted && Explored(o.transform.position)) Dot(o.transform.position, 3f, o.valueMultiplier > 1f ? RedOre : GreenOre);
         foreach (var h in Health.All)
             if (h.team == 0 || fog == null || fog.IsVisible(h.transform.position) || (Radar.Active && h.TryGetComponent(out SelectableUnit _))) // enemies: in sight, or radar
-                Dot(h.transform.position, h.TryGetComponent(out SelectableUnit _) ? 4f : 8f, TeamMember.ColorOf(h.team));
+                Dot(h.transform.position, h.TryGetComponent(out SelectableUnit _) ? 4f : 8f, Net.ColorOf(h.team));
         foreach (var o in outposts)
             if (o != null && Explored(o.transform.position)) Dot(o.transform.position, 10f, o.IsOwned ? TeamMember.ColorOf(o.ownerTeam) : Color.white);
         for (int i = used; i < pool.Count; i++) pool[i].enabled = false;

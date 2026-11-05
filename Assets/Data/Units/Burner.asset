@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Burner
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Burner
+  role: 2
   description: 'Flamethrower. Short range, but every burst splashes: shreds groups
     of light units.'
   icon: {fileID: 21300000, guid: 06df9ee418ce1c740aead5c42a21c67c, type: 3}

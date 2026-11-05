@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: EMPCentipede
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: EMPCentipede
+  role: 3
   description: Disabler. EMP shots stun everything within 5m of the target for 1.5s.
   icon: {fileID: 21300000, guid: 50cb9b1acef7eb54f9cc32a07b1cc2d0, type: 3}
   cost: 900

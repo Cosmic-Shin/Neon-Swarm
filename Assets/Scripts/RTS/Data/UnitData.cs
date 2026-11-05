@@ -4,7 +4,10 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "RTS/Unit Data", fileName = "NewUnit")]
 public class UnitData : ScriptableObject
 {
+    public enum Role { Worker, Scout, Infantry, Heavy, Support, Elite } // research targets roles; Elite needs Core Nexus Mk III
+
     public string displayName;
+    public Role role = Role.Infantry;
     [TextArea] public string description; // shown in the shop tooltip
     public Sprite icon;
     public int cost = 300;          // credits, paid when queued

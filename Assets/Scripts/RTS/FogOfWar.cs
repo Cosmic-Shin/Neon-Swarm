@@ -90,10 +90,11 @@ public class FogOfWar : MonoBehaviour
 
     float Sight(Health h)
     {
-        if (h.TryGetComponent(out SelectableUnit u)) return Mathf.Max(unitSight, u.Data.range + 8f, u.Data.sight);
+        if (h.TryGetComponent(out SelectableUnit u)) return Stats.Value(Stat.Sight, Mathf.Max(unitSight, u.Data.range + 8f, u.Data.sight), u);
         float reach = buildingSight;
         if (h.TryGetComponent(out Turret t)) reach = Mathf.Max(reach, t.Range + 6f);
         if (h.TryGetComponent(out Structure s) && s.sight > 0f && !Structure.LowPower) reach = Mathf.Max(reach, s.sight); // Overwatch Spire
+        reach = Stats.Value(Stat.Sight, reach, h); // Uplink Mk II, Hive Mind Uplink
         if (h.TryGetComponent(out Collider c)) reach += Mathf.Max(c.bounds.extents.x, c.bounds.extents.z);
         return reach;
     }

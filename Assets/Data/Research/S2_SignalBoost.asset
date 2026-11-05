@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd97921bb84e4b24180dbd8959230b27, type: 3}
+  m_Name: S2_SignalBoost
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchData
+  id: S2
+  displayName: Signal Boost
+  description: Relay Spire sight radius +40%; Wire Weaver webs also stun for 1 s.
+  icon: {fileID: 21300000, guid: d47954cf72f13c3459a171f6a55bf07b, type: 3}
+  branch: 3
+  tier: 2
+  cost: 900
+  researchTime: 60
+  requires: {fileID: 11400000, guid: 7429fddcfe0f1454a9375965e615c7f7, type: 2}
+  effects:
+  - stat: 5
+    percent: 0.4
+    flat: 0
+    roles: 
+    units:
+    - {fileID: 11400000, guid: 0c6648f0dd9ed904ca77520bdc955d68, type: 2}
+    buildings: []
+    defenses: 0
+  - stat: 13
+    percent: 0
+    flat: 1
+    roles: 
+    units:
+    - {fileID: 11400000, guid: 25b41dbde3e4cc2499263266934a7598, type: 2}
+    buildings: []
+    defenses: 0

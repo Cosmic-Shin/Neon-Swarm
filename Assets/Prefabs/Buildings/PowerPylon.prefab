@@ -106,6 +106,9 @@ GameObject:
   - component: {fileID: 9189745451933090666}
   - component: {fileID: 8473766758237715522}
   - component: {fileID: 6750971926054034804}
+  - component: {fileID: 7639326513657853003}
+  - component: {fileID: 2865485515992915009}
+  - component: {fileID: 4867168153980563589}
   m_Layer: 9
   m_Name: PowerPylon
   m_TagString: Untagged
@@ -231,6 +234,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Structure
   data: {fileID: 11400000, guid: 31a81363c911e9945b10d704c1bda88b, type: 2}
+  isHQ: 0
   fallbackName: Building
   power: 100
   sight: 0
@@ -251,6 +255,58 @@ MonoBehaviour:
   fire: {fileID: 8623457806621160266, guid: 3a6037cadc939484c86ac1811c23f371, type: 3}
   spark: {fileID: 2368381330221681213, guid: 6e0553d6e46b9a7418595bfa45d2018c, type: 3}
   smokeLinger: 10
+--- !u!114 &7639326513657853003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5016550862087509895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9aa668d9dc1a5984d8b2bd181f99a24e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildRadius
+  radius: 0
+  ringColor: {r: 0.3, g: 1, b: 0.6, a: 0.6}
+--- !u!114 &2865485515992915009
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5016550862087509895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68f47a9b0e554ce479377ed35ea5f354, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingUpgrade
+  level: 1
+  maxLevel: 2
+  upgradeCost: 00000000000000009001000000000000
+  upgradeTime:
+  - 0
+  - 0
+  - 25
+  - 0
+  revealTime: 0.35
+--- !u!114 &4867168153980563589
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5016550862087509895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfe352e78c0828343ba48874a1e2202e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UpgradeEffects
+  levels:
+  - level: 2
+    displayName: Power Pylon Mk II
+    description: Build radius +50%.
+    mods: []
 --- !u!1 &5978965548672005262
 GameObject:
   m_ObjectHideFlags: 0
@@ -469,6 +525,10 @@ PrefabInstance:
     - target: {fileID: -7397265013605567441, guid: 65bc408f05aa2be40875efa7390b8491, type: 3}
       propertyPath: m_Layer
       value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: -7215881582965019434, guid: 65bc408f05aa2be40875efa7390b8491, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -6987503080554797913, guid: 65bc408f05aa2be40875efa7390b8491, type: 3}
       propertyPath: m_Layer

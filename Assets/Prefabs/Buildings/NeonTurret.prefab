@@ -250,6 +250,8 @@ GameObject:
   - component: {fileID: 2823444736110469065}
   - component: {fileID: 1021833382590553132}
   - component: {fileID: 6963824718092571078}
+  - component: {fileID: 7707527438325354069}
+  - component: {fileID: 4536897690900878918}
   m_Layer: 9
   m_Name: NeonTurret
   m_TagString: Untagged
@@ -375,6 +377,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Structure
   data: {fileID: 11400000, guid: 1659aa0979f965742939e74413da9dff, type: 2}
+  isHQ: 0
   fallbackName: Building
   power: -20
   sight: 0
@@ -425,6 +428,58 @@ MonoBehaviour:
   fire: {fileID: 8623457806621160266, guid: 3a6037cadc939484c86ac1811c23f371, type: 3}
   spark: {fileID: 2368381330221681213, guid: 6e0553d6e46b9a7418595bfa45d2018c, type: 3}
   smokeLinger: 10
+--- !u!114 &7707527438325354069
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7502497076854759863}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68f47a9b0e554ce479377ed35ea5f354, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingUpgrade
+  level: 1
+  maxLevel: 2
+  upgradeCost: 0000000000000000f401000000000000
+  upgradeTime:
+  - 0
+  - 0
+  - 30
+  - 0
+  revealTime: 0.35
+--- !u!114 &4536897690900878918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7502497076854759863}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfe352e78c0828343ba48874a1e2202e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UpgradeEffects
+  levels:
+  - level: 2
+    displayName: Neon Turret Mk II
+    description: 'Twin barrels: +35% damage per second, +20% HP.'
+    mods:
+    - stat: 0
+      percent: 0.35
+      flat: 0
+      roles: 
+      units: []
+      buildings: []
+      defenses: 0
+    - stat: 3
+      percent: 0.2
+      flat: 0
+      roles: 
+      units: []
+      buildings: []
+      defenses: 0
 --- !u!1001 &7902234334282664618
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -604,6 +659,10 @@ PrefabInstance:
     - target: {fileID: 1910718790818657217, guid: 2c1446eefa14f9f40a148dc413960ef4, type: 3}
       propertyPath: m_Layer
       value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1943953780470015249, guid: 2c1446eefa14f9f40a148dc413960ef4, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2088670116769479933, guid: 2c1446eefa14f9f40a148dc413960ef4, type: 3}
       propertyPath: m_Layer

@@ -13,6 +13,7 @@ public class BuildingPanel : MonoBehaviour
     readonly List<Image> sweeps = new(); // per button: dark clock overlay over the unit being built
     readonly List<Text> counts = new();  // per button: "x2" when queued
     readonly List<Button> buttons = new();
+    readonly List<string> blockers = new(); // per button: why it can't be queued, as last shown in its tooltip
 
     void Awake()
     {
@@ -43,6 +44,7 @@ public class BuildingPanel : MonoBehaviour
         sweeps.Clear();
         counts.Clear();
         buttons.Clear();
+        blockers.Clear();
         for (int i = 0; i < building.OptionCount; i++)
         {
             int index = i; // captured per button
@@ -58,6 +60,7 @@ public class BuildingPanel : MonoBehaviour
             // Not EventTrigger: it swallows scroll/drag, so the row couldn't scroll over the buttons.
             btn.gameObject.AddComponent<RightClick>().action = () => building.CancelOne(index);
             btn.gameObject.AddComponent<Tooltip>().text = building.TooltipOf(i);
+            blockers.Add(building.Blocker(i));
             sweeps.Add(btn.transform.Find("Progress").GetComponent<Image>());
             counts.Add(btn.transform.Find("Count").GetComponent<Text>());
         }
@@ -76,6 +79,8 @@ public class BuildingPanel : MonoBehaviour
             int n = building.QueuedCount(i);
             counts[i].text = building.IsResearched(i) ? "DONE" : n > 0 ? $"x{n}" : "";
             buttons[i].interactable = building.CanQueue(i); // red frame when short on credits (or already researched)
+            string why = building.Blocker(i);
+            if (why != blockers[i]) { blockers[i] = why; buttons[i].GetComponent<Tooltip>().text = building.TooltipOf(i); } // red reason line
         }
     }
 }

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: QueenArachne
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: QueenArachne
+  role: 5
   description: Flagship. The toughest unit, with splash attacks. Expensive, slow
     and devastating.
   icon: {fileID: 21300000, guid: a5c3b1ddce94c4548bfc2c60cbfc1ce3, type: 3}

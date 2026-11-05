@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd97921bb84e4b24180dbd8959230b27, type: 3}
+  m_Name: H3_LongRangeShells
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchData
+  id: H3
+  displayName: Long-Range Shells
+  description: Mortar Scarab range +25%; EMP Centipede radius +20%.
+  icon: {fileID: 21300000, guid: 1413eaeb4987f3c46ad75774f32917e5, type: 3}
+  branch: 2
+  tier: 3
+  cost: 1500
+  researchTime: 90
+  requires: {fileID: 11400000, guid: 65a24ecc3de9f6d40b77d0c9b2e7f4bd, type: 2}
+  effects:
+  - stat: 1
+    percent: 0.25
+    flat: 0
+    roles: 
+    units:
+    - {fileID: 11400000, guid: 4409065878f662d43a1e625383329c92, type: 2}
+    buildings: []
+    defenses: 0
+  - stat: 12
+    percent: 0.2
+    flat: 0
+    roles: 
+    units:
+    - {fileID: 11400000, guid: 808d934e8382fe046801adad5ff02c5e, type: 2}
+    buildings: []
+    defenses: 0

@@ -9,6 +9,7 @@ public class Structure : MonoBehaviour
     public static readonly List<Structure> All = new();
 
     public BuildingData data;          // name, icon, cost; empty = can't be sold (the HQ)
+    public bool isHQ;                  // Core Nexus: its Mk level gates research tiers and elite units
     [SerializeField] string fallbackName = "Building";
     public int power;                  // + produces, - consumes
     public float sight;                // fog-of-war sight past its edge while powered; 0 = default
@@ -24,11 +25,22 @@ public class Structure : MonoBehaviour
 
     float owed; // repair cost not yet charged (credits are whole numbers)
 
-    public static int PowerMade { get { int n = 0; foreach (var s in All) if (s.power > 0) n += s.power; return n; } }
-    public static int PowerUsed { get { int n = 0; foreach (var s in All) if (s.power < 0) n -= s.power; return n; } }
+    // Ours only (multiplayer: other players' buildings are in All too).
+    public static int PowerMade { get { int n = 0; foreach (var s in All) if (s.power > 0 && s.Health.team == 0) n += s.power; return n; } }
+    public static int PowerUsed { get { int n = 0; foreach (var s in All) if (s.power < 0 && s.Health.team == 0) n -= s.power; return n; } }
     public static bool LowPower => PowerUsed > PowerMade;
 
-    void Awake() => Health = GetComponent<Health>();
+    Refinery refinery; // Rapid Unload research: more credits per load
+    float baseCredits;
+
+    void Awake()
+    {
+        Health = GetComponent<Health>();
+        if (TryGetComponent(out refinery)) { baseCredits = refinery.creditsPerUnit; Stats.Changed += RefreshStats; }
+    }
+
+    void OnDestroy() => Stats.Changed -= RefreshStats;
+    void RefreshStats() => refinery.creditsPerUnit = Stats.Value(Stat.RefineryCredits, baseCredits, this);
     void OnEnable() => All.Add(this);
     void OnDisable() { All.Remove(this); Repairing = false; }
 
@@ -37,7 +49,7 @@ public class Structure : MonoBehaviour
         if (!CanSell) return;
         Alerts.Show($"Sold {Name}: +${SellValue}", Alerts.Good);
         ResourceBank.GetOrCreate().Add(SellValue);
-        Destroy(gameObject);
+        Net.Destroy(gameObject);
     }
 
     public void ToggleRepair() => Repairing = !Repairing && Health.IsDamaged;

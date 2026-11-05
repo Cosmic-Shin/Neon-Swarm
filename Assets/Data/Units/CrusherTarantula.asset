@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: CrusherTarantula
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: CrusherTarantula
+  role: 3
   description: Siege tank. Very tough, 2.5x damage to buildings. Leads an assault
     on a base.
   icon: {fileID: 21300000, guid: 1413eaeb4987f3c46ad75774f32917e5, type: 3}

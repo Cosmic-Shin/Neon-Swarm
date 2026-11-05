@@ -251,6 +251,8 @@ GameObject:
   - component: {fileID: 7394953085044665998}
   - component: {fileID: 3793392680737501312}
   - component: {fileID: 6498815689435086014}
+  - component: {fileID: 6665988062450506343}
+  - component: {fileID: 364664670064554223}
   m_Layer: 9
   m_Name: DataRefinery
   m_TagString: Untagged
@@ -405,6 +407,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Structure
   data: {fileID: 11400000, guid: 3b76cb8b409310244ba1c6cbf84f24d0, type: 2}
+  isHQ: 0
   fallbackName: Building
   power: -30
   sight: 0
@@ -425,6 +428,44 @@ MonoBehaviour:
   fire: {fileID: 8623457806621160266, guid: 3a6037cadc939484c86ac1811c23f371, type: 3}
   spark: {fileID: 2368381330221681213, guid: 6e0553d6e46b9a7418595bfa45d2018c, type: 3}
   smokeLinger: 10
+--- !u!114 &6665988062450506343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8107110130783171902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68f47a9b0e554ce479377ed35ea5f354, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingUpgrade
+  level: 1
+  maxLevel: 2
+  upgradeCost: 0000000000000000b004000000000000
+  upgradeTime:
+  - 0
+  - 0
+  - 45
+  - 0
+  revealTime: 0.35
+--- !u!114 &364664670064554223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8107110130783171902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfe352e78c0828343ba48874a1e2202e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UpgradeEffects
+  levels:
+  - level: 2
+    displayName: Data Refinery Mk II
+    description: 'Second dock pad: two harvesters unload at once.'
+    mods: []
 --- !u!1001 &4716835793121252849
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -580,6 +621,10 @@ PrefabInstance:
     - target: {fileID: 63613448497517426, guid: c9bd1c07428bf004eb2a915a93997095, type: 3}
       propertyPath: m_Layer
       value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 568432733992186222, guid: c9bd1c07428bf004eb2a915a93997095, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: c9bd1c07428bf004eb2a915a93997095, type: 3}
       propertyPath: m_Name

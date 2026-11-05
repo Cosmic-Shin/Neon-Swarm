@@ -104,7 +104,7 @@ public class Harvester : MonoBehaviour
             case State.ToRefinery:
                 if (!refinery) { GoRefinery(); break; }
                 if (!refinery.TryDock(this)) { state = State.WaitingForDock; break; }
-                if (MoveTo(refinery.DockPosition, 0.12f))
+                if (MoveTo(refinery.DockPositionOf(this), 0.12f))
                 {
                     transform.rotation = refinery.DockFacing * Quaternion.Euler(0, modelYawOffset, 0);
                     timer = 0f;

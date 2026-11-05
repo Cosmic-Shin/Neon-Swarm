@@ -12,7 +12,6 @@ public class BuildingPlacer : MonoBehaviour
     [SerializeField] Material ghostMaterial; // see-through hologram; tinted red when blocked
     [SerializeField] Color blockedColor = new(1f, 0.15f, 0.2f, 0.3f);
     [SerializeField] float gridSize = 2f; // metres; ghost snaps to this while placing
-    [SerializeField] float buildRadius = 30f; // new buildings must be this close to one you own
     [SerializeField] Renderer gridOverlay; // ground-sized quad, shown only while placing
     [SerializeField] RectTransform progressBarTemplate; // cloned above each building under construction
 
@@ -29,6 +28,8 @@ public class BuildingPlacer : MonoBehaviour
     [SerializeField] GameObject placementHint; // "Q/E rotate..." shown while placing
 
     public static bool MenuOpen { get; private set; } // number keys pick buildings while it's open
+    public BuildingData[] Buildings => buildings;              // saves: prefab lookup
+    public RectTransform ProgressBarTemplate => progressBarTemplate;
 
     // B opens the menu; then 1-9, 0, -, =, Z, X, C pick the buttons left to right.
     static readonly Key[] Hotkeys = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5, Key.Digit6,
@@ -152,6 +153,7 @@ public class BuildingPlacer : MonoBehaviour
 
         selectionManager.enabled = false;
         gridOverlay.gameObject.SetActive(true);
+        BuildRadius.ShowAll(true);
         placementHint.SetActive(true);
         var hint = placementHint.GetComponent<Text>();
         if (hint != null)
@@ -296,16 +298,11 @@ public class BuildingPlacer : MonoBehaviour
         return Physics.CheckBox(t.TransformPoint(box.center), half, t.rotation, ~groundLayer, QueryTriggerInteraction.Ignore);
     }
 
-    // C&C build radius: the ghost's footprint must come within buildRadius of a finished building of ours.
+    // C&C build radius: the ghost's footprint must touch a finished Power Pylon's ring or the Core Nexus's.
     bool NearBase(GameObject g)
     {
-        Vector3 p = g.transform.position;
-        var box = g.GetComponent<BoxCollider>();
-        Vector3 size = Vector3.Scale(box.size, g.transform.lossyScale);
-        float reach = buildRadius + Mathf.Max(size.x, size.z) * 0.5f;
-        foreach (var s in Structure.All)
-            if (s.Health.team == 0 && s.TryGetComponent(out Collider c) && (c.ClosestPoint(p) - p).sqrMagnitude <= reach * reach) return true;
-        return false;
+        Vector3 size = Vector3.Scale(g.GetComponent<BoxCollider>().size, g.transform.lossyScale);
+        return BuildRadius.Covers(g.transform.position, Mathf.Max(size.x, size.z), 0);
     }
 
     // Builds every valid ghost (check them all first: new buildings would block their neighbours' checks).
@@ -316,7 +313,7 @@ public class BuildingPlacer : MonoBehaviour
         foreach (var g in spots)
         {
             if (!ResourceBank.GetOrCreate().Spend(buildings[chosen].cost)) break;
-            var b = Instantiate(buildings[chosen].prefab, g.transform.position, g.transform.rotation);
+            var b = Net.Spawn(buildings[chosen].prefab, g.transform.position, g.transform.rotation);
             var site = b.AddComponent<Construction>();
             site.duration = buildings[chosen].buildTime;
             site.barTemplate = progressBarTemplate;
@@ -332,6 +329,7 @@ public class BuildingPlacer : MonoBehaviour
         placementHint.SetActive(false);
         rotateHeld = false;
         gridOverlay.gameObject.SetActive(false);
+        BuildRadius.ShowAll(false);
         selectionManager.enabled = true;
     }
 }

@@ -22,6 +22,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Env_NeonLime
+    second: {fileID: 2100000, guid: b5f57df2a67e9c249a215c1df1cbf34d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Env_NeonOrange
     second: {fileID: 2100000, guid: 6d643d0c7a5d94b469706ff62e3b331b, type: 2}
   - first:
