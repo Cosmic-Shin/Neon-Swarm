@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 387dd83aae548964bab7d3e7d8694dd1, type: 3}
+  m_Name: Veterancy
+  m_EditorClassIdentifier: Assembly-CSharp::VeterancyData
+  ranks:
+  - name: Rookie
+    kills: 0
+    selfRepair: 0
+    bonuses: []
+  - name: Veteran
+    kills: 3
+    selfRepair: 0
+    bonuses:
+    - stat: 0
+      percent: 0.1
+      flat: 0
+      roles: 
+      units: []
+      buildings: []
+      defenses: 0
+    - stat: 3
+      percent: 0.1
+      flat: 0
+      roles: 
+      units: []
+      buildings: []
+      defenses: 0
+  - name: Elite
+    kills: 8
+    selfRepair: 0.01
+    bonuses:
+    - stat: 0
+      percent: 0.2
+      flat: 0
+      roles: 
+      units: []
+      buildings: []
+      defenses: 0
+    - stat: 3
+      percent: 0.2
+      flat: 0
+      roles: 
+      units: []
+      buildings: []
+      defenses: 0
+  - name: Heroic
+    kills: 15
+    selfRepair: 0.01
+    bonuses:
+    - stat: 0
+      percent: 0.3
+      flat: 0
+      roles: 
+      units: []
+      buildings: []
+      defenses: 0
+    - stat: 3
+      percent: 0.3
+      flat: 0
+      roles: 
+      units: []
+      buildings: []
+      defenses: 0
+    - stat: 2
+      percent: 0.1
+      flat: 0
+      roles: 
+      units: []
+      buildings: []
+      defenses: 0
+  glowPerRank: 0.4
+  promoted: {fileID: 11400000, guid: 087471caa9f8ecb49ab57c2cd0ab79d8, type: 2}

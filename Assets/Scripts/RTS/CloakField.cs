@@ -37,15 +37,15 @@ public class CloakField : MonoBehaviour
     void OnEnable() { active.Add(this); ring.enabled = true; }
     void OnDisable() { active.Remove(this); ring.enabled = false; }
 
-    bool Online => self.team != 0 || !Structure.LowPower;
+    bool Online => !Net.LowPower(self.team); // other players' power comes over the network
 
     void Update() => ring.enabled = Online;
 
-    // Is h inside a working cloak field of its own team?
+    // Is h inside a working cloak field of its own side (allies' fields count)?
     public static bool Covers(Health h)
     {
         foreach (var f in active)
-            if (f.self.team == h.team && f.Online && (h.transform.position - f.transform.position).sqrMagnitude <= f.radius * f.radius) return true;
+            if (Net.Allied(f.self.team, h.team) && f.Online && (h.transform.position - f.transform.position).sqrMagnitude <= f.radius * f.radius) return true;
         return false;
     }
 }

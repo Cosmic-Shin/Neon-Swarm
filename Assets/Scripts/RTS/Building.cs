@@ -146,6 +146,13 @@ public class Building : MonoBehaviour
         // Created at the exit (on the navmesh), then walks there from inside the building, then on to the rally point.
         var unit = Net.Spawn(unitPrefabs[index], exit, Quaternion.LookRotation(spawnPoint.position - transform.position));
         unit.WalkOut(inside, exit, exitSpeed, edge, Rally);
-        if (gate != null) gate.Open(Vector3.Distance(inside, exit) / exitSpeed); // shut once it's through
+        float doorTime = Vector3.Distance(inside, exit) / exitSpeed; // shut once it's through
+        OpenGate(doorTime);
+        if (TryGetComponent(out NetEntity net) && net.Online) net.RPC_OpenGate(doorTime);
+    }
+
+    public void OpenGate(float seconds)
+    {
+        if (gate != null) gate.Open(seconds);
     }
 }

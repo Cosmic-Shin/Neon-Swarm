@@ -98,7 +98,7 @@ public class GoodSelectionManager : MonoBehaviour
             attackMoveArmed = false;
             IssueAttackMove(mousePos);
         }
-        else if (mouse.leftButton.wasPressedThisFrame && !overUI)
+        else if (mouse.leftButton.wasPressedThisFrame && !overUI && !(Net.Online && Ping.AltHeld)) // Alt+click = ping
         {
             dragStart = mousePos;
             isPressing = true;
@@ -242,7 +242,7 @@ public class GoodSelectionManager : MonoBehaviour
     // A = attack-move (then click), S = stop, H = hold position, F = next formation.
     void OrderKeys()
     {
-        var kb = Keyboard.current;
+        var kb = Chat.Keys;
         if (kb == null) return;
         if (kb.fKey.wasPressedThisFrame)
         {
@@ -260,7 +260,7 @@ public class GoodSelectionManager : MonoBehaviour
     {
         Ray ray = cam.ScreenPointToRay(screenPos);
         if (Physics.Raycast(ray, out RaycastHit target, maxRayDistance, selectableLayer) &&
-            target.collider.TryGetComponent(out Health enemy) && enemy.enabled && enemy.team != 0)
+            target.collider.TryGetComponent(out Health enemy) && enemy.enabled && !Net.Allied(enemy.team, 0))
         {
             OnAttackCommand?.Invoke(enemy); // clicked right on an enemy: plain attack
             return;
@@ -350,11 +350,11 @@ public class GoodSelectionManager : MonoBehaviour
             {
                 Facing = Vector3.zero;
                 OnMoveCommand.Invoke(GetCircleFormation(outpost.transform.position, selected.Count));
-                OnGarrisonCommand?.Invoke(outpost);
+                if (!Net.Online) OnGarrisonCommand?.Invoke(outpost); // online: just stand guard (no garrison)
                 return;
             }
             // An enemy (disabled Health = neutral outpost, just walk there)? Attack it instead of moving.
-            if (target.collider.TryGetComponent(out Health enemy) && enemy.enabled && enemy.team != 0)
+            if (target.collider.TryGetComponent(out Health enemy) && enemy.enabled && !Net.Allied(enemy.team, 0))
             {
                 OnAttackCommand?.Invoke(enemy); // unarmed units (harvesters) ignore it
                 return;
@@ -392,7 +392,7 @@ public class GoodSelectionManager : MonoBehaviour
     // Ctrl+1..9 saves the selection; 1..9 brings it back.
     void ControlGroups()
     {
-        var kb = Keyboard.current;
+        var kb = Chat.Keys;
         if (kb == null || BuildingPlacer.MenuOpen) return; // digits pick buildings then
         bool ctrl = kb.leftCtrlKey.isPressed || kb.rightCtrlKey.isPressed;
         for (int i = 1; i <= 9; i++)

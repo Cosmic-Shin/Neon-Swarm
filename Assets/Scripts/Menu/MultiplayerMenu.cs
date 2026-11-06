@@ -16,6 +16,8 @@ public class MultiplayerMenu : MonoBehaviour
     {
         create.onClick.AddListener(() => Enter(true, roomName.text));
         join.onClick.AddListener(() => Enter(false, roomName.text));
+        // Enter in the name box: join it if it exists, otherwise create it.
+        roomName.onSubmit.AddListener(n => Enter(!RoomService.Instance.Rooms.Exists(r => r.Name == n.Trim()), n));
         back.onClick.AddListener(Back);
         leave.onClick.AddListener(LeaveRoom);
         RoomService.RoomsChanged += Redraw;

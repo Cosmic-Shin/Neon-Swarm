@@ -3,7 +3,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// "Buildings" button -> pick a building -> ghost follows the mouse (click/drag to move it) -> Confirm to build.
+// "Buildings" button -> pick a building -> ghost follows the mouse -> C&C3 style: press to pin it,
+// drag to turn it towards the mouse (any angle), release to build. Walls: press and drag a line.
 public class BuildingPlacer : MonoBehaviour
 {
     [SerializeField] BuildingData[] buildings; // build menu entries, in order
@@ -20,14 +21,16 @@ public class BuildingPlacer : MonoBehaviour
     [SerializeField] RectTransform menuPanel;
     [SerializeField] GameObject unitPanel; // shares the bottom strip with the build menu; only one shows
     [SerializeField] Button optionTemplate; // disabled template, cloned per building
-    [SerializeField] GameObject confirmBar;
-    [SerializeField] Button confirmButton;
-    [SerializeField] Button cancelButton;
-    [SerializeField] Button rotateButton; // hold to rotate
-    [SerializeField] float rotateSpeed = 120f; // degrees per second while Q/E or the button is held
-    [SerializeField] GameObject placementHint; // "Q/E rotate..." shown while placing
+    [SerializeField] GameObject placementHint; // price / problem + controls, shown while placing
+    [SerializeField] float rotateDeadzone = 1.5f; // metres the mouse must move from the pin before it turns the building
+
+    const string PlaceHint = "HOLD LEFT-CLICK + DRAG  ROTATE      RELEASE  BUILD      RIGHT-CLICK / ESC  CANCEL";
+    const string WallHint = "PRESS AND DRAG  DRAW A WALL LINE      RELEASE  BUILD      RIGHT-CLICK / ESC  CANCEL";
+    Text hintText;
+    Color hintColor;
 
     public static bool MenuOpen { get; private set; } // number keys pick buildings while it's open
+    public static bool Placing { get; private set; }  // a ghost follows the mouse (Esc cancels it)
     public BuildingData[] Buildings => buildings;              // saves: prefab lookup
     public RectTransform ProgressBarTemplate => progressBarTemplate;
 
@@ -39,15 +42,13 @@ public class BuildingPlacer : MonoBehaviour
 
     Camera cam;
     Quaternion lastRotation = Quaternion.identity; // next building starts facing the same way
-    bool rotateHeld; // ROTATE button is being pressed
     Button[] optionButtons;
     readonly System.Collections.Generic.List<GameObject> ghosts = new();   // one, or a line of wall segments
     readonly System.Collections.Generic.List<Material> ghostMats = new();  // per ghost, so each tints on its own
     GameObject ghost => ghosts.Count > 0 ? ghosts[0] : null;
-    Vector3 dragStart; // walls: where the line starts
-    bool dragging;
     int chosen;
-    bool parked; // false: ghost follows the mouse; true: it stays put unless dragged
+    bool anchored;  // left button held: the ghost is pinned (walls: the line starts here)
+    Vector3 anchor;
 
     static readonly int CellId = Shader.PropertyToID("_Cell");
     static readonly int CenterId = Shader.PropertyToID("_Center");
@@ -58,23 +59,14 @@ public class BuildingPlacer : MonoBehaviour
         buildings = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.OrderBy(buildings, b => b.cost)); // cheapest first (ties keep inspector order)
         cam = Camera.main;
         menuPanel.gameObject.SetActive(false);
-        confirmBar.SetActive(false);
         optionTemplate.gameObject.SetActive(false);
 
         gridOverlay.material.SetFloat(CellId, gridSize); // lines match where buildings snap
         gridOverlay.gameObject.SetActive(false);
 
         buildingsButton.onClick.AddListener(ToggleMenu);
-        confirmButton.onClick.AddListener(Confirm);
-        cancelButton.onClick.AddListener(Cancel);
-        // Hold-to-rotate: a click event only fires once, so track press/release instead.
-        var trigger = rotateButton.gameObject.AddComponent<EventTrigger>();
-        var down = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
-        down.callback.AddListener(_ => rotateHeld = true);
-        var up = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
-        up.callback.AddListener(_ => rotateHeld = false);
-        trigger.triggers.Add(down);
-        trigger.triggers.Add(up);
+        hintText = placementHint.GetComponent<Text>();
+        hintColor = hintText.color;
         placementHint.SetActive(false);
 
         optionButtons = new Button[buildings.Length];
@@ -122,7 +114,7 @@ public class BuildingPlacer : MonoBehaviour
     // B toggles the menu, Esc closes it, number keys pick a building.
     void HandleHotkeys()
     {
-        var kb = Keyboard.current;
+        var kb = Chat.Keys;
         if (kb == null || ghost != null) return;
         if (kb.bKey.wasPressedThisFrame) ToggleMenu();
         if (!menuPanel.gameObject.activeSelf) return;
@@ -147,19 +139,13 @@ public class BuildingPlacer : MonoBehaviour
     {
         menuPanel.gameObject.SetActive(false);
         chosen = index;
-        parked = false;
-        dragging = false;
+        anchored = false;
         MakeGhost();
 
         selectionManager.enabled = false;
         gridOverlay.gameObject.SetActive(true);
         BuildRadius.ShowAll(true);
         placementHint.SetActive(true);
-        var hint = placementHint.GetComponent<Text>();
-        if (hint != null)
-            hint.text = buildings[index].dragLine
-                ? "PRESS AND DRAG  DRAW A WALL LINE      RIGHT-CLICK / ESC  CANCEL"
-                : "HOLD Q / E  ROTATE      LEFT-CLICK  PLACE      RIGHT-CLICK / ESC  CANCEL";
 
         // Grid circle a bit bigger than the building's footprint.
         Vector3 size = Vector3.Scale(ghost.GetComponent<BoxCollider>().size, ghost.transform.lossyScale);
@@ -216,6 +202,7 @@ public class BuildingPlacer : MonoBehaviour
     {
         HandleHotkeys();
         MenuOpen = menuPanel.gameObject.activeSelf;
+        Placing = ghost != null;
         if (MenuOpen)
             for (int i = 0; i < optionButtons.Length; i++)
             {
@@ -228,63 +215,60 @@ public class BuildingPlacer : MonoBehaviour
 
         if (ghost == null) return;
         var mouse = Mouse.current;
-        var kb = Keyboard.current;
+        var kb = Chat.Keys;
 
-        if (mouse.rightButton.wasPressedThisFrame || kb.escapeKey.wasPressedThisFrame) { Cancel(); return; }
-        float turn = 0f;
-        if (kb.eKey.isPressed || kb.rKey.isPressed || rotateHeld) turn += 1f;
-        if (kb.qKey.isPressed) turn -= 1f;
-        if (turn != 0f) Rotate(turn * rotateSpeed * Time.unscaledDeltaTime);
+        if (mouse.rightButton.wasPressedThisFrame || (kb != null && kb.escapeKey.wasPressedThisFrame)) { Cancel(); return; }
 
+        // C&C3: the ghost follows the mouse; press to pin it, drag to turn it towards the mouse, release to build.
         bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
-        if (!overUI && (!parked || mouse.leftButton.isPressed))
+        bool onGround = Physics.Raycast(cam.ScreenPointToRay(mouse.position.ReadValue()), out RaycastHit hit, 1000f, groundLayer);
+        Vector3 p = onGround ? new(Snap(hit.point.x), hit.point.y, Snap(hit.point.z)) : Vector3.zero;
+
+        if (!anchored && mouse.leftButton.wasPressedThisFrame && !overUI && onGround) { anchored = true; anchor = p; }
+        if (anchored)
         {
-            Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
-            if (Physics.Raycast(ray, out RaycastHit hit, 1000f, groundLayer))
+            if (buildings[chosen].dragLine) { if (onGround) LayLine(anchor, p); }
+            else if (onGround)
             {
-                Vector3 p = new(Snap(hit.point.x), hit.point.y, Snap(hit.point.z));
-                if (buildings[chosen].dragLine && mouse.leftButton.wasPressedThisFrame) { dragStart = p; dragging = true; }
-                if (dragging && mouse.leftButton.isPressed) LayLine(dragStart, p);
-                else
-                {
-                    while (ghosts.Count > 1) RemoveGhost(ghosts.Count - 1);
-                    ghost.transform.position = p;
-                }
+                Vector3 d = hit.point - anchor;
+                d.y = 0f;
+                if (d.magnitude > rotateDeadzone) lastRotation = Quaternion.LookRotation(d); // any angle
+                ghost.transform.SetPositionAndRotation(anchor, lastRotation);
             }
         }
-        if (!overUI && mouse.leftButton.wasReleasedThisFrame)
+        else if (onGround && !overUI)
         {
-            parked = true;
-            dragging = false;
-            confirmBar.SetActive(true);
+            while (ghosts.Count > 1) RemoveGhost(ghosts.Count - 1);
+            ghost.transform.SetPositionAndRotation(p, lastRotation);
         }
 
         gridOverlay.material.SetVector(CenterId, ghosts[ghosts.Count / 2].transform.position);
 
-        // Each ghost is checked and tinted on its own; Confirm builds the good ones.
+        // Each ghost is checked and tinted on its own; releasing builds the good ones.
         int good = 0;
         string reason = "BLOCKED";
         for (int i = 0; i < ghosts.Count; i++)
         {
             bool near = NearBase(ghosts[i]), free = !IsBlocked(ghosts[i]), ok = near && free;
             if (ok) good++;
-            else if (!near) reason = "TOO FAR";
+            else if (!near) reason = "TOO FAR FROM BASE";
             ghostMats[i].color = ok ? ghostMaterial.color : blockedColor;
             ghostMats[i].SetColor("_EmissionColor", ok ? ghostMaterial.GetColor("_EmissionColor") : blockedColor * 0.6f);
         }
         int cost = buildings[chosen].cost;
-        bool afford = CanAfford(chosen); // credits can drop while placing (units queued)
+        bool afford = ResourceBank.GetOrCreate().Credits >= cost * Mathf.Max(1, good); // credits can drop while placing
         bool unlocked = buildings[chosen].Unlocked(); // the required building can die while placing
-        confirmButton.interactable = good > 0 && afford && unlocked;
-        confirmButton.GetComponentInChildren<Text>().text =
-            !unlocked ? "LOCKED" : good == 0 ? reason : !afford ? "NO CREDITS" : good > 1 ? $"BUILD {good}  ${cost * good}" : $"CONFIRM ${cost}";
-    }
+        string problem = !unlocked ? "LOCKED" : good == 0 ? reason : !afford ? "NOT ENOUGH CREDITS" : null;
+        string price = good > 1 ? $"BUILD {good}  ${cost * good}" : $"${cost}";
+        hintText.text = (problem ?? price) + "      " + (buildings[chosen].dragLine ? WallHint : PlaceHint);
+        hintText.color = problem == null ? hintColor : blockedColor * 3f;
 
-    void Rotate(float degrees)
-    {
-        if (ghosts.Count != 1) return; // a wall line faces along its drag
-        ghost.transform.Rotate(0f, degrees, 0f);
-        lastRotation = ghost.transform.rotation;
+        if (anchored && mouse.leftButton.wasReleasedThisFrame)
+        {
+            anchored = false;
+            if (problem == null) Build();
+            else Alerts.Show($"Can't build here: {problem.ToLower()}", Alerts.Warn, 1f);
+        }
     }
 
     float Snap(float v) => Mathf.Round(v / gridSize) * gridSize;
@@ -306,7 +290,7 @@ public class BuildingPlacer : MonoBehaviour
     }
 
     // Builds every valid ghost (check them all first: new buildings would block their neighbours' checks).
-    void Confirm()
+    void Build()
     {
         var spots = ghosts.FindAll(g => NearBase(g) && !IsBlocked(g));
         int built = 0;
@@ -325,9 +309,8 @@ public class BuildingPlacer : MonoBehaviour
     void Cancel()
     {
         while (ghosts.Count > 0) RemoveGhost(ghosts.Count - 1);
-        confirmBar.SetActive(false);
         placementHint.SetActive(false);
-        rotateHeld = false;
+        anchored = false;
         gridOverlay.gameObject.SetActive(false);
         BuildRadius.ShowAll(false);
         selectionManager.enabled = true;

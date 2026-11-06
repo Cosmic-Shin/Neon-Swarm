@@ -53,7 +53,7 @@ public class Turret : MonoBehaviour
         found.Clear();
         float r2 = Range * Range;
         foreach (var h in Health.All)
-            if (h.team != self.team && (h.transform.position - transform.position).sqrMagnitude <= r2 && !h.CloakedFrom(transform.position)) found.Add(h);
+            if (!Net.Allied(h.team, self.team) && (h.transform.position - transform.position).sqrMagnitude <= r2 && !h.CloakedFrom(transform.position)) found.Add(h);
         if (found.Count == 0) return;
         found.Sort((a, b) => (a.transform.position - transform.position).sqrMagnitude.CompareTo((b.transform.position - transform.position).sqrMagnitude));
         if (found.Count > targets) found.RemoveRange(targets, found.Count - targets);
@@ -114,7 +114,7 @@ public class Turret : MonoBehaviour
         foreach (var h in Health.All)
         {
             Vector3 d = h.transform.position - at; d.y = 0f;
-            if (h.team != self.team && d.sqrMagnitude <= s2) hits.Add(h); // copy: deaths edit Health.All
+            if (!Net.Allied(h.team, self.team) && d.sqrMagnitude <= s2) hits.Add(h); // copy: deaths edit Health.All
         }
         foreach (var h in hits) h.TakeDamage(dmg, self);
     }

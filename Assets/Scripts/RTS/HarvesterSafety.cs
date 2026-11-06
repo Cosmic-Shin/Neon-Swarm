@@ -12,7 +12,7 @@ static class HarvesterSafety
     {
         foreach (var h in Health.All)
         {
-            if (h.team == 0 || (h.transform.position - p).sqrMagnitude > Radius * Radius) continue;
+            if (Net.Allied(h.team, 0) || (h.transform.position - p).sqrMagnitude > Radius * Radius) continue;
             if (h.TryGetComponent(out Attacker _) || h.TryGetComponent(out Turret _) || h.TryGetComponent(out Outpost _)) return true;
         }
         return false;

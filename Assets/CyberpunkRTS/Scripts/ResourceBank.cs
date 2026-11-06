@@ -7,8 +7,8 @@ public class ResourceBank : MonoBehaviour
     public int startingCredits = 1000;
     public bool showOnScreen = true;
     public int Credits { get; private set; }
-    /// <summary>(new total, change)</summary>
-    public event System.Action<int, int> OnCreditsChanged;
+    [Tooltip("Raised with the change (+income / -spent) every time credits change.")]
+    public IntEventChannel creditsChanged;
 
     float flashTime = -10f; int lastDelta;
     GUIStyle big, small;
@@ -30,14 +30,14 @@ public class ResourceBank : MonoBehaviour
     {
         if (amount == 0) return;
         Credits += amount; lastDelta = amount; flashTime = Time.time;
-        OnCreditsChanged?.Invoke(Credits, amount);
+        if (creditsChanged) creditsChanged.Raise(amount);
     }
 
     public bool Spend(int amount)
     {
         if (Credits < amount) return false;
         Credits -= amount;
-        OnCreditsChanged?.Invoke(Credits, -amount);
+        if (creditsChanged) creditsChanged.Raise(-amount);
         return true;
     }
 

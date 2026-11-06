@@ -47,7 +47,19 @@ public class OreNode : MonoBehaviour
         amount -= got;
         lastTaken = Time.time;
         UpdateVisual();
+        if (got > 0f) TakenHook?.Invoke(this, got);
         return got;
+    }
+
+    /// <summary>Optional game hook (multiplayer): told about every Take, so the patch's owner can subtract it too.</summary>
+    public static System.Action<OreNode, float> TakenHook;
+
+    /// <summary>Multiplayer: another PC owns this patch; show its amount and don't regrow here.</summary>
+    public void SetFromNet(float value)
+    {
+        amount = value;
+        lastTaken = Time.time;
+        UpdateVisual();
     }
 
     void Update()

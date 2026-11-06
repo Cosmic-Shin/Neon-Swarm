@@ -17,15 +17,37 @@ public static class Net
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Reset() { InMatch = false; table = null; }
 
-    public static int ToTeam(int slot) => InRoom ? (slot - LocalSlot + RoomService.MaxPlayers) % RoomService.MaxPlayers : slot;
+    public static int ToTeam(int slot) => InRoom && slot >= 0 && slot < RoomService.MaxPlayers ? (slot - LocalSlot + RoomService.MaxPlayers) % RoomService.MaxPlayers : slot;
     public static int ToSlot(int team) => InRoom && team >= 0 && team < RoomService.MaxPlayers ? (team + LocalSlot) % RoomService.MaxPlayers : team;
-    public static Color ColorOf(int team) => team < 0 ? Color.white : TeamMember.ColorOf(ToSlot(team));
+    public static Color ColorOf(int team) => team == Creep.Team ? CreepColor : team < 0 ? Color.white : TeamMember.ColorOf(ToSlot(team));
+    public static readonly Color CreepColor = new(1f, 0.55f, 0.1f);
+
+    // Same side: the same player, or (multiplayer) players on the same lobby team. Creeps are nobody's ally.
+    public static bool Allied(int a, int b)
+    {
+        if (a == b) return true;
+        if (!InRoom || a < 0 || b < 0 || a >= RoomService.MaxPlayers || b >= RoomService.MaxPlayers) return false;
+        int ta = RoomState.Instance.TeamOf(ToSlot(a));
+        return ta != 0 && ta == RoomState.Instance.TeamOf(ToSlot(b));
+    }
+
+    // Is that side short on power? Ours is worked out here; other players publish theirs (RoomPlayer).
+    // Single-player enemies are always powered.
+    public static bool LowPower(int team)
+    {
+        if (team == 0) return Structure.LowPower;
+        if (!InRoom || team < 0 || team >= RoomService.MaxPlayers) return false;
+        var p = RoomState.Instance.Slots[ToSlot(team)];
+        foreach (var rp in RoomPlayer.All) if (rp != null && rp.Object.StateAuthority == p) return rp.LowPower;
+        return false;
+    }
     public static string NameOf(int team) => RoomState.Instance != null ? RoomState.Instance.NameOf(ToSlot(team)) : $"Player {team + 1}";
 
     static NetPrefabs table;
 
     // Online: spawns the prefab's network version, owned by us. Offline: Instantiate.
-    public static GameObject Spawn(GameObject prefab, Vector3 pos, Quaternion rot)
+    // slot: who owns it (default us; Creep.Team = neutral creeps, run by the host).
+    public static GameObject Spawn(GameObject prefab, Vector3 pos, Quaternion rot, int slot = -1)
     {
         if (!Online) return Object.Instantiate(prefab, pos, rot);
         if (table == null) table = Resources.Load<NetPrefabs>("NetPrefabs");
@@ -35,7 +57,7 @@ public static class Net
             Debug.LogError($"[Net] No network version of {prefab.name}; spawning it locally only.");
             return Object.Instantiate(prefab, pos, rot);
         }
-        int slot = LocalSlot;
+        if (slot < 0) slot = LocalSlot;
         return Runner.Spawn(net, pos, rot, null, (r, o) => o.GetComponent<NetEntity>().Init(slot, pos, rot)).gameObject;
     }
 

@@ -6,26 +6,22 @@ public class CreditsDisplay : MonoBehaviour
 {
     [SerializeField] Text label;
     [SerializeField] Text gain; // "+200", fades out
+    [SerializeField] IntEventChannel creditsChanged; // same asset as ResourceBank's
 
     float gainTime = -10f;
-    ResourceBank bank;
+
+    void OnEnable() => creditsChanged.Raised += Changed;
+    void OnDisable() => creditsChanged.Raised -= Changed;
 
     void Start()
     {
-        bank = ResourceBank.GetOrCreate();
-        bank.OnCreditsChanged += Changed;
-        label.text = $"CREDITS  {bank.Credits:N0}";
+        label.text = $"CREDITS  {ResourceBank.GetOrCreate().Credits:N0}";
         gain.text = "";
     }
 
-    void OnDestroy()
+    void Changed(int delta)
     {
-        if (bank != null) bank.OnCreditsChanged -= Changed;
-    }
-
-    void Changed(int total, int delta)
-    {
-        label.text = $"CREDITS  {total:N0}";
+        label.text = $"CREDITS  {ResourceBank.Instance.Credits:N0}";
         if (delta > 0) { gain.text = $"+{delta:N0}"; gainTime = Time.time; }
     }
 

@@ -14,6 +14,8 @@ public class LoginScreen : MonoBehaviour
     {
         signIn.onClick.AddListener(() => Submit(false));
         signUp.onClick.AddListener(() => Submit(true));
+        // Enter in the username box: on to the password (or sign in if it is already filled).
+        username.onSubmit.AddListener(_ => { if (password.text.Length == 0) { password.Select(); password.ActivateInputField(); } else Submit(false); });
         password.onSubmit.AddListener(_ => Submit(false)); // Enter in the password box = Sign In
         Show();
     }

@@ -16,7 +16,7 @@ public class CameraPan : MonoBehaviour
 
     void Update()
     {
-        var kb = Keyboard.current;
+        var kb = Chat.Keys;
         var mouse = Mouse.current;
         if (kb == null) return;
 

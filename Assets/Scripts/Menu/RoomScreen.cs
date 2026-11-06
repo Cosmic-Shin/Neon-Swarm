@@ -8,10 +8,15 @@ public class RoomScreen : MonoBehaviour
 {
     public Text title, waiting, hint;
     public Button startGame;
-    public Button playerTemplate;   // inactive row: Swatch (Image), Name (Text), Base (Text)
+    public Button playerTemplate;   // inactive row: Swatch (Button), Name (Text), Team (Button), Base (Text)
     public RectTransform map;       // the map picture; base circles are placed on it
     public Button baseTemplate;     // inactive circle with a Label (Text)
     public Button credits, minutes; // host cycles through the options
+    public InputField customCredits; // host: type any amount, Enter
+    public InputField chatInput;     // Enter sends
+    public Text chatLog;
+    const int ChatLines = 14;
+    readonly System.Collections.Generic.List<string> chat = new();
 
     // Base_1..Base_8 on the RTS map (x, z); the map picture covers -300..300 both ways.
     static readonly Vector2[] BasePositions =
@@ -33,12 +38,18 @@ public class RoomScreen : MonoBehaviour
         });
         credits.onClick.AddListener(() => RoomState.Instance?.NextCredits());
         minutes.onClick.AddListener(() => RoomState.Instance?.NextMinutes());
+        customCredits.onSubmit.AddListener(SetCustomCredits);
+        chatInput.onSubmit.AddListener(SendChat);
+        RoomState.ChatReceived += AddChat;
 
         for (int i = 0; i < rows.Length; i++)
         {
             int slot = i;
             rows[i] = Instantiate(playerTemplate, playerTemplate.transform.parent);
             rows[i].onClick.AddListener(() => picked = picked == slot ? -1 : slot);
+            // Your own row: click the colour swatch or the team to change them (C&C style).
+            rows[i].transform.Find("Swatch").GetComponent<Button>().onClick.AddListener(() => RoomState.Instance?.NextColor());
+            rows[i].transform.Find("Team").GetComponent<Button>().onClick.AddListener(() => RoomState.Instance?.NextTeam());
         }
         for (int b = 0; b < bases.Length; b++)
         {
@@ -63,6 +74,8 @@ public class RoomScreen : MonoBehaviour
     {
         startGame.interactable = true;
         picked = -1;
+        chat.Clear();
+        chatLog.text = "";
     }
 
     void Update()
@@ -84,6 +97,12 @@ public class RoomScreen : MonoBehaviour
             rows[i].transform.Find("Name").GetComponent<Text>().text = $"{i + 1}.  {room.NameOf(i)}{tags}";
             rows[i].transform.Find("Base").GetComponent<Text>().text = $"BASE {room.Bases[i] + 1}";
             rows[i].transform.Find("Swatch").GetComponent<Image>().color = TeamMember.ColorOf(i);
+            bool mine = player == runner.LocalPlayer;
+            int team = room.TeamOf(i);
+            var teamButton = rows[i].transform.Find("Team").GetComponent<Button>();
+            teamButton.GetComponentInChildren<Text>().text = team == 0 ? "NO TEAM" : $"TEAM {team}";
+            teamButton.interactable = mine;
+            rows[i].transform.Find("Swatch").GetComponent<Button>().interactable = mine;
             rows[i].GetComponent<Image>().color = picked == i ? Picked : new Color(0f, 0f, 0f, 0.4f);
             rows[i].interactable = host;
         }
@@ -97,15 +116,45 @@ public class RoomScreen : MonoBehaviour
             bases[b].interactable = host && picked >= 0;
         }
 
-        credits.GetComponentInChildren<Text>().text = $"${room.Credits}";
+        credits.GetComponentInChildren<Text>().text = $"${room.Credits:N0}";
         minutes.GetComponentInChildren<Text>().text = room.Minutes > 0 ? $"{room.Minutes} MIN" : "NO LIMIT";
         credits.interactable = minutes.interactable = host;
-        hint.text = !host ? "Only the host can move players and change the settings."
+        customCredits.gameObject.SetActive(host);
+        hint.text = !host ? "Click your colour or team to change it. The host sets bases and settings."
                   : picked >= 0 ? $"Now click a base for player {picked + 1}."
-                  : "Click a player, then a base to move them there (swaps if taken).";
+                  : "Click your colour or team to change it. Click a player, then a base to move them.";
 
         // The host can change if the creator leaves, so check every frame.
         startGame.gameObject.SetActive(host);
         waiting.gameObject.SetActive(!host);
+    }
+
+    void OnDestroy() => RoomState.ChatReceived -= AddChat;
+
+    // "15000", "$15,000" and "15k" all work.
+    void SetCustomCredits(string text)
+    {
+        text = text.Trim().ToLower().Replace("$", "").Replace(",", "");
+        int scale = text.EndsWith("k") ? 1000 : 1;
+        if (scale > 1) text = text.TrimEnd('k');
+        if (int.TryParse(text, out int amount)) RoomState.Instance?.SetCredits(amount * scale);
+        customCredits.text = "";
+    }
+
+    void SendChat(string text)
+    {
+        text = text.Trim();
+        if (text.Length > 0 && RoomState.Instance != null) RoomState.Instance.SendChat(text);
+        chatInput.text = "";
+        chatInput.ActivateInputField(); // keep typing
+    }
+
+    void AddChat(int slot, string text)
+    {
+        string name = RoomState.Instance != null ? RoomState.Instance.NameOf(slot) : "?";
+        string colour = ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(slot));
+        chat.Add($"<color=#{colour}><b>{name}:</b></color> {text.Replace("<", "<​")}"); // no rich-text tricks from players
+        if (chat.Count > ChatLines) chat.RemoveAt(0);
+        chatLog.text = string.Join("\n", chat);
     }
 }

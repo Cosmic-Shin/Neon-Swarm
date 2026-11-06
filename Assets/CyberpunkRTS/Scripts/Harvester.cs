@@ -38,6 +38,7 @@ public class Harvester : MonoBehaviour
     void Awake()
     {
         anim = GetComponentInChildren<Animator>();
+        if (!GetComponent<HarvestFX>()) gameObject.AddComponent<HarvestFX>();
         agent = GetComponent<NavMeshAgent>();
         foreach (var t in GetComponentsInChildren<Transform>(true))
             if (t.name == "Harvester_CargoFill") { cargoFill = t; break; }
@@ -231,15 +232,28 @@ public class Harvester : MonoBehaviour
     // ---------- visuals ----------
     void SetSpeed(float v) { if (anim) anim.SetFloat(SpeedId, v > 0.05f ? 1f : 0f); }
 
+    // Multiplayer: the owner publishes these; other PCs replay them with ShowRemote.
+    static readonly string[] AnimStates = { "Idle", "Harvest", "Unload" };
+    public int AnimIndex { get; private set; }
+    public float CargoFraction { get; private set; }
+
+    public void ShowRemote(int animIndex, float cargoFraction)
+    {
+        if (animIndex != AnimIndex && animIndex >= 0 && animIndex < AnimStates.Length) Play(AnimStates[animIndex]);
+        if (!Mathf.Approximately(cargoFraction, CargoFraction)) SetCargoVisual(cargoFraction * capacity);
+    }
+
     void Play(string stateName)
     {
+        AnimIndex = System.Array.IndexOf(AnimStates, stateName);
         if (anim && anim.HasState(0, Animator.StringToHash(stateName))) anim.CrossFadeInFixedTime(stateName, 0.2f);
     }
 
     void SetCargoVisual(float c)
     {
-        if (!cargoFill) return;
         float f = Mathf.Clamp01(c / capacity);
+        CargoFraction = f;
+        if (!cargoFill) return;
         cargoFill.gameObject.SetActive(f > 0.01f);
         Vector3 s = fillScale; s[fillAxis] = fillScale[fillAxis] * Mathf.Max(0.02f, f);
         cargoFill.localScale = s;

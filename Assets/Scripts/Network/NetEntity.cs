@@ -22,11 +22,13 @@ public class NetEntity : NetworkBehaviour
     [Networked] float Build { get; set; }     // construction 0..1; -1 = not under construction
     [Networked] int Level { get; set; }       // building upgrade Mk level
     [Networked] int Rank { get; set; }        // veterancy rank (the glow)
+    [Networked] int HarvestAnim { get; set; } // harvesters: Idle / Harvest / Unload
+    [Networked] float Cargo { get; set; }     // harvesters: how full, 0..1
 
     // Scripts that only the owner runs (they move, shoot, spend or earn).
     static readonly System.Type[] OwnerOnly =
     {
-        typeof(Attacker), typeof(Building), typeof(Harvester), typeof(HarvesterSafety), typeof(Turret),
+        typeof(Attacker), typeof(Building), typeof(Harvester), typeof(Turret),
         typeof(Siphon), typeof(Repairer), typeof(FreeHarvester), typeof(EmpMine), typeof(Refinery),
     };
     const float DespawnDelay = 3f; // after death, so every PC sees it die (and wrecks get spawned) first
@@ -68,6 +70,13 @@ public class NetEntity : NetworkBehaviour
         if (!HasStateAuthority) MakeRemote();
         else if (TryGetComponent(out NavMeshAgent agent) && agent.enabled)
             agent.Warp(SpawnPos); // it was created at the map origin first and its agent snapped there
+
+        // Neutral creeps: owned and run by the host; nobody can capture outposts with them.
+        if (Health.team == Creep.Team)
+        {
+            if (TryGetComponent(out TeamMember t)) Destroy(t);
+            if (HasStateAuthority) gameObject.AddComponent<Creep>();
+        }
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState) => All.Remove(this);
@@ -91,6 +100,7 @@ public class NetEntity : NetworkBehaviour
         Build = construction != null ? construction.Progress : -1f;
         if (TryGetComponent(out BuildingUpgrade up)) Level = up.level;
         if (TryGetComponent(out Veterancy vet)) Rank = vet.Rank;
+        if (TryGetComponent(out Harvester harv)) { HarvestAnim = harv.AnimIndex; Cargo = harv.CargoFraction; }
     }
 
     // ---- everyone else: mirror ----
@@ -122,6 +132,8 @@ public class NetEntity : NetworkBehaviour
             if (!TryGetComponent(out Veterancy vet)) vet = gameObject.AddComponent<Veterancy>();
             vet.ShowRank(Rank);
         }
+
+        if (TryGetComponent(out Harvester harvester)) harvester.ShowRemote(HarvestAnim, Cargo);
 
         if (Dead) { diedHere = true; Health.DieRemote(); }
     }
@@ -171,6 +183,10 @@ public class NetEntity : NetworkBehaviour
         if (!TryGetComponent(out Veterancy vet)) vet = gameObject.AddComponent<Veterancy>();
         vet.AddKill();
     }
+
+    // Owner's factory let a unit out: everyone else opens the door too.
+    [Rpc(RpcSources.StateAuthority, RpcTargets.Proxies)]
+    public void RPC_OpenGate(float seconds) { if (TryGetComponent(out Building b)) b.OpenGate(seconds); }
 
     // Owner fired: everyone else replays the shot's look (no damage; that went by RPC_Damage).
     [Rpc(RpcSources.StateAuthority, RpcTargets.Proxies)]

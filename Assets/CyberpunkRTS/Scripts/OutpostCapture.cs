@@ -24,6 +24,9 @@ public class OutpostCapture : MonoBehaviour
     [Tooltip("Garrisoned units' weapon range is multiplied by this (read it from your combat code).")]
     public float garrisonRangeBonus = 1.25f;
 
+    [Tooltip("Multiplayer: another PC (the host) runs the capture; this one only shows it (SetRemote).")]
+    public bool remote;
+
     [Header("State (read only)")]
     public int ownerTeam = -1;          // -1 = neutral
     public int capturingTeam = -1;
@@ -71,6 +74,24 @@ public class OutpostCapture : MonoBehaviour
 
     void Update()
     {
+        if (!remote) Capture();
+        if (progressRing) progressRing.localScale = Vector3.one * Mathf.Max(0.01f, progress);
+        if (emblem && IsOwned) emblem.Rotate(Vector3.up, 45f * Time.deltaTime, Space.World);
+        UpdateGlow();
+    }
+
+    /// <summary>GD5 edit (multiplayer): show the host's state.</summary>
+    public void SetRemote(int owner, int capturing, float progress01)
+    {
+        capturingTeam = capturing; progress = progress01;
+        if (owner == ownerTeam) return;
+        ownerTeam = owner; holdTimeLeft = owner >= 0 ? holdDuration : 0f;
+        ApplyState();
+        OnOwnerChanged?.Invoke(owner);
+    }
+
+    void Capture()
+    {
         // scan the zone a few times per second (cheap for an RTS with many units)
         scanTimer -= Time.deltaTime;
         if (scanTimer <= 0f) { scanTimer = 0.2f; Scan(); }
@@ -104,10 +125,6 @@ public class OutpostCapture : MonoBehaviour
                 if (progress <= 0f) LoseOwnership();
             }
         }
-
-        if (progressRing) progressRing.localScale = Vector3.one * Mathf.Max(0.01f, progress);
-        if (emblem && IsOwned) emblem.Rotate(Vector3.up, 45f * Time.deltaTime, Space.World);
-        UpdateGlow();
     }
 
     void Scan()
@@ -121,7 +138,10 @@ public class OutpostCapture : MonoBehaviour
             if (!tm || !tm.isActiveAndEnabled || !counted.Add(tm)) continue;
             var death = tm.GetComponent<UnitDeath>();
             if (death && death.IsDead) continue;
-            present[tm.team] = (present.TryGetValue(tm.team, out var c) ? c : 0) + 1;
+            int side = tm.team; // GD5 edit: allies count as one side (the owner's, if they're allied with it)
+            if (ownerTeam >= 0 && Net.Allied(ownerTeam, side)) side = ownerTeam;
+            else foreach (var k in present.Keys) if (Net.Allied(k, side)) { side = k; break; }
+            present[side] = (present.TryGetValue(side, out var c) ? c : 0) + 1;
         }
     }
 
@@ -157,7 +177,7 @@ public class OutpostCapture : MonoBehaviour
 
     void UpdateGlow()
     {
-        Color baseCol = capturingTeam >= 0 ? Color.Lerp(Color.white, TeamMember.ColorOf(capturingTeam), progress) : Color.white;
+        Color baseCol = capturingTeam >= 0 ? Color.Lerp(Color.white, Net.ColorOf(capturingTeam), progress) : Color.white;
         float pulse = IsOwned ? 1f : 0.6f + 0.4f * Mathf.Sin(Time.time * 4f);
         foreach (var (r, slot) in glow)
         {
@@ -221,7 +241,7 @@ public class OutpostCapture : MonoBehaviour
             ? $"{who}  ·  hold {Mathf.CeilToInt(holdTimeLeft)}s  ·  garrison {garrison.Count}/{maxGarrison}"
             : (progress > 0 ? $"CAPTURING {Mathf.RoundToInt(progress * 100)}%" : "DERELICT OUTPOST");
         var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-        style.normal.textColor = IsOwned ? TeamMember.ColorOf(ownerTeam) : Color.white;
+        style.normal.textColor = IsOwned ? Net.ColorOf(ownerTeam) : Color.white;
         GUI.Label(new Rect(sp.x - 160, Screen.height - sp.y - 12, 320, 24), line, style);
     }
 }

@@ -58,7 +58,7 @@ public class Attacker : MonoBehaviour
     // Got shot: answer back unless busy or walking somewhere (attack-move counts as looking for a fight).
     public void Retaliate(Health from)
     {
-        if (target == null && (attackMove != null || !IsMoving()) && from.team != self.team) target = from;
+        if (target == null && (attackMove != null || !IsMoving()) && !Net.Allied(from.team, self.team)) target = from;
     }
 
     bool IsMoving() => agent.enabled && (agent.pathPending || (agent.hasPath && agent.remainingDistance > agent.stoppingDistance + 0.5f));
@@ -172,7 +172,7 @@ public class Attacker : MonoBehaviour
         foreach (var h in Health.All)
         {
             Vector3 d = h.transform.position - at; d.y = 0f;
-            if (h.team != self.team && d.sqrMagnitude <= s2) hits.Add(h);
+            if (!Net.Allied(h.team, self.team) && d.sqrMagnitude <= s2) hits.Add(h);
         }
         foreach (var h in hits) Hit(h, dmg, stun);
     }
@@ -193,7 +193,7 @@ public class Attacker : MonoBehaviour
         float bestSqr = radius * radius;
         foreach (var h in Health.All)
         {
-            if (h.team == self.team || h.CloakedFrom(transform.position)) continue;
+            if (Net.Allied(h.team, self.team) || h.CloakedFrom(transform.position)) continue;
             float sqr = (AimPoint(h, transform.position) - transform.position).sqrMagnitude;
             if (sqr < bestSqr) { bestSqr = sqr; best = h; }
         }

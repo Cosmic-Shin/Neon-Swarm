@@ -11,6 +11,11 @@ public class Alerts : MonoBehaviour
     [SerializeField] Text lineTemplate; // disabled; cloned per message inside a VerticalLayoutGroup
     [SerializeField] float showTime = 4f;
     [SerializeField] int maxLines = 5;
+    [SerializeField] GameObjectEventChannel unitPromoted; // raised by Veterancy
+
+    void OnEnable() => unitPromoted.Raised += Promoted;
+    void OnDisable() => unitPromoted.Raised -= Promoted;
+    void Promoted(GameObject unit) => Show($"Unit promoted: {unit.GetComponent<Veterancy>().RankName}", Good);
 
     static Alerts instance;
     static readonly Dictionary<string, float> quietUntil = new(); // throttle per message

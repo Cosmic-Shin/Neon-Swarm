@@ -42,10 +42,16 @@ public class Minimap : MonoBehaviour, IPointerDownHandler, IDragHandler
         foreach (var o in OreNode.All)
             if (!o.IsDepleted && Explored(o.transform.position)) Dot(o.transform.position, 3f, o.valueMultiplier > 1f ? RedOre : GreenOre);
         foreach (var h in Health.All)
-            if (h.team == 0 || fog == null || fog.IsVisible(h.transform.position) || (Radar.Active && h.TryGetComponent(out SelectableUnit _))) // enemies: in sight, or radar
+            if (Net.Allied(h.team, 0) || fog == null || fog.IsVisible(h.transform.position) || (Radar.Active && h.TryGetComponent(out SelectableUnit _))) // enemies: in sight, or radar
                 Dot(h.transform.position, h.TryGetComponent(out SelectableUnit _) ? 4f : 8f, Net.ColorOf(h.team));
         foreach (var o in outposts)
-            if (o != null && Explored(o.transform.position)) Dot(o.transform.position, 10f, o.IsOwned ? TeamMember.ColorOf(o.ownerTeam) : Color.white);
+            if (o != null && Explored(o.transform.position)) Dot(o.transform.position, 10f, o.IsOwned ? Net.ColorOf(o.ownerTeam) : Color.white);
+        foreach (var p in Ping.Active) // pulsing, fading circles
+        {
+            float age = Time.time - p.born, pulse = age % 1f;
+            Color c = p.color; c.a = 1f - pulse;
+            Dot(p.at, 8f + 26f * pulse, c);
+        }
         for (int i = used; i < pool.Count; i++) pool[i].enabled = false;
 
         // Camera view: where the screen corners hit the ground.
@@ -85,7 +91,8 @@ public class Minimap : MonoBehaviour, IPointerDownHandler, IDragHandler
     // Left: move the camera there. Right: send the selected units there (or set the building's rally point).
     public void OnPointerDown(PointerEventData e)
     {
-        if (e.button == PointerEventData.InputButton.Left) MoveCamera(e);
+        if (e.button == PointerEventData.InputButton.Left && Net.Online && Ping.AltHeld) Ping.Send(ToWorld(e)); // Alt+click = ping
+        else if (e.button == PointerEventData.InputButton.Left) MoveCamera(e);
         else if (e.button == PointerEventData.InputButton.Right && selection != null) selection.MoveSelectedTo(ToWorld(e));
     }
 

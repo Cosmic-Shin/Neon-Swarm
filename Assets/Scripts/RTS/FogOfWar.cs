@@ -65,7 +65,7 @@ public class FogOfWar : MonoBehaviour
     {
         System.Array.Clear(visible, 0, visible.Length);
         foreach (var h in Health.All)
-            if (h.team == 0) Stamp(h.transform.position, Sight(h));
+            if (Net.Allied(h.team, 0)) Stamp(h.transform.position, Sight(h));
 
         Color32 clear = new(0, 0, 0, 0), dim = new(5, 3, 12, 150), dark = new(5, 3, 12, 235);
         for (int i = 0; i < px.Length; i++)
@@ -80,7 +80,7 @@ public class FogOfWar : MonoBehaviour
 
         // Hide enemies we can't see. Outposts are landmarks: always drawn (the fog dims them).
         foreach (var h in Health.All)
-            if (h.team != 0 && !h.TryGetComponent(out OutpostCapture _)) SetHidden(h, !IsVisible(h.transform.position));
+            if (!Net.Allied(h.team, 0) && !h.TryGetComponent(out OutpostCapture _)) SetHidden(h, !IsVisible(h.transform.position));
 
         // Forget ones that died or left (they leave Health.All).
         stale.Clear();

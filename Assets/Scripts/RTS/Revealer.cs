@@ -26,12 +26,12 @@ public class Revealer : MonoBehaviour
     void OnEnable() => active.Add(this);   // off while under construction
     void OnDisable() => active.Remove(this);
 
-    bool On => ring != null && ring.gameObject.activeInHierarchy && (self.team != 0 || !Structure.LowPower);
+    bool On => ring != null && ring.gameObject.activeInHierarchy && !Net.LowPower(self.team);
 
     public static bool Reveals(Health h)
     {
         foreach (var r in active)
-            if (r.self.team != h.team && r.On && (h.transform.position - r.transform.position).sqrMagnitude <= r.radius * r.radius) return true;
+            if (!Net.Allied(r.self.team, h.team) && r.On && (h.transform.position - r.transform.position).sqrMagnitude <= r.radius * r.radius) return true;
         return false;
     }
 }

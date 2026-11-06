@@ -11,6 +11,9 @@ public class Outpost : MonoBehaviour
     [SerializeField] float baseDamage = 6f;  // empty outpost; each garrisoned unit adds its own damage
     [SerializeField] float cooldown = 1f;
 
+    /// <summary>Multiplayer (host): told about every shot so the other PCs can draw the laser.</summary>
+    public static System.Action<Outpost, Health> ShotHook;
+
     OutpostCapture capture;
     Health health;
     LineRenderer laser;
@@ -41,7 +44,15 @@ public class Outpost : MonoBehaviour
         health.team = team;
         health.Revive();
         health.enabled = team >= 0; // neutral ruins aren't a target
-        laser.material.color = TeamMember.ColorOf(team) * 3f;
+        laser.material.color = Net.ColorOf(team) * 3f;
+    }
+
+    public void ShowShot(Health target)
+    {
+        laser.SetPosition(0, transform.position + Vector3.up * 6f);
+        laser.SetPosition(1, target.transform.position + Vector3.up * 1f);
+        laser.enabled = true;
+        laserOff = Time.time + 0.1f;
     }
 
     // Shot down: empty it and let OutpostCapture decay it to neutral (it does once hold time and progress hit 0).
@@ -55,7 +66,7 @@ public class Outpost : MonoBehaviour
     void Update()
     {
         if (laser.enabled && Time.time >= laserOff) laser.enabled = false;
-        if (!capture.IsOwned || Time.time < nextShot) return;
+        if (capture.remote || !capture.IsOwned || Time.time < nextShot) return; // remote: the host shoots
 
         float damage = baseDamage, reach = range;
         foreach (var g in capture.Garrison)
@@ -69,17 +80,15 @@ public class Outpost : MonoBehaviour
         float best = reach * reach;
         foreach (var h in Health.All)
         {
-            if (h.team == capture.ownerTeam || h.CloakedFrom(transform.position)) continue;
+            if (Net.Allied(h.team, capture.ownerTeam) || h.CloakedFrom(transform.position)) continue;
             float sqr = (h.transform.position - transform.position).sqrMagnitude;
             if (sqr < best) { best = sqr; target = h; }
         }
         if (target == null) return;
 
         nextShot = Time.time + cooldown;
-        laser.SetPosition(0, transform.position + Vector3.up * 6f);
-        laser.SetPosition(1, target.transform.position + Vector3.up * 1f);
-        laser.enabled = true;
-        laserOff = Time.time + 0.1f;
+        ShowShot(target);
+        ShotHook?.Invoke(this, target);
         target.TakeDamage(damage, health);
     }
 }

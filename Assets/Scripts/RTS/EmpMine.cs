@@ -23,7 +23,7 @@ public class EmpMine : MonoBehaviour
         bool fired = false;
         foreach (var h in Health.All)
         {
-            if (h.team == self.team || !h.TryGetComponent(out SelectableUnit u)) continue;
+            if (Net.Allied(h.team, self.team) || !h.TryGetComponent(out SelectableUnit u)) continue;
             if ((h.transform.position - transform.position).sqrMagnitude > r2) continue;
             u.Stun(stunTime);
             fired = true;

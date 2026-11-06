@@ -17,6 +17,9 @@ public class Health : MonoBehaviour
     public bool IsDamaged => current < maxHealth;
     public bool IsDead => current <= 0f;
 
+    // Paint it in its owner's colour (network units know their team by now: NetEntity.Spawned runs first).
+    void Start() { if (!TryGetComponent(out OutpostCapture _)) TeamLook.Apply(gameObject, team); }
+
     void Awake()
     {
         // Units take their max health from their UnitData; anything else uses the field.
@@ -68,12 +71,16 @@ public class Health : MonoBehaviour
     }
 
     // from: who shot us, so an idle unit can shoot back (and gets the kill).
+    /// <summary>Multiplayer: damage to scene objects another PC runs (outposts). True = it was sent there.</summary>
+    public static System.Func<Health, float, Health, bool> RemoteDamage;
+
     public void TakeDamage(float amount, Health from = null)
     {
         if (net != null && net.IsRemote) { if (!net.IsDead) net.RPC_Damage(amount, NetEntity.IdOf(from)); return; } // owner applies it
+        if (RemoteDamage != null && net == null && RemoteDamage(this, amount, from)) return; // multiplayer: a host-run outpost
         if (IsDead) return;
         current = Mathf.Max(0f, current - amount);
-        if (team == 0 && from != null && from.team != team) Alerts.Attacked(this);
+        if (team == 0 && from != null && !Net.Allied(from.team, team)) Alerts.Attacked(this);
         if (IsDead) { Die(from); return; }
         if (from != null && TryGetComponent(out Attacker attacker)) attacker.Retaliate(from);
     }
@@ -82,7 +89,7 @@ public class Health : MonoBehaviour
     {
         enabled = false; // leaves Health.All, so nobody keeps targeting the wreck
         if (net != null) net.MarkDead(); // multiplayer: everyone plays the death
-        if (killer != null && killer.team != team && killer.TryGetComponent(out SelectableUnit _)) // veterancy: units only
+        if (killer != null && !Net.Allied(killer.team, team) && killer.TryGetComponent(out SelectableUnit _)) // veterancy: units only
         {
             if (killer.TryGetComponent(out NetEntity kn) && kn.IsRemote) kn.RPC_AddKill(); // another player's unit
             else

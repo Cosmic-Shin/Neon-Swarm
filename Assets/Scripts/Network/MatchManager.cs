@@ -16,6 +16,10 @@ public class MatchManager : MonoBehaviour
     [SerializeField] Transform[] layoutHarvesters;
     [SerializeField] GameObject nexusPrefab, hivePrefab, harvesterPrefab;
 
+    [System.Serializable] public struct CreepSpawn { public GameObject prefab; public Vector3 position; public Quaternion rotation; }
+    [Tooltip("The single-player creeps (baked from the scene): online the host spawns these as network units.")]
+    [SerializeField] CreepSpawn[] creeps;
+
     [Header("UI")]
     [SerializeField] Text timerText;
     [SerializeField] GameObject endPanel;
@@ -64,7 +68,11 @@ public class MatchManager : MonoBehaviour
         yield return null;
         if (!runner.IsRunning) yield break;
         foreach (var s in spawns) Net.Spawn(s.prefab, s.pos, s.rot);
-        if (room.HasStateAuthority && room.MatchStart <= 0f) room.MatchStart = runner.SimulationTime;
+        if (room.HasStateAuthority && room.MatchStart <= 0f)
+        {
+            room.MatchStart = runner.SimulationTime;
+            foreach (var c in creeps) if (c.prefab != null) Net.Spawn(c.prefab, c.position, c.rotation, Creep.Team);
+        }
         Alerts.Show($"You are Player {Net.LocalSlot + 1}. Destroy every enemy building!", Alerts.Info, 6f);
     }
 
@@ -74,6 +82,7 @@ public class MatchManager : MonoBehaviour
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
     float nextLog;
+    bool chatSent, pingSent;
     void LogState() // test builds: what this PC sees, to compare players in Player.log
     {
         if (Time.time < nextLog) return;
@@ -81,7 +90,20 @@ public class MatchManager : MonoBehaviour
         var sb = new System.Text.StringBuilder($"[GD5] slot {Net.LocalSlot} sees:");
         foreach (var e in NetEntity.All)
             if (e != null) sb.Append($" {e.name.Replace("_Net(Clone)", "")}/t{e.Health.team}/{(e.IsRemote ? "R" : "own")}@{e.transform.position.x:0},{e.transform.position.z:0} hp{e.Health.Current:0};");
+        float ore = 0f; foreach (var o in OreNode.All) ore += o.amount;
+        int creepCount = 0; foreach (var e in NetEntity.All) if (e != null && e.Health.team == Creep.Team && !e.IsDead) creepCount++;
+        sb.Append($" creeps={creepCount} teams={RoomState.Instance.TeamOf(0)},{RoomState.Instance.TeamOf(1)} colours={RoomState.Instance.ColorIndexOf(0)},{RoomState.Instance.ColorIndexOf(1)} lowPowerOther={Net.LowPower(1)}");
+        foreach (var op in FindObjectsByType<OutpostCapture>(FindObjectsSortMode.None)) if (op.ownerTeam >= 0 || op.progress > 0f) sb.Append($" {op.name}:own{op.ownerTeam}/cap{op.capturingTeam}/{op.progress:0.00}/hp{op.GetComponent<Health>().Current:0}");
+        sb.Append($" ore={ore:0}");
+        foreach (var e in NetEntity.All)
+            if (e != null && e.IsRemote && e.TryGetComponent(out Harvester hv)) sb.Append($" harv{hv.AnimIndex}/{hv.CargoFraction:0.00}");
         Debug.Log(sb.ToString());
+#if DEVELOPMENT_BUILD
+        if (!chatSent && started > 0f && Time.time - started > 20f && System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-autojoin") >= 0)
+        { chatSent = true; RoomState.Instance.SendChat($"hello from slot {Net.LocalSlot}"); }
+        if (!pingSent && started > 0f && Time.time - started > 25f && System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-autojoin") >= 0)
+        { pingSent = true; Ping.Send(Camera.main.transform.position + Camera.main.transform.forward * 20f); }
+#endif
     }
 #endif
 
@@ -111,8 +133,17 @@ public class MatchManager : MonoBehaviour
         nextCheck = Time.time + 0.5f;
         var standing = TeamsWithBuildings();
         if (!standing.Contains(0)) { End("DEFEAT", "All your buildings were destroyed."); return; }
-        if (standing.Count > 1) hadOpponent = true;
+        var sides = new HashSet<int>();
+        foreach (int t in standing) sides.Add(Side(t));
+        if (sides.Count > 1) hadOpponent = true;
         else if (hadOpponent) End("VICTORY", "Every enemy base is destroyed.");
+    }
+
+    // Allies share a side (their lobby team); without a team every player is their own side.
+    static int Side(int team)
+    {
+        int t = RoomState.Instance != null ? RoomState.Instance.TeamOf(Net.ToSlot(team)) : 0;
+        return t != 0 ? 100 + t : team;
     }
 
     // Teams (0 = us) with at least one building standing or being built.
@@ -129,21 +160,25 @@ public class MatchManager : MonoBehaviour
         var worth = new Dictionary<int, int>();
         foreach (var e in NetEntity.All)
         {
-            if (e == null || e.IsDead) continue;
+            if (e == null || e.IsDead || e.Health.team == Creep.Team) continue;
             int value = e.TryGetComponent(out SelectableUnit u) ? u.Cost
                       : e.TryGetComponent(out Structure s) ? (s.data != null ? s.data.cost : 3000) : 0;
-            worth.TryGetValue(e.Health.team, out int sum);
-            worth[e.Health.team] = sum + value;
+            int side = Side(e.Health.team);
+            worth.TryGetValue(side, out int sum);
+            worth[side] = sum + value;
         }
         int best = -1, bestWorth = -1;
         foreach (var kv in worth) if (kv.Value > bestWorth) { best = kv.Key; bestWorth = kv.Value; }
-        worth.TryGetValue(0, out int mine);
-        End(best == 0 ? "VICTORY" : "DEFEAT",
-            $"Time's up. {(best == 0 ? "Your" : Net.NameOf(best) + "'s")} army and base are worth the most (${bestWorth}; yours ${mine}).");
+        int us = Side(0);
+        worth.TryGetValue(us, out int mine);
+        string who = best == us ? (us >= 100 ? "Your team's" : "Your") : best >= 100 ? $"Team {best - 100}'s" : Net.NameOf(best) + "'s";
+        End(best == us ? "VICTORY" : "DEFEAT",
+            $"Time's up. {who} army and base are worth the most (${bestWorth}; yours ${mine}).");
     }
 
     void End(string title, string detail)
     {
+        Debug.Log($"[GD5] end {title}: {detail}");
         over = true;
         endTitle.text = title;
         endTitle.color = title == "VICTORY" ? new Color(0.3f, 1f, 0.6f) : new Color(1f, 0.3f, 0.35f);
@@ -151,9 +186,20 @@ public class MatchManager : MonoBehaviour
         endPanel.SetActive(true);
     }
 
+    public bool IsOver => over;
+
+    // Esc menu: remove all our units and buildings (everyone else sees us lose) and show the defeat screen.
+    public void Surrender()
+    {
+        if (!Net.Online || over) return;
+        foreach (var e in NetEntity.All.ToArray())
+            if (e != null && !e.IsRemote) e.Despawn(0f);
+        End("DEFEAT", "You surrendered.");
+    }
+
     void OnDisconnected(string reason) { if (!over) End("DISCONNECTED", reason); }
 
-    async void BackToMenu()
+    public async void BackToMenu()
     {
         endButton.interactable = false;
         Net.InMatch = false;
