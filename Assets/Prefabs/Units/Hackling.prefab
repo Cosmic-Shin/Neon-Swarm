@@ -340,6 +340,7 @@ GameObject:
   - component: {fileID: 6746180033497443327}
   - component: {fileID: 8483396273202624703}
   - component: {fileID: 4938224055323321352}
+  - component: {fileID: 4039078828109675430}
   m_Layer: 9
   m_Name: Hackling
   m_TagString: Untagged
@@ -479,6 +480,8 @@ MonoBehaviour:
   debrisShrinkTime: 0.6
   maxPhysicsPieces: 24
   debrisLayer: Ignore Raycast
+  wreckPieces: 3
+  wreckTime: 20
   animator: {fileID: 0}
   deathTrigger: Die
   deathClipLength: 1.67
@@ -499,6 +502,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TeamMember
   team: 0
+--- !u!114 &4039078828109675430
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7191917801611002043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ab61fbf486883e4998169579d7f9f80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RecoilKick
+  target: {fileID: 67539476772761155}
+  distance: 0.12
+  angle: 5
+  returnTime: 0.1
+  shake: 0
 --- !u!1 &8919610431432554248
 GameObject:
   m_ObjectHideFlags: 0

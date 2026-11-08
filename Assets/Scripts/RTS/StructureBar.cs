@@ -73,8 +73,9 @@ public class StructureBar : MonoBehaviour
         }
         else
         {
-            upgradeButton.interactable = up.CanUpgrade && ResourceBank.GetOrCreate().Credits >= up.NextCost;
-            upgradeText.text = $"UPGRADE TO MK {Roman(next.level)}  ${up.NextCost}";
+            bool slot = BuildSlots.Free;
+            upgradeButton.interactable = slot && up.CanUpgrade && ResourceBank.GetOrCreate().Credits >= up.NextCost;
+            upgradeText.text = slot ? $"UPGRADE TO MK {Roman(next.level)}  ${up.NextCost}" : "BUSY: 2 BUILDINGS IN PROGRESS";
         }
         upgradeTip.text = next == null
             ? "Fully upgraded."

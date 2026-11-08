@@ -20,6 +20,7 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
     [Networked] public float MatchStart { get; set; } // Runner.SimulationTime when the map loaded; 0 = not yet
     [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> Colors => default; // slot -> TeamMember.TeamColors index
     [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> Teams => default;  // slot -> 0 = no team, 1..TeamCount
+    [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<NetworkBool> Ready => default; // slot -> clicked READY in the lobby
     public const int TeamCount = 4;
 
     // Ore: the host owns every patch's amount (and its regrowth); everyone else mirrors it and sends what
@@ -92,15 +93,27 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
     }
 
     // ---- chat ----
-    public void SendChat(string text) => RPC_Chat(SlotOf(Runner.LocalPlayer), text);
+    // toAll = everyone; otherwise only the sender's allies (lobby team) read it.
+    public void SendChat(string text, bool toAll = true) => RPC_Chat(SlotOf(Runner.LocalPlayer), text, toAll);
 
-    public static event System.Action<int, string> ChatReceived; // (sender slot, text): room screen log, match alerts
+    public static event System.Action<int, string, bool> ChatReceived; // (sender slot, text, to all): room screen log, match alerts
 
+    // ponytail: team messages still reach every PC and are dropped there; target allies' PlayerRefs if that ever matters.
     [Rpc(RpcSources.All, RpcTargets.All)]
-    void RPC_Chat(int slot, string text)
+    void RPC_Chat(int slot, string text, NetworkBool toAll)
     {
-        Debug.Log($"[GD5] chat {NameOf(slot)}: {text}");
-        ChatReceived?.Invoke(slot, text);
+        if (!toAll && !Net.Allied(Net.ToTeam(slot), 0)) return;
+        Debug.Log($"[GD5] chat {(toAll ? "all" : "team")} {NameOf(slot)}: {text}");
+        ChatReceived?.Invoke(slot, text, toAll);
+    }
+
+    // Do I have anyone to team-chat with?
+    public bool HasAllies()
+    {
+        int me = SlotOf(Runner.LocalPlayer);
+        for (int i = 0; i < RoomService.MaxPlayers; i++)
+            if (i != me && Slots[i] != PlayerRef.None && TeamOf(me) != 0 && TeamOf(i) == TeamOf(me)) return true;
+        return false;
     }
 
     public override void Render()
@@ -117,13 +130,13 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
         for (int i = 0; i < RoomService.MaxPlayers; i++)
         {
             var p = Slots[i];
-            if (p != PlayerRef.None && !Contains(Runner.ActivePlayers, p)) Slots.Set(i, PlayerRef.None);
+            if (p != PlayerRef.None && !Contains(Runner.ActivePlayers, p)) { Slots.Set(i, PlayerRef.None); Ready.Set(i, false); }
         }
         foreach (var p in Runner.ActivePlayers)
         {
             if (SlotOf(p) >= 0) continue;
             for (int i = 0; i < RoomService.MaxPlayers; i++)
-                if (Slots[i] == PlayerRef.None) { Slots.Set(i, p); Teams.Set(i, 0); if (ColorTaken(i, Colors[i])) RPC_NextColor(i); break; }
+                if (Slots[i] == PlayerRef.None) { Slots.Set(i, p); Teams.Set(i, 0); Ready.Set(i, false); if (ColorTaken(i, Colors[i])) RPC_NextColor(i); break; }
         }
     }
 
@@ -162,6 +175,24 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
     bool Valid(int slot) => Object != null && Object.IsValid && slot >= 0 && slot < RoomService.MaxPlayers;
     public int ColorIndexOf(int slot) => Valid(slot) ? Colors[slot] : slot;
     public int TeamOf(int slot) => Valid(slot) ? Teams[slot] : 0;
+    public bool IsReady(int slot) => Valid(slot) && Ready[slot];
+    public bool IsHostSlot(int slot) => Valid(slot) && Slots[slot] == Object.StateAuthority;
+
+    // Everyone but the host has clicked READY (the host starts the game instead).
+    public bool EveryoneReady()
+    {
+        for (int i = 0; i < RoomService.MaxPlayers; i++)
+            if (Slots[i] != PlayerRef.None && !IsHostSlot(i) && !Ready[i]) return false;
+        return true;
+    }
+
+    public void ToggleReady() => RPC_ToggleReady(SlotOf(Runner.LocalPlayer));
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    void RPC_ToggleReady(int slot) { if (Valid(slot)) Ready.Set(slot, !Ready[slot]); }
+
+    // Host changed the setup: everyone confirms again.
+    void Unready() { for (int i = 0; i < RoomService.MaxPlayers; i++) Ready.Set(i, false); }
 
     // ---- colour and team: each player picks their own (C&C style); the host applies it ----
     public void NextColor() => RPC_NextColor(SlotOf(Runner.LocalPlayer));
@@ -199,12 +230,13 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
         int mine = Bases[slot];
         Bases.Set(slot, baseIndex);
         Bases.Set(other, mine);
+        Unready();
     }
 
-    public void NextCredits() { if (IsHost) Credits = Next(CreditOptions, Credits); }
+    public void NextCredits() { if (IsHost) { Credits = Next(CreditOptions, Credits); Unready(); } }
     public const int MinCredits = 500, MaxCredits = 1_000_000;
-    public void SetCredits(int amount) { if (IsHost) Credits = Mathf.Clamp(amount, MinCredits, MaxCredits); }
-    public void NextMinutes() { if (IsHost) Minutes = Next(MinuteOptions, Minutes); }
+    public void SetCredits(int amount) { if (IsHost) { Credits = Mathf.Clamp(amount, MinCredits, MaxCredits); Unready(); } }
+    public void NextMinutes() { if (IsHost) { Minutes = Next(MinuteOptions, Minutes); Unready(); } }
 
     static int Next(int[] options, int current) => options[(System.Array.IndexOf(options, current) + 1) % options.Length];
 }

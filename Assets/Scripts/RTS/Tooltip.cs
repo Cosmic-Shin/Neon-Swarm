@@ -26,6 +26,8 @@ public class Tooltip : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         if (d.slowOnHit > 0f) traits += $"Slows {d.slowOnHit:0.#}s   ";
         if (d.buildingDamage != 1f) traits += $"x{d.buildingDamage:0.#} vs buildings   ";
         if (d.sight > 0f) traits += $"Sight {d.sight:0}m   ";
+        if (d.squadSize > 1) traits = $"Squad of {d.squadSize}   " + traits;
+        if (d.damage > 0f) traits = (d.hitsAir && d.hitsGround ? "Hits ground + air" : d.hitsAir ? "Anti-air only" : "Ground only") + "   " + traits;
         if (traits != "") stats += $"\n<color=#FFD24A>{traits.TrimEnd()}</color>";
         return $"<color={Cyan}><b>{d.displayName}</b></color>   ${d.cost}  ·  {d.buildTime:0}s\n{d.description}\n<color={Grey}>{stats}</color>";
     }

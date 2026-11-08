@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   displayName: ArcCoil
   description: 'Defence tower. Arc chains to 3 enemies at once: 7 damage every 0.35s,
-    short 13m range. Offline when low on power.'
+    short 13m range. Offline when low on power. Ground only.'
   prefab: {fileID: 4590054623459727554, guid: 2a90e1362ea4eb64da4e2199da385e6c, type: 3}
   icon: {fileID: 21300000, guid: f06523524a427f247a0199c873523727, type: 3}
   cost: 500

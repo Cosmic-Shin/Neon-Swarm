@@ -12,12 +12,15 @@ public class UnitData : ScriptableObject
     public Sprite icon;
     public int cost = 300;          // credits, paid when queued
     public float buildTime = 5f;    // seconds to produce
+    [Min(1)] public int squadSize = 1; // C&C squads: one purchase brings this many (cost and time are per squad)
     public float maxHealth = 100f;
 
     [Header("Combat")]
     public float damage = 10f;         // per shot; 0 = can't attack
     public float range = 10f;          // metres
     public float attackCooldown = 1f;  // seconds between shots
+    public bool hitsGround = true;     // can shoot ground units and buildings
+    public bool hitsAir;               // can shoot flyers (anti-air)
 
     [Header("Role")]
     public float moveSpeed;            // 0 = the prefab's agent speed
@@ -29,4 +32,9 @@ public class UnitData : ScriptableObject
 
     [Header("Look")]
     public WeaponVisual visual = new();
+    public enum WeaponStyle { Shot, FlameStream, PodDrop, ShockPulse }
+    public WeaponStyle style;          // FlameStream: Burner; PodDrop: Moth drops Skitters; ShockPulse: Jellyfish zaps all under it
+    [Tooltip("Regex for model parts the shots leave from (all of them fire; damage is split). Empty = any part named *Muzzle*.")]
+    public string muzzles;
+    public GameObject extra;           // ShockPulse: the lightning bolt; PodDrop: the unit dropped
 }

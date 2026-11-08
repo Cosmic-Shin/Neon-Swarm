@@ -7206,6 +7206,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 936f8134a9d27224d99ac0dba2fc48eb, type: 2}
   - {fileID: 11400000, guid: c84267a942992134c84a8054922c01ab, type: 2}
   - {fileID: 11400000, guid: e1ac3722a4bede746a9b528278b26984, type: 2}
+  - {fileID: 11400000, guid: 06cf10608f012a047a66f8ad1693b6da, type: 2}
   selectionManager: {fileID: 1781227763}
   groundLayer:
     serializedVersion: 2

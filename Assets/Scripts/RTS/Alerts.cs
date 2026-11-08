@@ -50,6 +50,15 @@ public class Alerts : MonoBehaviour
         else Show("Unit under attack", Warn, 15f);
     }
 
+    // Multiplayer: a teammate's building lost health. Tells us once in a while, with a ping on the spot.
+    public static void AllyAttacked(Health h)
+    {
+        string message = $"Ally {Net.NameOf(h.team)}'s base is under attack";
+        if (quietUntil.TryGetValue(message, out float t) && Time.time < t) return;
+        Show(message, Warn, 15f);
+        Ping.Show(h.transform.position, Net.ColorOf(h.team), null);
+    }
+
     void Add(string message, Color color)
     {
         var line = Instantiate(lineTemplate, lineTemplate.transform.parent);

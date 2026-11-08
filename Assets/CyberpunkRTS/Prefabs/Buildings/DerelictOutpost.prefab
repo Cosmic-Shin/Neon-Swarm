@@ -108,6 +108,7 @@ MonoBehaviour:
   decayTime: 6
   maxGarrison: 4
   garrisonRangeBonus: 1.25
+  remote: 0
   ownerTeam: -1
   capturingTeam: -1
   progress: 0

@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// Multiplayer chat: Enter opens the box, Enter sends, Esc cancels. Messages show in the Alerts feed
-// in the sender's colour (RoomState.RPC_Chat). While typing, game hotkeys read Chat.Keys and get nothing.
+// Multiplayer chat: Enter opens team chat (all chat if you have no allies), Shift+Enter opens all chat;
+// Enter sends, Esc cancels. Messages show in the Alerts feed in the sender's colour (RoomState.RPC_Chat). While typing, game hotkeys read Chat.Keys and get nothing.
 [DefaultExecutionOrder(-100)] // before the scripts that read hotkeys
 public class Chat : MonoBehaviour
 {
@@ -11,6 +11,7 @@ public class Chat : MonoBehaviour
 
     public static bool Typing { get; private set; }
     static int closedFrame = -1;
+    bool toAll;
 
     // The keyboard for game hotkeys: null while typing (and on the frame the box closes, so its Enter/Esc don't leak).
     public static Keyboard Keys => Typing || Time.frameCount == closedFrame ? null : Keyboard.current;
@@ -19,7 +20,8 @@ public class Chat : MonoBehaviour
 
     void OnEnable() => RoomState.ChatReceived += Show;
     void OnDisable() => RoomState.ChatReceived -= Show;
-    static void Show(int slot, string text) => Alerts.Show($"{RoomState.Instance?.NameOf(slot)}: {text}", TeamMember.ColorOf(slot));
+    static void Show(int slot, string text, bool toAll) =>
+        Alerts.Show($"{(toAll ? "" : "(Team) ")}{RoomState.Instance?.NameOf(slot)}: {text}", TeamMember.ColorOf(slot));
 
     void Update()
     {
@@ -31,6 +33,9 @@ public class Chat : MonoBehaviour
         {
             if (!enter || GameMenu.IsOpen) return;
             Typing = true;
+            bool shift = kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
+            toAll = shift || RoomState.Instance == null || !RoomState.Instance.HasAllies();
+            if (input.placeholder is Text hint) hint.text = toAll ? "To everyone..." : "To your team...  (Shift+Enter: everyone)";
             input.gameObject.SetActive(true);
             input.text = "";
             input.ActivateInputField();
@@ -40,7 +45,7 @@ public class Chat : MonoBehaviour
         if (enter)
         {
             string text = input.text.Trim();
-            if (text.Length > 0 && RoomState.Instance != null) RoomState.Instance.SendChat(text);
+            if (text.Length > 0 && RoomState.Instance != null) RoomState.Instance.SendChat(text, toAll);
             Close();
         }
         else if (kb.escapeKey.wasPressedThisFrame) Close();

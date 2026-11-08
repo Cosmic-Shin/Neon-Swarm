@@ -36,11 +36,12 @@ public class Ping : MonoBehaviour
         RoomState.Instance.SendPing(at);
     }
 
+    // who = null: just the marker (an alert already says why, e.g. an ally under attack).
     public static void Show(Vector3 at, Color color, string who)
     {
         Active.Add((at, color, Time.time));
         Debug.Log($"[GD5] ping from {who} at {at}");
-        Alerts.Show($"{who} pinged the map", color, 2f);
+        if (who != null) Alerts.Show($"{who} pinged the map", color, 2f);
         if (material == null) material = Resources.Load<Material>("HarvestFX"); // additive glow
         var go = new GameObject("Ping");
         go.transform.position = at;

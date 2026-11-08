@@ -511,6 +511,8 @@ MonoBehaviour:
   debrisShrinkTime: 0.6
   maxPhysicsPieces: 24
   debrisLayer: Ignore Raycast
+  wreckPieces: 3
+  wreckTime: 20
   animator: {fileID: 0}
   deathTrigger: Die
   deathClipLength: 1.67
@@ -602,6 +604,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2923851b94457ef4980c4c9b74e4f709, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7299607892556880734}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2923851b94457ef4980c4c9b74e4f709, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1387501177835713178}
   m_SourcePrefab: {fileID: 100100000, guid: 2923851b94457ef4980c4c9b74e4f709, type: 3}
 --- !u!4 &5829809414990650706 stripped
 Transform:
@@ -635,3 +640,15 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1387501177835713178
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6605782755853633512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c909b92e9996d94aa89825b12fd786b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackEvents

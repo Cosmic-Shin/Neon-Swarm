@@ -198,6 +198,7 @@ GameObject:
   - component: {fileID: 3846388701854114431}
   - component: {fileID: 2402487339366117561}
   - component: {fileID: 5303443244840693549}
+  - component: {fileID: 4519141918988085331}
   m_Layer: 9
   m_Name: FlakLantern
   m_TagString: Untagged
@@ -323,6 +324,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Structure
   data: {fileID: 11400000, guid: 9b3f890f62f20d546aa45de9335497f6, type: 2}
+  isHQ: 0
   fallbackName: Building
   power: -25
   sight: 0
@@ -345,6 +347,8 @@ MonoBehaviour:
   cooldown: 1.4
   targets: 1
   splash: 5
+  hitsGround: 0
+  hitsAir: 1
   beamWidth: 0.3
   beamTime: 0.12
   color: {r: 1, g: 0.5, b: 0.1, a: 1}
@@ -373,6 +377,23 @@ MonoBehaviour:
   fire: {fileID: 8623457806621160266, guid: 3a6037cadc939484c86ac1811c23f371, type: 3}
   spark: {fileID: 2368381330221681213, guid: 6e0553d6e46b9a7418595bfa45d2018c, type: 3}
   smokeLinger: 10
+--- !u!114 &4519141918988085331
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6237743132260139900}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ab61fbf486883e4998169579d7f9f80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RecoilKick
+  target: {fileID: 1244332135771865268}
+  distance: 0.3
+  angle: 8
+  returnTime: 0.15
+  shake: 0
 --- !u!1 &7840948451437105641
 GameObject:
   m_ObjectHideFlags: 0
@@ -650,6 +671,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 322f549c944eb264688965f0c68d5489, type: 3}
+--- !u!4 &1244332135771865268 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1048044106527229411, guid: 322f549c944eb264688965f0c68d5489, type: 3}
+  m_PrefabInstance: {fileID: 2292235401520629079}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1748837627945755324 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 322f549c944eb264688965f0c68d5489, type: 3}

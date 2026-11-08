@@ -17,6 +17,7 @@ public class Structure : MonoBehaviour
 
     public bool IsSelected { get; set; }
     public bool Repairing { get; private set; }
+    public bool RemoteRepairing { get; set; } // another player's building: its owner says it's being repaired (for the look)
     public Health Health { get; private set; }
     public string Name => data != null ? data.displayName : fallbackName;
     public bool CanSell => data != null;
@@ -36,6 +37,8 @@ public class Structure : MonoBehaviour
     void Awake()
     {
         Health = GetComponent<Health>();
+        gameObject.AddComponent<BuildingFX>(); // repair drone, power-failure flicker
+        gameObject.AddComponent<BuildingLife>(); // moving parts, lights and effects that show what it is doing
         if (TryGetComponent(out refinery)) { baseCredits = refinery.creditsPerUnit; Stats.Changed += RefreshStats; }
     }
 
@@ -49,6 +52,7 @@ public class Structure : MonoBehaviour
         if (!CanSell) return;
         Alerts.Show($"Sold {Name}: +${SellValue}", Alerts.Good);
         ResourceBank.GetOrCreate().Add(SellValue);
+        Juice.Sell(gameObject, SellValue); // sinks away as a hologram, "+$N"
         Net.Destroy(gameObject);
     }
 

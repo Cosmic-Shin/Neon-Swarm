@@ -126,7 +126,10 @@ public class Harvester : MonoBehaviour
                 SetCargoVisual(cargo * (1f - timer / unloadTime));
                 if (timer >= unloadTime)
                 {
-                    ResourceBank.GetOrCreate().Add(Mathf.RoundToInt(cargoValue * refinery.creditsPerUnit));
+                    int earned = Mathf.RoundToInt(cargoValue * refinery.creditsPerUnit);
+                    ResourceBank.GetOrCreate().Add(earned);
+                    MatchStats.Add(MatchStats.Kind.Earned, earned);
+                    if (TryGetComponent(out HarvestFX fx)) fx.Delivered(earned); // GD5: "+$N" over the refinery
                     cargo = 0f; cargoValue = 0f;
                     SetCargoVisual(0f);
                     refinery.Release(this);

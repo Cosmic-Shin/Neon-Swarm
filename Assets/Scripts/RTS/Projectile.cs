@@ -12,7 +12,7 @@ public class Projectile : MonoBehaviour
 
     public static void Fire(GameObject prefab, Vector3 from, Health target, float speed, float arc, Action<Vector3> onHit)
     {
-        Vector3 to = target.transform.position + Vector3.up;
+        Vector3 to = Flyer.Center(target) + Vector3.up;
         var go = FxPool.Spawn(prefab, from, Quaternion.LookRotation(to - from));
         if (!go.TryGetComponent(out Projectile p)) p = go.AddComponent<Projectile>();
         p.target = target;
@@ -38,7 +38,7 @@ public class Projectile : MonoBehaviour
         }
         else
         {
-            if (target != null && target.isActiveAndEnabled) end = target.transform.position + Vector3.up; // home in
+            if (target != null && target.isActiveAndEnabled) end = Flyer.Center(target) + Vector3.up; // home in
             transform.position = Vector3.MoveTowards(transform.position, end, speed * Time.deltaTime);
             if ((transform.position - end).sqrMagnitude < 0.04f) { Land(end); return; }
         }

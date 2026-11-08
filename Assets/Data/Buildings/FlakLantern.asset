@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   displayName: FlakLantern
   description: 'Defence tower. Flak bursts hit everything within 5m of the target:
-    great against groups. 12 damage every 1.4s, 24m range. Offline when low on power.'
+    great against groups. 12 damage every 1.4s, 24m range. Offline when low on power.
+    Anti-air only.'
   prefab: {fileID: 6237743132260139900, guid: 2e2644a40c481024ea182357531e97ca, type: 3}
   icon: {fileID: 21300000, guid: 90a0104f28cd88f41a5e99dd1b4a2bb4, type: 3}
   cost: 400

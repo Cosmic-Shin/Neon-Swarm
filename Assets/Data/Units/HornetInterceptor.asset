@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
+  m_Name: HornetInterceptor
+  m_EditorClassIdentifier: Assembly-CSharp::UnitData
+  displayName: Hornet Interceptor
+  role: 1
+  description: Fast air interceptors, two per order. Shreds other flyers and light
+    units.
+  icon: {fileID: 21300000, guid: d8e322ae7ab2d7a448db209a9fc46331, type: 3}
+  cost: 500
+  buildTime: 7
+  squadSize: 2
+  maxHealth: 110
+  damage: 10
+  range: 14
+  attackCooldown: 0.4
+  hitsGround: 1
+  hitsAir: 1
+  moveSpeed: 18
+  sight: 0
+  splash: 0
+  stunOnHit: 0
+  slowOnHit: 0
+  buildingDamage: 0.5
+  visual:
+    projectile: {fileID: 1058419780056461119, guid: 4cad3a03ccfbfbb4280f6ce00f2f8c38, type: 3}
+    speed: 90
+    arc: 0
+    muzzleFlash: {fileID: 2368381330221681213, guid: 6e0553d6e46b9a7418595bfa45d2018c, type: 3}
+    impact: {fileID: 0}
+    scorch: {fileID: 0}
+    hideBeam: 0

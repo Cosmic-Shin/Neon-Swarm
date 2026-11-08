@@ -29,6 +29,10 @@ public class MatchManager : MonoBehaviour
     const float Grace = 15f; // seconds before anyone can lose (bases are still spawning)
     float started = -1f, nextCheck;
     bool hadOpponent, over;
+    bool spectating; // lost, still watching (fog lifted) until the match is decided
+    Button spectateButton;
+    Text spectateBanner, statsNames;
+    readonly Text[] statsColumns = new Text[MatchStats.Headers.Length];
 
     System.Collections.IEnumerator Start()
     {
@@ -39,7 +43,9 @@ public class MatchManager : MonoBehaviour
         if (room == null || runner == null || !runner.IsRunning) yield break; // single player
 
         Net.InMatch = true;
+        MatchStats.Reset();
         endButton.onClick.AddListener(BackToMenu);
+        BuildEndScreen();
         RoomService.Disconnected += OnDisconnected;
 
         // Starting credits.
@@ -112,7 +118,7 @@ public class MatchManager : MonoBehaviour
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
         if (Net.InMatch) LogState();
 #endif
-        if (!Net.InMatch || over) return;
+        if (!Net.InMatch || (over && !spectating)) return;
         var room = RoomState.Instance;
         if (room == null || !Net.Online) { End("DISCONNECTED", "Lost the connection to the match."); return; }
         if (room.MatchStart <= 0f) return; // the host hasn't stamped the start yet
@@ -132,9 +138,10 @@ public class MatchManager : MonoBehaviour
         if (Time.time < nextCheck || Time.time - started < Grace) return;
         nextCheck = Time.time + 0.5f;
         var standing = TeamsWithBuildings();
-        if (!standing.Contains(0)) { End("DEFEAT", "All your buildings were destroyed."); return; }
         var sides = new HashSet<int>();
         foreach (int t in standing) sides.Add(Side(t));
+        if (spectating) { if (sides.Count <= 1) End("MATCH OVER", Winner(sides)); return; }
+        if (!standing.Contains(0)) { Defeat("All your buildings were destroyed."); return; }
         if (sides.Count > 1) hadOpponent = true;
         else if (hadOpponent) End("VICTORY", "Every enemy base is destroyed.");
     }
@@ -172,29 +179,172 @@ public class MatchManager : MonoBehaviour
         int us = Side(0);
         worth.TryGetValue(us, out int mine);
         string who = best == us ? (us >= 100 ? "Your team's" : "Your") : best >= 100 ? $"Team {best - 100}'s" : Net.NameOf(best) + "'s";
-        End(best == us ? "VICTORY" : "DEFEAT",
+        if (spectating) End("MATCH OVER", $"Time's up. {who} army and base are worth the most (${bestWorth}).");
+        else End(best == us ? "VICTORY" : "DEFEAT",
             $"Time's up. {who} army and base are worth the most (${bestWorth}; yours ${mine}).");
     }
 
-    void End(string title, string detail)
+    // canSpectate: we lost but the others play on, so we may stay and watch.
+    void End(string title, string detail, bool canSpectate = false)
     {
         Debug.Log($"[GD5] end {title}: {detail}");
         over = true;
+        spectating = false;
+        spectateBanner.gameObject.SetActive(false);
         endTitle.text = title;
-        endTitle.color = title == "VICTORY" ? new Color(0.3f, 1f, 0.6f) : new Color(1f, 0.3f, 0.35f);
+        endTitle.color = title == "VICTORY" ? new Color(0.3f, 1f, 0.6f) : title == "MATCH OVER" ? Alerts.Info : new Color(1f, 0.3f, 0.35f);
         endDetail.text = detail;
+        FillStats(1f);
+        spectateButton.gameObject.SetActive(canSpectate);
+        float x = canSpectate ? 210f : 0f;
+        ((RectTransform)endButton.transform).anchoredPosition = new Vector2(x, -330f);
+        ((RectTransform)spectateButton.transform).anchoredPosition = new Vector2(-x, -330f);
         endPanel.SetActive(true);
+        StopAllCoroutines();
+        StartCoroutine(RevealEnd());
     }
 
-    public bool IsOver => over;
+    // The title slams in, then everyone's stats count up.
+    System.Collections.IEnumerator RevealEnd()
+    {
+        Color title = endTitle.color, detail = endDetail.color;
+        const float slam = 0.35f, count = 1.4f;
+        FillStats(0f);
+        for (float t = 0f; t < slam; t += Time.unscaledDeltaTime)
+        {
+            float k = t / slam;
+            endTitle.rectTransform.localScale = Vector3.one * Mathf.Lerp(3f, 1f, k * k);
+            endTitle.color = new Color(title.r, title.g, title.b, k);
+            endDetail.color = new Color(detail.r, detail.g, detail.b, k);
+            yield return null;
+        }
+        endTitle.rectTransform.localScale = Vector3.one;
+        endTitle.color = title;
+        endDetail.color = detail;
+        var cam = Camera.main;
+        if (cam != null) Juice.Shake(cam.transform.position + cam.transform.forward * 30f, 0.4f);
+        for (float t = 0f; t < count; t += Time.unscaledDeltaTime)
+        {
+            float k = t / count;
+            FillStats(1f - (1f - k) * (1f - k)); // fast, then settling
+            yield return null;
+        }
+        FillStats(1f);
+    }
+
+    // Lost: our leftover units go too (as on surrender), then the defeat screen, with SPECTATE
+    // if two or more other sides still fight it out.
+    void Defeat(string why)
+    {
+        foreach (var e in NetEntity.All.ToArray())
+            if (e != null && !e.IsRemote) e.Despawn(0f);
+        var others = new HashSet<int>();
+        foreach (int t in TeamsWithBuildings()) if (t != 0) others.Add(Side(t));
+        End("DEFEAT", why, others.Count > 1);
+    }
+
+    void Spectate()
+    {
+        spectating = true;
+        endPanel.SetActive(false);
+        FogOfWar.RevealAll = true;
+        spectateBanner.gameObject.SetActive(true);
+    }
+
+    static string Winner(HashSet<int> sides)
+    {
+        foreach (int s in sides) return s >= 100 ? $"Team {s - 100} wins!" : $"{Net.NameOf(s)} wins!";
+        return "Nobody is left standing.";
+    }
+
+    public bool IsOver => over && !spectating;
 
     // Esc menu: remove all our units and buildings (everyone else sees us lose) and show the defeat screen.
     public void Surrender()
     {
         if (!Net.Online || over) return;
-        foreach (var e in NetEntity.All.ToArray())
-            if (e != null && !e.IsRemote) e.Despawn(0f);
-        End("DEFEAT", "You surrendered.");
+        Defeat("You surrendered.");
+    }
+
+    // ---- end screen: title, detail, everyone's stats, SPECTATE / BACK TO MENU ----
+    void BuildEndScreen()
+    {
+        ((RectTransform)endTitle.transform).anchoredPosition = new Vector2(0f, 330f);
+        ((RectTransform)endDetail.transform).anchoredPosition = new Vector2(0f, 240f);
+
+        spectateButton = Instantiate(endButton, endButton.transform.parent);
+        spectateButton.name = "SpectateButton";
+        spectateButton.onClick = new Button.ButtonClickedEvent();
+        spectateButton.onClick.AddListener(Spectate);
+        spectateButton.GetComponentInChildren<Text>().text = "SPECTATE";
+
+        // Columns: player names, then one per stat; a header on top, one line per player below.
+        const float nameWidth = 340f, statWidth = 170f;
+        float left = -(nameWidth + statWidth * statsColumns.Length) / 2f;
+        statsNames = Column(left + nameWidth / 2f, nameWidth, "PLAYER", TextAnchor.UpperLeft);
+        for (int k = 0; k < statsColumns.Length; k++)
+            statsColumns[k] = Column(left + nameWidth + statWidth * (k + 0.5f), statWidth, MatchStats.Headers[k], TextAnchor.UpperCenter);
+
+        spectateBanner = MakeText(endPanel.transform.parent, "SPECTATING   ·   the fog is lifted   ·   Esc to leave", 26, TextAnchor.MiddleCenter, Alerts.Info);
+        var rt = spectateBanner.rectTransform;
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0f);
+        rt.anchoredPosition = new Vector2(0f, 60f);
+        rt.sizeDelta = new Vector2(1000f, 40f);
+        spectateBanner.gameObject.SetActive(false);
+    }
+
+    Text Column(float x, float width, string header, TextAnchor align)
+    {
+        var head = MakeText(endPanel.transform, header, 20, align == TextAnchor.UpperLeft ? TextAnchor.LowerLeft : TextAnchor.LowerCenter, new Color(0.6f, 0.68f, 0.8f));
+        head.rectTransform.anchoredPosition = new Vector2(x, 160f);
+        head.rectTransform.sizeDelta = new Vector2(width, 56f);
+        var body = MakeText(endPanel.transform, "", 26, align, Color.white);
+        body.rectTransform.pivot = new Vector2(0.5f, 1f);
+        body.rectTransform.anchoredPosition = new Vector2(x, 120f);
+        body.rectTransform.sizeDelta = new Vector2(width, 360f);
+        body.lineSpacing = 1.25f;
+        return body;
+    }
+
+    Text MakeText(Transform parent, string text, int size, TextAnchor align, Color color)
+    {
+        var t = new GameObject("Text", typeof(RectTransform)).AddComponent<Text>();
+        t.transform.SetParent(parent, false);
+        t.font = endDetail.font;
+        t.fontSize = size;
+        t.alignment = align;
+        t.color = color;
+        t.text = text;
+        t.raycastTarget = false;
+        t.horizontalOverflow = HorizontalWrapMode.Overflow;
+        return t;
+    }
+
+    // amount: 0..1 of each number, for the count-up.
+    void FillStats(float amount)
+    {
+        var room = RoomState.Instance;
+        if (room == null) return;
+        var names = new System.Text.StringBuilder();
+        var cols = new System.Text.StringBuilder[statsColumns.Length];
+        for (int k = 0; k < cols.Length; k++) cols[k] = new System.Text.StringBuilder();
+        for (int slot = 0; slot < RoomService.MaxPlayers; slot++)
+        {
+            var player = room.Slots[slot];
+            if (player == Fusion.PlayerRef.None) continue;
+            bool me = slot == Net.LocalSlot;
+            var rp = RoomPlayer.Of(player);
+            int team = room.TeamOf(slot);
+            names.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(slot))}>{room.NameOf(slot)}</color>"
+                + (team > 0 ? $"  <size=18>T{team}</size>" : "") + (me ? "  <size=18>(you)</size>" : ""));
+            for (int k = 0; k < cols.Length; k++)
+            {
+                int v = Mathf.RoundToInt((me ? MatchStats.Values[k] : rp != null ? rp.Stats[k] : 0) * amount);
+                cols[k].AppendLine(k == (int)MatchStats.Kind.Earned ? $"${v:N0}" : v.ToString());
+            }
+        }
+        statsNames.text = names.ToString();
+        for (int k = 0; k < cols.Length; k++) statsColumns[k].text = cols[k].ToString();
     }
 
     void OnDisconnected(string reason) { if (!over) End("DISCONNECTED", reason); }

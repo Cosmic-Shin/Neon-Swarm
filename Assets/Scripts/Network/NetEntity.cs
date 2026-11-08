@@ -21,9 +21,14 @@ public class NetEntity : NetworkBehaviour
     [Networked] NetworkBool Dead { get; set; }
     [Networked] float Build { get; set; }     // construction 0..1; -1 = not under construction
     [Networked] int Level { get; set; }       // building upgrade Mk level
+    [Networked] float Upgrading { get; set; } // upgrade progress + 1 (0 = not upgrading)
+    [Networked] NetworkBool Stunned { get; set; }   // units: EMP, for the crackle
+    [Networked] NetworkBool Repairing { get; set; } // buildings: being repaired, for the repair drone
     [Networked] int Rank { get; set; }        // veterancy rank (the glow)
     [Networked] int HarvestAnim { get; set; } // harvesters: Idle / Harvest / Unload
     [Networked] float Cargo { get; set; }     // harvesters: how full, 0..1
+    [Networked] int Producing { get; set; }   // factories: option (unit or research) in production + 1 (0 = none)
+    [Networked] float Produced { get; set; }  // factories: its progress 0..1
 
     // Scripts that only the owner runs (they move, shoot, spend or earn).
     static readonly System.Type[] OwnerOnly =
@@ -79,7 +84,12 @@ public class NetEntity : NetworkBehaviour
         }
     }
 
-    public override void Despawned(NetworkRunner runner, bool hasState) => All.Remove(this);
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        All.Remove(this);
+        // Another player's building removed without dying = sold (or they left): it sinks away as a hologram.
+        if (hasState && !HasStateAuthority && !Dead && Net.InMatch && TryGetComponent(out Structure _)) Juice.Sell(gameObject, 0);
+    }
 
     void MakeRemote()
     {
@@ -98,9 +108,12 @@ public class NetEntity : NetworkBehaviour
         MaxHp = Health.MaxHealth;
         if (construction == null) construction = GetComponent<Construction>();
         Build = construction != null ? construction.Progress : -1f;
-        if (TryGetComponent(out BuildingUpgrade up)) Level = up.level;
+        if (TryGetComponent(out BuildingUpgrade up)) { Level = up.level; Upgrading = up.IsUpgrading ? up.Progress + 1f : 0f; }
         if (TryGetComponent(out Veterancy vet)) Rank = vet.Rank;
         if (TryGetComponent(out Harvester harv)) { HarvestAnim = harv.AnimIndex; Cargo = harv.CargoFraction; }
+        if (TryGetComponent(out Building fac)) { Producing = fac.Producing + 1; Produced = fac.Progress01; }
+        if (TryGetComponent(out SelectableUnit su)) Stunned = su.IsStunned;
+        if (TryGetComponent(out Structure st)) Repairing = st.Repairing;
     }
 
     // ---- everyone else: mirror ----
@@ -127,6 +140,7 @@ public class NetEntity : NetworkBehaviour
         }
 
         if (TryGetComponent(out BuildingUpgrade up) && Level > 0 && up.level != Level) up.SetLevel(Level, true);
+        if (TryGetComponent(out UpgradeFX ufx)) ufx.Remote = Upgrading > 0f ? Upgrading - 1f : null;
         if (Rank > 0)
         {
             if (!TryGetComponent(out Veterancy vet)) vet = gameObject.AddComponent<Veterancy>();
@@ -134,6 +148,9 @@ public class NetEntity : NetworkBehaviour
         }
 
         if (TryGetComponent(out Harvester harvester)) harvester.ShowRemote(HarvestAnim, Cargo);
+        if (TryGetComponent(out Building factory)) factory.ShowProduction(Producing - 1, Produced);
+        if (TryGetComponent(out StatusFX status)) status.RemoteStunned = Stunned;
+        if (TryGetComponent(out Structure building)) building.RemoteRepairing = Repairing;
 
         if (Dead) { diedHere = true; Health.DieRemote(); }
     }
@@ -180,8 +197,7 @@ public class NetEntity : NetworkBehaviour
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_AddKill()
     {
-        if (!TryGetComponent(out Veterancy vet)) vet = gameObject.AddComponent<Veterancy>();
-        vet.AddKill();
+        Health.CreditKill();
     }
 
     // Owner's factory let a unit out: everyone else opens the door too.

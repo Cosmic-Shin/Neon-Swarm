@@ -1,0 +1,43 @@
+using UnityEngine;
+
+// Floating "+$250" in the world: rises, faces the camera, fades out. Used when a harvester's load lands.
+public class CreditsPopup : MonoBehaviour
+{
+    const float Life = 1.6f, Rise = 2.5f;
+
+    TextMesh text;
+    Color color;
+    float born;
+
+    public static void Show(Vector3 at, string message, Color color)
+    {
+        var go = new GameObject("CreditsPopup");
+        go.transform.position = at;
+        var t = go.AddComponent<TextMesh>();
+        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        go.GetComponent<MeshRenderer>().sharedMaterial = t.font.material;
+        t.text = message;
+        t.fontSize = 64;
+        t.characterSize = 0.14f;
+        t.anchor = TextAnchor.MiddleCenter;
+        t.fontStyle = FontStyle.Bold;
+        var p = go.AddComponent<CreditsPopup>();
+        p.text = t;
+        p.color = Color.Lerp(color, Color.white, 0.1f);
+        p.born = Time.time;
+        p.LateUpdate();
+    }
+
+    void LateUpdate()
+    {
+        float age = Time.time - born;
+        if (age >= Life) { Destroy(gameObject); return; }
+        transform.position += Vector3.up * Rise * Time.deltaTime * (1f - age / Life);
+        if (Camera.main != null) transform.rotation = Camera.main.transform.rotation; // face the screen
+        float pop = age < 0.15f ? Mathf.Lerp(0.5f, 1.2f, age / 0.15f) : Mathf.Lerp(1.2f, 1f, Mathf.Clamp01((age - 0.15f) / 0.2f));
+        transform.localScale = Vector3.one * pop;
+        var c = color;
+        c.a = Mathf.Clamp01((Life - age) / 0.5f); // fade over the last half second
+        text.color = c;
+    }
+}

@@ -54,6 +54,9 @@ public class Refinery : MonoBehaviour
         get { Vector3 d = dockPoint.position - transform.position; d.y = 0; return d.sqrMagnitude > 1e-4f ? d.normalized : transform.forward; }
     }
 
+    // GD5: a harvester is docked and unloading (BuildingLife animates the intake).
+    public bool Busy { get { foreach (var o in occupant.Values) if (o && o.isActiveAndEnabled) return true; return false; } }
+
     public bool TryDock(Harvester h)
     {
         if (DockOf(h) != null) return true;

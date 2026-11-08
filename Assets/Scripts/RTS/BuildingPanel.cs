@@ -50,7 +50,7 @@ public class BuildingPanel : MonoBehaviour
             int index = i; // captured per button
             Button btn = Instantiate(buttonTemplate, list);
             btn.gameObject.SetActive(true);
-            btn.transform.Find("Text").GetComponent<Text>().text = building.NameOf(i);
+            btn.transform.Find("Text").GetComponent<Text>().text = building.NameOf(i) + (building.SquadOf(i) > 1 ? $" x{building.SquadOf(i)}" : "");
             btn.transform.Find("Time").GetComponent<Text>().text = $"{building.TimeOf(i):0}s";
             btn.transform.Find("Cost").GetComponent<Text>().text = $"${building.CostOf(i)}";
             buttons.Add(btn);
@@ -79,6 +79,7 @@ public class BuildingPanel : MonoBehaviour
             int n = building.QueuedCount(i);
             counts[i].text = building.IsResearched(i) ? "DONE" : n > 0 ? $"x{n}" : "";
             buttons[i].interactable = building.CanQueue(i); // red frame when short on credits (or already researched)
+            LockBadge.Set(buttons[i], building.Needs(i), building.IsResearched(i) || ResourceBank.GetOrCreate().Credits >= building.CostOf(i));
             string why = building.Blocker(i);
             if (why != blockers[i]) { blockers[i] = why; buttons[i].GetComponent<Tooltip>().text = building.TooltipOf(i); } // red reason line
         }

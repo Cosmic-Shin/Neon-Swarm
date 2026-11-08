@@ -6,6 +6,7 @@ using UnityEngine;
 public class FogOfWar : MonoBehaviour
 {
     public static FogOfWar Instance { get; private set; }
+    public static bool RevealAll; // spectating after defeat: the whole map, every unit
 
     [SerializeField] Renderer fogPlane;      // map-sized quad with the RTS/FogOfWar shader
     [SerializeField] float mapSize = 600f;   // centred on 0
@@ -30,6 +31,7 @@ public class FogOfWar : MonoBehaviour
     void Awake()
     {
         Instance = this;
+        RevealAll = false;
         hidden = LayerMask.NameToLayer(hiddenLayer);
         int n = resolution * resolution;
         visible = new bool[n];
@@ -63,9 +65,13 @@ public class FogOfWar : MonoBehaviour
 
     void Recompute()
     {
-        System.Array.Clear(visible, 0, visible.Length);
-        foreach (var h in Health.All)
-            if (Net.Allied(h.team, 0)) Stamp(h.transform.position, Sight(h));
+        if (RevealAll) { System.Array.Fill(visible, true); System.Array.Fill(explored, true); }
+        else
+        {
+            System.Array.Clear(visible, 0, visible.Length);
+            foreach (var h in Health.All)
+                if (Net.Allied(h.team, 0)) Stamp(h.transform.position, Sight(h));
+        }
 
         Color32 clear = new(0, 0, 0, 0), dim = new(5, 3, 12, 150), dark = new(5, 3, 12, 235);
         for (int i = 0; i < px.Length; i++)

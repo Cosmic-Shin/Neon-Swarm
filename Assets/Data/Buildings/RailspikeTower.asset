@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   displayName: RailspikeTower
   description: Defence tower. Huge 70-damage rail shot every 3.5s from 36m, the longest
-    range in the game. Offline when low on power.
+    range in the game. Offline when low on power. Ground only.
   prefab: {fileID: 2856029492227827674, guid: 8255fce483705144aa0573ed965b7dba, type: 3}
   icon: {fileID: 21300000, guid: 1b9f835965743f849b164c9436af7cd3, type: 3}
   cost: 600

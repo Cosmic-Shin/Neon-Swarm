@@ -12,6 +12,7 @@ public class GoodSelectionManager : MonoBehaviour
     public event Action<OreNode> OnHarvestCommand; // right-clicked ore: workers go mine it
     public event Action<Health> OnAttackCommand;   // right-clicked an enemy: armed units attack it
     public event Action<OutpostCapture> OnGarrisonCommand; // right-clicked our outpost: armed units go inside
+    public event Action<Transport> OnBoardCommand;        // right-clicked our Wasp: units that fit climb aboard
     public event Action<List<Vector3>> OnAttackMoveCommand; // A + click: walk there, fighting anything met on the way
     public event Action OnStopCommand; // S
     public event Action OnHoldCommand; // H: stay put, shoot only what's in range
@@ -177,7 +178,7 @@ public class GoodSelectionManager : MonoBehaviour
                 if (!doubleClick) { SelectUnit(unit); return; }
                 foreach (var u in FindObjectsByType<SelectableUnit>(FindObjectsSortMode.None))
                 {
-                    Vector3 sp = cam.WorldToScreenPoint(u.transform.position);
+                    Vector3 sp = cam.WorldToScreenPoint(Flyer.Center(u));
                     bool onScreen = sp.z > 0f && sp.x >= 0f && sp.y >= 0f && sp.x <= Screen.width && sp.y <= Screen.height;
                     if (onScreen && !u.IsEnemy && u.Data == unit.Data) SelectUnit(u);
                 }
@@ -213,7 +214,7 @@ public class GoodSelectionManager : MonoBehaviour
 
         foreach (var unit in FindObjectsByType<SelectableUnit>(FindObjectsSortMode.None))
         {
-            Vector3 sp = cam.WorldToScreenPoint(unit.transform.position);
+            Vector3 sp = cam.WorldToScreenPoint(Flyer.Center(unit));
             if (sp.z > 0f && screenRect.Contains(sp) && !unit.IsEnemy) // z > 0: ignore units behind the camera
                 SelectUnit(unit);
         }
@@ -263,6 +264,7 @@ public class GoodSelectionManager : MonoBehaviour
             target.collider.TryGetComponent(out Health enemy) && enemy.enabled && !Net.Allied(enemy.team, 0))
         {
             OnAttackCommand?.Invoke(enemy); // clicked right on an enemy: plain attack
+            Juice.TargetLock(enemy);
             return;
         }
         if (!GroundAt(screenPos, out Vector3 point)) return;
@@ -277,10 +279,20 @@ public class GoodSelectionManager : MonoBehaviour
         Vector3 mid = (a + b) * 0.5f;
         Vector3 facing = Vector3.Cross(along.normalized, Vector3.up);
         if (Vector3.Dot(facing, mid - Centroid()) < 0f) facing = -facing;
-        int cols = Mathf.Clamp(Mathf.FloorToInt(along.magnitude / slotSpacing) + 1, 1, selected.Count);
+        int cols = Mathf.Clamp(Mathf.FloorToInt(along.magnitude / Gap()) + 1, 1, selected.Count);
         Facing = facing;
         OnMoveCommand?.Invoke(Rows(mid, facing, cols, cols > 1 ? along.magnitude / (cols - 1) : 0f));
         ShowMarker(mid);
+    }
+
+    // Room each unit needs in a formation: the widest selected unit plus a little air (big units are 5 m across;
+    // slots closer than that overlap, and the units shove each other off their spots forever).
+    float Gap()
+    {
+        float widest = 0f;
+        foreach (var u in selected)
+            if (u != null && u.TryGetComponent(out UnityEngine.AI.NavMeshAgent a)) widest = Mathf.Max(widest, Flyer.IsAir(u) ? Flyer.SizeOf(u) * 1.6f : a.radius * 2f);
+        return Mathf.Max(slotSpacing, widest + 0.8f);
     }
 
     Vector3 Centroid()
@@ -300,8 +312,8 @@ public class GoodSelectionManager : MonoBehaviour
         int count = selected.Count;
         return formation switch
         {
-            Formation.Line => Rows(center, facing, Mathf.Min(count, lineWidth), slotSpacing),
-            Formation.Box => Rows(center, facing, Mathf.CeilToInt(Mathf.Sqrt(count)), slotSpacing),
+            Formation.Line => Rows(center, facing, Mathf.Min(count, lineWidth), Gap()),
+            Formation.Box => Rows(center, facing, Mathf.CeilToInt(Mathf.Sqrt(count)), Gap()),
             _ => GetCircleFormation(center, count),
         };
     }
@@ -313,18 +325,24 @@ public class GoodSelectionManager : MonoBehaviour
         int count = selected.Count;
         Vector3 right = Vector3.Cross(Vector3.up, facing);
         int rows = Mathf.CeilToInt(count / (float)cols);
+        float rowGap = Gap();
         float Along(int i, Vector3 axis) => selected[i] != null ? Vector3.Dot(selected[i].transform.position, axis) : 0f;
-        var order = new List<int>(count);
-        for (int i = 0; i < count; i++) order.Add(i);
-        order.Sort((x, y) => Along(y, facing).CompareTo(Along(x, facing)));
+        // Same kind together: each type fills its own rows (tanks up front, support at the back),
+        // and within a type the front-most units take the front.
+        var order = ByKind();
+        order.Sort((x, y) =>
+        {
+            int k = KindOrder(x, y);
+            return k != 0 ? k : Along(y, facing).CompareTo(Along(x, facing));
+        });
 
         var slots = new Vector3[count];
         for (int r = 0, start = 0; r < rows; r++, start += cols)
         {
             int n = Mathf.Min(cols, count - start);
             var row = order.GetRange(start, n);
-            row.Sort((x, y) => Along(x, right).CompareTo(Along(y, right)));
-            float back = (r - (rows - 1) * 0.5f) * slotSpacing;
+            row.Sort((x, y) => { int k = KindOrder(x, y); return k != 0 ? k : Along(x, right).CompareTo(Along(y, right)); }); // a shared row: still side by side with their own kind
+            float back = (r - (rows - 1) * 0.5f) * rowGap;
             for (int c = 0; c < n; c++)
                 slots[row[c]] = center + right * ((c - (n - 1) * 0.5f) * colSpacing) - facing * back;
         }
@@ -353,10 +371,19 @@ public class GoodSelectionManager : MonoBehaviour
                 if (!Net.Online) OnGarrisonCommand?.Invoke(outpost); // online: just stand guard (no garrison)
                 return;
             }
+            // Our Wasp? Walk under it and climb aboard (whoever fits; the rest just go there).
+            if (target.collider.TryGetComponent(out Transport wasp) && target.collider.TryGetComponent(out SelectableUnit waspUnit) && !waspUnit.IsEnemy)
+            {
+                Facing = Vector3.zero;
+                OnMoveCommand.Invoke(GetCircleFormation(wasp.transform.position, selected.Count));
+                OnBoardCommand?.Invoke(wasp);
+                return;
+            }
             // An enemy (disabled Health = neutral outpost, just walk there)? Attack it instead of moving.
             if (target.collider.TryGetComponent(out Health enemy) && enemy.enabled && !Net.Allied(enemy.team, 0))
             {
                 OnAttackCommand?.Invoke(enemy); // unarmed units (harvesters) ignore it
+                Juice.TargetLock(enemy);
                 return;
             }
         }
@@ -414,17 +441,56 @@ public class GoodSelectionManager : MonoBehaviour
     // Selection panel: click a unit type to keep only those.
     public void SelectOnly(UnitData type) => SelectOnly(selected.FindAll(u => u != null && u.Data == type));
 
-    // One unit in the center, then rings of 6, 12, 18... growing outward.
+    // Formation rank of a unit type: who stands in front. Same type = same rank and name, so they end up together.
+    static int Rank(UnitData d) => d == null ? 9 : d.role switch
+    {
+        UnitData.Role.Heavy => 0, UnitData.Role.Elite => 1, UnitData.Role.Infantry => 2,
+        UnitData.Role.Scout => 3, UnitData.Role.Support => 4, _ => 5,
+    };
+
+    List<int> ByKind()
+    {
+        var order = new List<int>(selected.Count);
+        for (int i = 0; i < selected.Count; i++) order.Add(i);
+        return order;
+    }
+
+    int KindOrder(int x, int y)
+    {
+        UnitData a = selected[x] != null ? selected[x].Data : null, b = selected[y] != null ? selected[y].Data : null;
+        int r = Rank(a).CompareTo(Rank(b));
+        return r != 0 ? r : string.CompareOrdinal(a != null ? a.name : "", b != null ? b.name : "");
+    }
+
+    // Circle: each type gets its own wedge, like slices of a pie. Slots are handed out going round the circle
+    // (the center one first), to the units grouped by kind - within a type, by where they stand, so paths cross less.
     List<Vector3> GetCircleFormation(Vector3 center, int count)
+    {
+        var raw = RingSlots(center, count);
+        if (count != selected.Count) return raw; // e.g. garrison/board circles sized for something else
+        float SlotAngle(Vector3 p) => (p - center).sqrMagnitude < 0.01f ? -10f : Mathf.Atan2(p.z - center.z, p.x - center.x);
+        raw.Sort((p, q) => SlotAngle(p).CompareTo(SlotAngle(q)));
+        var order = ByKind();
+        float Angle(int i) => selected[i] != null ? Mathf.Atan2(selected[i].transform.position.z - center.z, selected[i].transform.position.x - center.x) : 0f;
+        order.Sort((x, y) => { int k = KindOrder(x, y); return k != 0 ? k : Angle(x).CompareTo(Angle(y)); });
+        var slots = new Vector3[count];
+        for (int k = 0; k < count; k++) slots[order[k]] = raw[k];
+        return new List<Vector3>(slots);
+    }
+
+    // One unit in the center, then rings of 6, 12, 18... growing outward.
+    List<Vector3> RingSlots(Vector3 center, int count)
     {
         var slots = new List<Vector3>(count);
         int remaining = count;
         int ring = 0;
+        float gap = Gap();
 
         while (remaining > 0)
         {
-            int onThisRing = Mathf.Min(ring == 0 ? 1 : Mathf.Max(6, ring * 6), remaining);
-            float radius = ring == 0 ? 0f : minRadius + (ring - 1) * formationSpacing;
+            float radius = ring == 0 ? 0f : Mathf.Max(minRadius, gap) + (ring - 1) * Mathf.Max(formationSpacing, gap);
+            int fits = ring == 0 ? 1 : Mathf.Max(1, Mathf.FloorToInt(2f * Mathf.PI * radius / gap)); // as many as the ring has room for
+            int onThisRing = Mathf.Min(fits, remaining);
 
             for (int i = 0; i < onThisRing; i++)
             {
@@ -441,6 +507,7 @@ public class GoodSelectionManager : MonoBehaviour
     void SelectUnit(SelectableUnit unit)
     {
         if (selected.Contains(unit)) return;
+        if (unit.TryGetComponent(out Health h) && !h.enabled) return; // dead, or riding in a Wasp
         unit.Select(this, selected.Count); // its slot index in the formation
         selected.Add(unit);
     }

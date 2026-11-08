@@ -32,7 +32,11 @@ public class BuildingUpgrade : MonoBehaviour
         }
         maxLevel = groups.ContainsKey(3) ? 3 : groups.ContainsKey(2) ? 2 : 1;
         Apply(false);
+        if (maxLevel > 1) gameObject.AddComponent<UpgradeFX>(); // GD5: the look while upgrading
     }
+
+    // GD5: the add-on pieces that appear at this level (hidden until then), for the upgrade hologram.
+    public IReadOnlyList<Transform> PartsFor(int lvl) => groups.TryGetValue(lvl, out var list) ? list : (IReadOnlyList<Transform>)System.Array.Empty<Transform>();
 
     void Add(int lvl, Transform t)
     {
@@ -46,7 +50,7 @@ public class BuildingUpgrade : MonoBehaviour
     /// <summary>Start the next upgrade. Pays from the ResourceBank if one exists.</summary>
     public bool Upgrade()
     {
-        if (!CanUpgrade) return false;
+        if (!CanUpgrade || !BuildSlots.Free) return false; // GD5: max 2 buildings building/upgrading at once
         var bank = ResourceBank.Instance;
         if (bank && !bank.Spend(NextCost)) return false;
         StartCoroutine(Run(level + 1));
@@ -56,9 +60,11 @@ public class BuildingUpgrade : MonoBehaviour
     System.Collections.IEnumerator Run(int target)
     {
         IsUpgrading = true; Progress = 0f;
+        BuildSlots.Busy.Add(this);
         float dur = target < upgradeTime.Length ? upgradeTime[target] : 30f;
         for (float t = 0; t < dur; t += Time.deltaTime) { Progress = t / dur; yield return null; }
         IsUpgrading = false; Progress = 1f;
+        BuildSlots.Busy.Remove(this);
         SetLevel(target, true);
     }
 

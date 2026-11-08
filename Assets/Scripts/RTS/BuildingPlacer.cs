@@ -208,6 +208,7 @@ public class BuildingPlacer : MonoBehaviour
             {
                 bool locked = !buildings[i].Unlocked();
                 optionButtons[i].interactable = !locked && CanAfford(i); // red when short or not unlocked yet
+                LockBadge.Set(optionButtons[i], locked ? buildings[i].Missing() : null, CanAfford(i));
                 if (locked == lockedShown[i]) continue;
                 lockedShown[i] = locked;
                 optionButtons[i].GetComponent<Tooltip>().text = Tip(i, locked);
@@ -258,7 +259,7 @@ public class BuildingPlacer : MonoBehaviour
         int cost = buildings[chosen].cost;
         bool afford = ResourceBank.GetOrCreate().Credits >= cost * Mathf.Max(1, good); // credits can drop while placing
         bool unlocked = buildings[chosen].Unlocked(); // the required building can die while placing
-        string problem = !unlocked ? "LOCKED" : good == 0 ? reason : !afford ? "NOT ENOUGH CREDITS" : null;
+        string problem = !unlocked ? "LOCKED" : !buildings[chosen].dragLine && !BuildSlots.Free ? BuildSlots.FullReason : good == 0 ? reason : !afford ? "NOT ENOUGH CREDITS" : null;
         string price = good > 1 ? $"BUILD {good}  ${cost * good}" : $"${cost}";
         hintText.text = (problem ?? price) + "      " + (buildings[chosen].dragLine ? WallHint : PlaceHint);
         hintText.color = problem == null ? hintColor : blockedColor * 3f;

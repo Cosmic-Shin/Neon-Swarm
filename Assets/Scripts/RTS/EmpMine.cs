@@ -13,6 +13,8 @@ public class EmpMine : MonoBehaviour
 
     Health self;
     float ready;
+    public float Charge01 => recharge <= 0f ? 1f : 1f - Mathf.Clamp01((ready - Time.time) / recharge); // 1 = armed
+    public float LastPulse { get; private set; } = -99f;
 
     void Awake() => self = GetComponent<Health>();
 
@@ -23,13 +25,14 @@ public class EmpMine : MonoBehaviour
         bool fired = false;
         foreach (var h in Health.All)
         {
-            if (Net.Allied(h.team, self.team) || !h.TryGetComponent(out SelectableUnit u)) continue;
+            if (Net.Allied(h.team, self.team) || Flyer.IsAir(h) || !h.TryGetComponent(out SelectableUnit u)) continue; // flyers pass over mines
             if ((h.transform.position - transform.position).sqrMagnitude > r2) continue;
             u.Stun(stunTime);
             fired = true;
         }
         if (!fired) return;
         ready = Time.time + recharge;
+        LastPulse = Time.time;
         Fx.Spawn(pulseEffect, transform.position, Quaternion.identity, radius);
         Fx.Spawn(ringEffect, transform.position + Vector3.up * 0.05f, Quaternion.identity, radius);
     }

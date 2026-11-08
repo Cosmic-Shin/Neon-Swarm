@@ -38,10 +38,23 @@ public class RoomService : MonoBehaviour
         while (this)
         {
             string error = await Join(args[i + 1]);
-            if (error == null) { Debug.Log("[GD5] autojoined " + args[i + 1]); return; }
+            if (error == null) { Debug.Log("[GD5] autojoined " + args[i + 1]); AutoReady(args); return; }
             Debug.Log("[GD5] autojoin: " + error);
             await Task.Delay(3000);
         }
+    }
+
+    // "-team N": join lobby team N. Then click READY after a few seconds (so the host sees NOT READY first).
+    async void AutoReady(string[] args)
+    {
+        while (this && (RoomState.Instance == null || RoomState.Instance.SlotOf(Runner.LocalPlayer) < 0)) await Task.Delay(500);
+        await Task.Delay(8000);
+        if (!this || RoomState.Instance == null) return;
+        int t = System.Array.IndexOf(args, "-team");
+        if (t >= 0 && t + 1 < args.Length && int.TryParse(args[t + 1], out int team))
+            for (int n = 0; n < team; n++) { RoomState.Instance.NextTeam(); await Task.Delay(300); }
+        RoomState.Instance.ToggleReady();
+        Debug.Log("[GD5] auto-ready");
     }
 #endif
 

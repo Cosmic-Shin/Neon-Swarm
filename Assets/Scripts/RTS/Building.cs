@@ -21,12 +21,18 @@ public class Building : MonoBehaviour
     float progress; // seconds spent on queue[0]
     LineRenderer rallyLine;
     Structure structure;
+    ProductionFX fx;
+    AerieFX aerie; // air factory: flyers launch out of its roof hatch, titans from its mast
 
     void Awake()
     {
         unitPrefabs = unitPrefabs.OrderBy(u => u.Cost).ToArray(); // cheapest first
         upgrades = upgrades.OrderBy(u => u.tier).ThenBy(u => u.branch).ThenBy(u => u.cost).ToArray();
         structure = GetComponent<Structure>();
+        aerie = GetComponent<AerieFX>();
+        fx = gameObject.AddComponent<ProductionFX>();
+        if (aerie != null) fx.titanDock = aerie.TitanDock;
+        fx.exit = gate != null ? gate.Lintel : spawnPoint;
 
         rallyLine = new GameObject("RallyLine").AddComponent<LineRenderer>();
         rallyLine.transform.SetParent(transform, false);
@@ -42,6 +48,7 @@ public class Building : MonoBehaviour
     ResearchData Upgrade(int i) => upgrades[i - unitPrefabs.Length];
 
     public string NameOf(int i) => IsUnit(i) ? unitPrefabs[i].DisplayName : Upgrade(i).displayName;
+    public int SquadOf(int i) => IsUnit(i) ? Mathf.Max(1, unitPrefabs[i].Data.squadSize) : 1; // units per purchase
     public Sprite IconOf(int i) => IsUnit(i) ? unitPrefabs[i].Icon : Upgrade(i).icon;
     public int CostOf(int i) => IsUnit(i) ? unitPrefabs[i].Cost : Upgrade(i).cost;
     public float TimeOf(int i) => IsUnit(i) ? Stats.Value(Stat.BuildTime, unitPrefabs[i].BuildTime, this) : Upgrade(i).researchTime; // Hive Mk II: -20%
@@ -55,15 +62,33 @@ public class Building : MonoBehaviour
 
     public int Producing => queue.Count > 0 ? queue[0] : -1;
     public float Progress01 => queue.Count > 0 ? progress / TimeOf(queue[0]) : 0f;
+    // The production look for option i (-1 = idle): the unit's model, or the research's icon.
+    public void ShowProduction(int i, float progress01) =>
+        fx.Show(i < 0 || i >= OptionCount ? null : IsUnit(i) ? unitPrefabs[i] : Upgrade(i).icon, progress01);
 
     // Why this option can't be queued right now, credits aside (null = it can).
     // Elite units need Core Nexus Mk III; research: one project per lab, plus ResearchManager's rules.
     public string Blocker(int i)
     {
         if (IsUnit(i))
-            return unitPrefabs[i].Data.role == UnitData.Role.Elite && ResearchManager.CoreLevel < 3 ? "Needs Core Nexus Mk III" : null;
+        {
+            if (unitPrefabs[i].Data.role != UnitData.Role.Elite) return null;
+            if (ResearchManager.CoreLevel < 3) return "Needs Core Nexus Mk III";
+            return aerie != null && !aerie.HasMast ? "Needs Hive Aerie Mk III" : null; // titans moor at the mast
+        }
         if (queue.Exists(q => !IsUnit(q))) return queue.Contains(i) ? "Researching" : "Lab busy: one project at a time";
         return ResearchManager.Blocker(Upgrade(i), this);
+    }
+
+    // What's still needed before option i can be bought, for the button's lock badge (null = nothing).
+    // A busy lab or a finished project isn't a requirement, so those don't lock the button.
+    public string Needs(int i)
+    {
+        string why = Blocker(i);
+        if (why == null) return null;
+        if (why.StartsWith("Needs ")) return why.Substring(6);
+        if (why.StartsWith("Requires ")) return why.Substring(9);
+        return null;
     }
 
     public bool CanQueue(int i) => ResourceBank.GetOrCreate().Credits >= CostOf(i) && Blocker(i) == null;
@@ -124,6 +149,7 @@ public class Building : MonoBehaviour
             rallyLine.SetPosition(1, Rally.Value + Vector3.up * 0.3f);
         }
 
+        ShowProduction(Producing, Progress01);
         if (queue.Count == 0) return;
         progress += Time.deltaTime * (Structure.LowPower ? 0.5f : 1f); // low power: half speed
         if (progress < TimeOf(queue[0])) return;
@@ -131,11 +157,28 @@ public class Building : MonoBehaviour
         int done = queue[0];
         queue.RemoveAt(0);
         progress = 0f;
-        if (IsUnit(done)) { SummonUnit(done); Alerts.Show($"Unit ready: {NameOf(done)}", Alerts.Info); }
-        else { ResearchManager.Complete(Upgrade(done)); Alerts.Show($"Research complete: {NameOf(done)}", Alerts.Good); }
+        if (IsUnit(done)) { SummonUnit(done); Alerts.Show($"Unit ready: {NameOf(done)}{(SquadOf(done) > 1 ? $" x{SquadOf(done)}" : "")}", Alerts.Info); }
+        else { ResearchManager.Complete(Upgrade(done)); MatchStats.Add(MatchStats.Kind.Research); Alerts.Show($"Research complete: {NameOf(done)}", Alerts.Good); }
     }
 
-    void SummonUnit(int index)
+    // Squad units (C&C style) come out one after another, this far apart.
+    const float SquadGap = 0.45f;
+
+    void SummonUnit(int index) => StartCoroutine(SummonSquad(index, SquadOf(index)));
+
+    System.Collections.IEnumerator SummonSquad(int index, int squad)
+    {
+        for (int n = 0; n < squad; n++)
+        {
+            // Each one gets its own spot around the rally point, so the squad doesn't fight over one spot.
+            Vector3? rally = Rally;
+            if (rally.HasValue && squad > 1) rally += Quaternion.Euler(0f, n * 360f / squad, 0f) * Vector3.forward * 3f;
+            SummonOne(index, rally);
+            if (n + 1 < squad) yield return new WaitForSeconds(SquadGap);
+        }
+    }
+
+    void SummonOne(int index, Vector3? rally)
     {
         Vector2 r = Random.insideUnitCircle * spawnSpread;
         Vector3 exit = spawnPoint.position + new Vector3(r.x, 0f, r.y);
@@ -145,7 +188,14 @@ public class Building : MonoBehaviour
 
         // Created at the exit (on the navmesh), then walks there from inside the building, then on to the rally point.
         var unit = Net.Spawn(unitPrefabs[index], exit, Quaternion.LookRotation(spawnPoint.position - transform.position));
-        unit.WalkOut(inside, exit, exitSpeed, edge, Rally);
+        MatchStats.Add(MatchStats.Kind.UnitsBuilt);
+        if (aerie != null && Flyer.IsAir(unit))
+        {
+            float launch = aerie.Launch(unit, exit, rally);
+            if (TryGetComponent(out NetEntity n) && n.Online) n.RPC_OpenGate(launch); // others see the hatch open
+            return;
+        }
+        unit.WalkOut(inside, exit, exitSpeed, edge, rally);
         float doorTime = Vector3.Distance(inside, exit) / exitSpeed; // shut once it's through
         OpenGate(doorTime);
         if (TryGetComponent(out NetEntity net) && net.Online) net.RPC_OpenGate(doorTime);
@@ -154,5 +204,6 @@ public class Building : MonoBehaviour
     public void OpenGate(float seconds)
     {
         if (gate != null) gate.Open(seconds);
+        if (aerie != null) aerie.OpenHatch(seconds);
     }
 }

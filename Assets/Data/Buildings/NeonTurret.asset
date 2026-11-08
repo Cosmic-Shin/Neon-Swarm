@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   displayName: NeonTurret
   description: 'Defence tower. Fast laser: 14 damage every 0.7s, 20m range. Offline
-    when low on power.'
+    when low on power. Hits ground and air.'
   prefab: {fileID: 7502497076854759863, guid: 88d61a681ed4f324cb6077bcea5f55c6, type: 3}
   icon: {fileID: 21300000, guid: 2d65808e37d87834c9bca48458fed1e8, type: 3}
   cost: 400

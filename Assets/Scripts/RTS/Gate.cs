@@ -5,6 +5,7 @@ public class Gate : MonoBehaviour
 {
     [SerializeField] Transform[] slats;    // door pieces, bottom to top
     [SerializeField] Transform lintel;     // the slats rise to this height
+    public Transform Lintel => lintel;
     [SerializeField] float openTime = 0.5f;
 
     Vector3[] closed, open; // local positions

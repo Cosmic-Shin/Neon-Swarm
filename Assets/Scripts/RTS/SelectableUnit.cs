@@ -31,6 +31,8 @@ public class SelectableUnit : MonoBehaviour
     GoodSelectionManager manager;
     int formationIndex = -1;
     OutpostCapture garrisonTarget; // walking to our outpost to go inside
+    Transport boardTarget;         // walking to our Wasp to climb aboard
+    float boardRepath;
     float stunnedUntil;
 
     // EMP: can't move or shoot for a while.
@@ -111,6 +113,8 @@ public class SelectableUnit : MonoBehaviour
         bool slowedNow = Time.time < slowedUntil;
         if (slowedNow != wasSlowed) { agent.speed *= slowedNow ? 0.5f : 2f; wasSlowed = slowedNow; } // only on change (harvesters set their own speed)
 
+        Settle();
+
         // Formation move done: turn to face the way the formation points (unless busy shooting).
         if (faceOnArrive != Vector3.zero && agent.enabled && agent.isOnNavMesh && !agent.pathPending &&
             agent.remainingDistance <= agent.stoppingDistance + 0.2f && (attacker == null || !attacker.HasTarget))
@@ -120,6 +124,8 @@ public class SelectableUnit : MonoBehaviour
             if (Quaternion.Angle(transform.rotation, look) < 1f) faceOnArrive = Vector3.zero;
         }
 
+        if (boardTarget != null && agent.enabled) Board();
+
         if (garrisonTarget != null && agent.enabled)
         {
             float r = garrisonTarget.captureRadius;
@@ -128,6 +134,13 @@ public class SelectableUnit : MonoBehaviour
             garrisonTarget = null;
             if (outpost.TryGarrison(GetComponent<TeamMember>())) Deselect(); // hidden inside now
         }
+    }
+
+    void Board()
+    {
+        if (boardTarget.Full || !boardTarget.isActiveAndEnabled) { boardTarget = null; return; }
+        if (boardTarget.InReach(this)) { var w = boardTarget; boardTarget = null; w.TryLoad(this); return; }
+        if (Time.time > boardRepath && agent.isOnNavMesh) { boardRepath = Time.time + 0.5f; agent.SetDestination(boardTarget.transform.position); } // it may be moving
     }
 
     // Leave a building: the building carves a hole in the navmesh, so walk out by hand,
@@ -176,6 +189,7 @@ public class SelectableUnit : MonoBehaviour
         manager.OnHarvestCommand += HandleHarvestCommand;
         manager.OnAttackCommand += HandleAttackCommand;
         manager.OnGarrisonCommand += HandleGarrisonCommand;
+        manager.OnBoardCommand += HandleBoardCommand;
         manager.OnAttackMoveCommand += HandleAttackMoveCommand;
         manager.OnStopCommand += HandleStopCommand;
         manager.OnHoldCommand += HandleHoldCommand;
@@ -191,10 +205,34 @@ public class SelectableUnit : MonoBehaviour
         if (selectionRing != null) selectionRing.SetActive(false);
     }
 
+    // Crowded spot (others already standing on or around it, e.g. a shared rally point): once a unit stops
+    // getting any closer for a moment it stops where it is, instead of shoving the others forever.
+    // The nearer it is, the sooner it gives up; units still far off keep trying for longer.
+    Vector3 settleDest;
+    float settleBest, settleSince;
+
+    void Settle()
+    {
+        if (harvester != null || !agent.enabled || !agent.isOnNavMesh || agent.pathPending || !agent.hasPath) return;
+        if (attacker != null && attacker.HasTarget) return; // chasing or fighting: the Attacker steers
+        if (IsStunned) { settleSince = Time.time; return; } // frozen by EMP isn't "stuck"
+        if ((agent.destination - settleDest).sqrMagnitude > 0.25f) // new order
+        {
+            settleDest = agent.destination;
+            settleBest = float.MaxValue;
+            settleSince = Time.time;
+        }
+        float left = agent.remainingDistance;
+        if (float.IsInfinity(left)) return;
+        if (left < settleBest - 0.2f) { settleBest = left; settleSince = Time.time; return; } // still making progress
+        if (left < 20f && Time.time - settleSince > 0.6f + left * 0.15f) agent.ResetPath();
+    }
+
     // Each unit only uses its own slot.
     void HandleMoveCommand(List<Vector3> slots)
     {
         if (formationIndex < 0 || formationIndex >= slots.Count) return;
+        boardTarget = null;
         garrisonTarget = null;
         if (harvester != null) harvester.Stop(); // a plain move pauses mining
         if (attacker != null) attacker.Stop();   // and drops the current target
@@ -215,6 +253,7 @@ public class SelectableUnit : MonoBehaviour
     void HandleStopCommand()
     {
         garrisonTarget = null;
+        boardTarget = null;
         faceOnArrive = Vector3.zero;
         if (harvester != null) harvester.Stop();
         if (attacker != null) attacker.Stop();
@@ -240,6 +279,12 @@ public class SelectableUnit : MonoBehaviour
         if (attacker != null) attacker.Attack(target);
     }
 
+    // Right-clicked our Wasp: infantry-sized units go aboard once they reach it.
+    void HandleBoardCommand(Transport wasp)
+    {
+        if (Transport.CanCarry(this) && !Flyer.IsAir(this)) boardTarget = wasp;
+    }
+
     // Right-clicked our outpost: armed units go inside once they reach it (harvesters just walk there).
     void HandleGarrisonCommand(OutpostCapture outpost)
     {
@@ -250,6 +295,7 @@ public class SelectableUnit : MonoBehaviour
     {
         if (manager == null) return;
         manager.OnGarrisonCommand -= HandleGarrisonCommand;
+        manager.OnBoardCommand -= HandleBoardCommand;
         manager.OnMoveCommand -= HandleMoveCommand;
         manager.OnHarvestCommand -= HandleHarvestCommand;
         manager.OnAttackCommand -= HandleAttackCommand;

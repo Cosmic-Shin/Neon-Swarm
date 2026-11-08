@@ -28,12 +28,17 @@ public class RoomScreen : MonoBehaviour
     readonly Button[] rows = new Button[RoomService.MaxPlayers];
     readonly Button[] bases = new Button[RoomService.MaxPlayers];
     int picked = -1; // host: the player slot chosen in the list
+    bool starting;   // host clicked START
 
     void Awake()
     {
+        // Host: start (once everyone is ready). Everyone else: the same button toggles READY.
         startGame.onClick.AddListener(() =>
         {
-            startGame.interactable = false;
+            var room = RoomState.Instance;
+            if (room == null) return;
+            if (!room.IsHost) { room.ToggleReady(); return; }
+            starting = true;
             RoomService.Instance.StartMatch();
         });
         credits.onClick.AddListener(() => RoomState.Instance?.NextCredits());
@@ -66,13 +71,19 @@ public class RoomScreen : MonoBehaviour
             });
             bases[b] = btn;
         }
+        // The status line used to share the button's spot (only one showed); now both show, so it sits just above.
+        var status = (RectTransform)waiting.transform;
+        status.anchoredPosition = ((RectTransform)startGame.transform).anchoredPosition + Vector2.up * 44f;
+        status.sizeDelta = new Vector2(status.sizeDelta.x, 28f);
+        waiting.resizeTextForBestFit = false;
+        waiting.fontSize = Mathf.Min(waiting.fontSize, 20);
         playerTemplate.gameObject.SetActive(false);
         baseTemplate.gameObject.SetActive(false);
     }
 
     void OnEnable()
     {
-        startGame.interactable = true;
+        starting = false;
         picked = -1;
         chat.Clear();
         chatLog.text = "";
@@ -94,7 +105,8 @@ public class RoomScreen : MonoBehaviour
             rows[i].gameObject.SetActive(seated);
             if (!seated) { if (picked == i) picked = -1; continue; }
             string tags = (player == runner.LocalPlayer ? "  (you)" : "") + (player == room.Object.StateAuthority ? "  (host)" : "");
-            rows[i].transform.Find("Name").GetComponent<Text>().text = $"{i + 1}.  {room.NameOf(i)}{tags}";
+            string ready = room.IsHostSlot(i) ? "" : room.IsReady(i) ? "   <color=#60FF90>READY</color>" : "   <color=#FF8080>NOT READY</color>";
+            rows[i].transform.Find("Name").GetComponent<Text>().text = $"{i + 1}.  {room.NameOf(i)}{tags}{ready}";
             rows[i].transform.Find("Base").GetComponent<Text>().text = $"BASE {room.Bases[i] + 1}";
             rows[i].transform.Find("Swatch").GetComponent<Image>().color = TeamMember.ColorOf(i);
             bool mine = player == runner.LocalPlayer;
@@ -125,8 +137,14 @@ public class RoomScreen : MonoBehaviour
                   : "Click your colour or team to change it. Click a player, then a base to move them.";
 
         // The host can change if the creator leaves, so check every frame.
-        startGame.gameObject.SetActive(host);
-        waiting.gameObject.SetActive(!host);
+        startGame.gameObject.SetActive(true);
+        waiting.gameObject.SetActive(true);
+        bool allReady = room.EveryoneReady();
+        bool meReady = room.IsReady(room.SlotOf(runner.LocalPlayer));
+        startGame.GetComponentInChildren<Text>().text = host ? "START GAME" : meReady ? "NOT READY" : "READY";
+        startGame.interactable = host ? allReady && !starting : true;
+        waiting.text = host ? (allReady ? "" : "Waiting for everyone to click READY.")
+                     : meReady ? "Waiting for the host to start." : "Click READY when you are set.";
     }
 
     void OnDestroy() => RoomState.ChatReceived -= AddChat;
@@ -149,11 +167,11 @@ public class RoomScreen : MonoBehaviour
         chatInput.ActivateInputField(); // keep typing
     }
 
-    void AddChat(int slot, string text)
+    void AddChat(int slot, string text, bool toAll)
     {
         string name = RoomState.Instance != null ? RoomState.Instance.NameOf(slot) : "?";
         string colour = ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(slot));
-        chat.Add($"<color=#{colour}><b>{name}:</b></color> {text.Replace("<", "<​")}"); // no rich-text tricks from players
+        chat.Add($"<color=#{colour}><b>{(toAll ? "" : "(Team) ")}{name}:</b></color> {text.Replace("<", "<​")}"); // no rich-text tricks from players
         if (chat.Count > ChatLines) chat.RemoveAt(0);
         chatLog.text = string.Join("\n", chat);
     }

@@ -252,6 +252,7 @@ GameObject:
   - component: {fileID: 6963824718092571078}
   - component: {fileID: 7707527438325354069}
   - component: {fileID: 4536897690900878918}
+  - component: {fileID: 2454122062925971543}
   m_Layer: 9
   m_Name: NeonTurret
   m_TagString: Untagged
@@ -400,6 +401,8 @@ MonoBehaviour:
   cooldown: 0.7
   targets: 1
   splash: 0
+  hitsGround: 1
+  hitsAir: 1
   beamWidth: 0.2
   beamTime: 0.08
   color: {r: 0.2, g: 1, b: 1, a: 1}
@@ -480,6 +483,23 @@ MonoBehaviour:
       units: []
       buildings: []
       defenses: 0
+--- !u!114 &2454122062925971543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7502497076854759863}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ab61fbf486883e4998169579d7f9f80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RecoilKick
+  target: {fileID: 6937055088425373217}
+  distance: 0.2
+  angle: 5
+  returnTime: 0.12
+  shake: 0
 --- !u!1001 &7902234334282664618
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -737,6 +757,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 2c1446eefa14f9f40a148dc413960ef4, type: 3}
+--- !u!4 &6937055088425373217 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1004090077740614795, guid: 2c1446eefa14f9f40a148dc413960ef4, type: 3}
+  m_PrefabInstance: {fileID: 7902234334282664618}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &7647351032492404033 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 2c1446eefa14f9f40a148dc413960ef4, type: 3}

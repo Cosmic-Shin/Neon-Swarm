@@ -48,6 +48,12 @@ public static class CyberpunkRTSSetup
         new M("Wreck_Charred", 0.0500f, 0.0450f, 0.0450f, 0.400f, 0.800f, 1.0000f, 1.0000f, 1.0000f, 0.000f, 1.000f),
     };
 
+    // Attack clips authored in Blender: unit -> (last frame, fire frame). Clip starts at frame 501.
+    static readonly Dictionary<string, (int end, int fire)> AttackClips = new Dictionary<string, (int end, int fire)> {
+        { "Chromejaw", (518, 510) }, { "Burner", (516, 505) }, { "MortarScarab", (516, 503) }, { "SniperMantis", (514, 503) },
+        { "QueenArachne", (519, 510) }, { "JellyfishDreadnought", (519, 509) }, { "MothMothership", (519, 511) },
+        { "MantaLeviathan", (518, 506) }, { "BeetleBomber", (519, 510) }, { "DragonflyGunship", (513, 505) } };
+
     [MenuItem("Tools/Cyberpunk RTS/1. Setup Materials, Imports and Prefabs")]
     public static void SetupAll()
     {
@@ -57,6 +63,7 @@ public static class CyberpunkRTSSetup
         BuildPrefabs();
         BuildEnvironmentPrefabs();
         BuildConstructionResources();
+        BuildAirResources();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log("[CyberpunkRTS] Setup complete: materials, import settings, death animations, prefabs.");
@@ -147,6 +154,12 @@ public static class CyberpunkRTSSetup
                     clips.Add(Make("Idle", 201, 249, true));
                     if (Animated.Contains(name)) clips.Add(Make("Death", 1, 40, false));
                     if (name == "DataHarvester") { clips.Add(Make("Harvest", 301, 349, true)); clips.Add(Make("Unload", 401, 449, true)); }
+                    if (AttackClips.TryGetValue(name, out var atk))
+                    {
+                        var ac = Make("Attack", 501, atk.end, false);
+                        ac.events = new[] { new AnimationEvent { functionName = "Fire", time = (atk.fire - 501f) / (atk.end - 501f) } };
+                        clips.Add(ac);
+                    }
                     imp.clipAnimations = clips.ToArray();
                 }
             }
@@ -166,6 +179,7 @@ public static class CyberpunkRTSSetup
             string path = AssetDatabase.GUIDToAssetPath(guid);
             if (!(AssetImporter.GetAtPath(path) is TextureImporter ti)) continue;
             ti.textureType = TextureImporterType.Sprite;
+            ti.spriteImportMode = SpriteImportMode.Single; // GD5: else new icons can import as "Multiple" with no sprites
             ti.alphaIsTransparency = true;
             ti.mipmapEnabled = false;
             ti.SaveAndReimport();
@@ -195,6 +209,16 @@ public static class CyberpunkRTSSetup
             var t = sm.AddAnyStateTransition(death);
             t.AddCondition(AnimatorConditionMode.If, 0, "Die");
             t.hasExitTime = false; t.duration = 0.05f; t.canTransitionToSelf = false;
+        }
+        var atkClip = Get("Attack");
+        if (atkClip)
+        {
+            ctrl.AddParameter("Attack", AnimatorControllerParameterType.Trigger);
+            var atkState = sm.AddState("Attack"); atkState.motion = atkClip;
+            var toAtk = sm.AddAnyStateTransition(atkState);
+            toAtk.AddCondition(AnimatorConditionMode.If, 0, "Attack");
+            toAtk.hasExitTime = false; toAtk.duration = 0.05f; toAtk.canTransitionToSelf = true;
+            var back = atkState.AddTransition(idle); back.hasExitTime = true; back.exitTime = 1f; back.duration = 0.1f;
         }
         foreach (var extra in new[] { "Harvest", "Unload" })
         {
@@ -286,9 +310,21 @@ public static class CyberpunkRTSSetup
                         { "NeonTurret",   (new[] { 0, 0, 500, 0 },     new[] { 0f, 0f, 30f, 0f }) },
                         { "PowerPylon",   (new[] { 0, 0, 400, 0 },     new[] { 0f, 0f, 25f, 0f }) },
                         { "UplinkTower",  (new[] { 0, 0, 800, 0 },     new[] { 0f, 0f, 40f, 0f }) },
+                        { "HiveAerie",    (new[] { 0, 0, 1200, 3000 }, new[] { 0f, 0f, 45f, 90f }) },
                     };
                     if (costs.TryGetValue(name, out var ct)) { up.upgradeCost = ct.c; up.upgradeTime = ct.t; }
                 }
+                var flyerStats = new Dictionary<string, (float alt, float spd)> {
+                    { "DragonflyGunship", (2.2f, 4f) }, { "HornetInterceptor", (2.6f, 6f) }, { "BeetleBomber", (2.8f, 2.5f) },
+                    { "LocustCarrier", (2.6f, 3f) }, { "FireflySpotter", (3.0f, 4.5f) }, { "WaspTransport", (2.0f, 3.5f) }, { "LocustDrone", (2.0f, 6f) }, { "JellyfishDreadnought", (4.2f, 1.2f) }, { "MothMothership", (4.6f, 1.6f) }, { "MantaLeviathan", (3.8f, 2.6f) } };
+                if (folder == "Units" && flyerStats.TryGetValue(name, out var fs))
+                {
+                    var fu = go.AddComponent<FlyingUnit>(); fu.cruiseAltitude = fs.alt; fu.speed = fs.spd;
+                    if (name == "JellyfishDreadnought" || name == "MothMothership" || name == "MantaLeviathan") { fu.shadowScale = 4f; fu.turnSpeed = 45f; fu.bankAngle = 8f; }
+                    if (name == "LocustCarrier") go.AddComponent<SwarmCarrier>();
+                }
+                if (name == "HiveAerie") go.AddComponent<AirPad>();
+                if (folder == "Units" && AttackClips.ContainsKey(name) && anim && !anim.GetComponent<AttackEvents>()) anim.gameObject.AddComponent<AttackEvents>();
                 PrefabUtility.SaveAsPrefabAsset(go, $"{PrefabDir}/{folder}/{name}.prefab");
                 Object.DestroyImmediate(go);
             }
@@ -459,6 +495,63 @@ public static class CyberpunkRTSSetup
         EditorApplication.ExecuteMenuItem("Tools/Cyberpunk RTS/3. Add Neon Bloom to Open Scene");
         EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene(), $"{Root}/Scenes/CyberpunkRTS_Construction.unity");
         Debug.Log("[CyberpunkRTS] Construction demo built. Press Play, pick a building with 1-9, click to place.");
+    }
+
+    static void BuildAirResources()
+    {
+        string dir = Root + "/Resources/Air";
+        EnsureFolder(dir);
+        var shadowModel = AssetDatabase.LoadAssetAtPath<GameObject>($"{Models}/FX/FX_AirShadow.fbx");
+        if (shadowModel)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(shadowModel);
+            go.name = "AirShadow";
+            PrefabUtility.SaveAsPrefabAsset(go, $"{dir}/AirShadow.prefab");
+            Object.DestroyImmediate(go);
+        }
+        AssetDatabase.DeleteAsset($"{dir}/LocustDrone.prefab");
+        AssetDatabase.CopyAsset($"{PrefabDir}/Units/LocustDrone.prefab", $"{dir}/LocustDrone.prefab");
+    }
+
+    [MenuItem("Tools/Cyberpunk RTS/7. Build Air Demo Scene")]
+    public static void BuildAirScene()
+    {
+        var aerie = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/Buildings/HiveAerie.prefab");
+        if (!aerie) { Debug.LogError("[CyberpunkRTS] Run '1. Setup' first."); return; }
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        EnsureFolder(Root + "/Scenes");
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        RenderSettings.skybox = null; RenderSettings.ambientMode = AmbientMode.Flat; RenderSettings.ambientLight = new Color(0.16f, 0.16f, 0.24f);
+        var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        ground.name = "Ground"; ground.transform.localScale = new Vector3(5f, 1f, 5f);
+        var asphalt = AssetDatabase.LoadAssetAtPath<Material>($"{MatDir}/Env_Asphalt.mat");
+        if (asphalt) ground.GetComponent<Renderer>().sharedMaterial = asphalt;
+        var sun = new GameObject("Moonlight").AddComponent<Light>();
+        sun.type = LightType.Directional; sun.intensity = 0.8f; sun.color = new Color(0.75f, 0.8f, 1f);
+        sun.transform.rotation = Quaternion.Euler(50f, -30f, 0f); sun.shadows = LightShadows.Soft;
+        var camGo = new GameObject("Main Camera"); camGo.tag = "MainCamera";
+        var cam = camGo.AddComponent<Camera>();
+        cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.02f, 0.02f, 0.05f); cam.allowHDR = true;
+        camGo.transform.position = new Vector3(0f, 10f, -9f); camGo.transform.rotation = Quaternion.Euler(48f, 0f, 0f);
+        var bank = new GameObject("ResourceBank").AddComponent<ResourceBank>(); bank.startingCredits = 40000;
+        var inst = (GameObject)PrefabUtility.InstantiatePrefab(aerie);
+        var pad = inst.GetComponent<AirPad>();
+        foreach (var e in new (string n, int c, float t)[] { ("DragonflyGunship", 900, 6f), ("HornetInterceptor", 700, 5f), ("BeetleBomber", 1400, 8f),
+                                                             ("LocustCarrier", 1600, 9f), ("FireflySpotter", 400, 4f), ("WaspTransport", 1000, 7f) })
+        {
+            var p = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/Units/{e.n}.prefab");
+            if (p && pad) pad.buildable.Add(new AirPad.Entry { prefab = p, cost = e.c, buildTime = e.t });
+        }
+        foreach (var e in new (string n, int c, float t)[] { ("JellyfishDreadnought", 6000, 20f), ("MothMothership", 5000, 18f), ("MantaLeviathan", 5500, 18f) })
+        {
+            var p = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/Units/{e.n}.prefab");
+            if (p && pad) pad.buildable.Add(new AirPad.Entry { prefab = p, cost = e.c, buildTime = e.t, requiredLevel = 3, titan = true, maxAlive = 1 });
+        }
+        new GameObject("AirDemo").AddComponent<AirDemo>();
+        new GameObject("DeathTester").AddComponent<DeathTester>();
+        EditorApplication.ExecuteMenuItem("Tools/Cyberpunk RTS/3. Add Neon Bloom to Open Scene");
+        EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene(), $"{Root}/Scenes/CyberpunkRTS_Air.unity");
+        Debug.Log("[CyberpunkRTS] Air demo built. Press Play: 1-6 build flyers, right-click to send them, L releases Locust drones.");
     }
 
     [MenuItem("Tools/Cyberpunk RTS/2. Build Test Scene")]

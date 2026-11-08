@@ -255,7 +255,7 @@ public class ConstructionSite : MonoBehaviour
 
     /// <summary>Stretching the frame to the footprint also thickens its bars; shrink each bar's thin
     /// horizontal sides back to 'thickness' (otherwise big buildings get a blooming wall of light).</summary>
-    static void KeepBarsThin(GameObject frame, float thickness, float thinBelow)
+    public static void KeepBarsThin(GameObject frame, float thickness, float thinBelow)
     {
         foreach (var mf in frame.GetComponentsInChildren<MeshFilter>())
         {

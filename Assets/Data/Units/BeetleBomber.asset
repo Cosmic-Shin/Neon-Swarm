@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
+  m_Name: BeetleBomber
+  m_EditorClassIdentifier: Assembly-CSharp::UnitData
+  displayName: Beetle Bomber
+  role: 3
+  description: Slow plasma bomber. Big splash damage, double damage to buildings.
+  icon: {fileID: 21300000, guid: 7bcf1dfe0ce5c3c4888066069a6f4c16, type: 3}
+  cost: 900
+  buildTime: 11
+  squadSize: 1
+  maxHealth: 260
+  damage: 60
+  range: 6
+  attackCooldown: 2.5
+  hitsGround: 1
+  hitsAir: 0
+  moveSpeed: 9
+  sight: 0
+  splash: 4
+  stunOnHit: 0
+  slowOnHit: 0
+  buildingDamage: 2
+  visual:
+    projectile: {fileID: 6485753571564013975, guid: dcb7c6280f1b33943bc54a16953a8af4, type: 3}
+    speed: 22
+    arc: 0
+    muzzleFlash: {fileID: 0}
+    impact: {fileID: 4146322954805676179, guid: 33e5a119a58d8fb478e254cd3a518a77, type: 3}
+    scorch: {fileID: 26111521409589224, guid: 47be985fffad2064da32f4ae4f3f3f33, type: 3}
+    hideBeam: 0
+  style: 0
+  muzzles: ^Bee_Bomb\d$
+  extra: {fileID: 0}

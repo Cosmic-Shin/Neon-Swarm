@@ -18,7 +18,11 @@ public class Health : MonoBehaviour
     public bool IsDead => current <= 0f;
 
     // Paint it in its owner's colour (network units know their team by now: NetEntity.Spawned runs first).
-    void Start() { if (!TryGetComponent(out OutpostCapture _)) TeamLook.Apply(gameObject, team); }
+    void Start()
+    {
+        if (!TryGetComponent(out OutpostCapture _)) TeamLook.Apply(gameObject, team);
+        if (TryGetComponent(out SelectableUnit _)) gameObject.AddComponent<StatusFX>(); // stunned / cloaked look
+    }
 
     void Awake()
     {
@@ -60,12 +64,16 @@ public class Health : MonoBehaviour
     public void SetFromNet(float hp, float max)
     {
         if (max > 0f) maxHealth = max;
+        if (synced && hp < current && team != 0 && Net.Allied(team, 0) && TryGetComponent(out Structure _)) Alerts.AllyAttacked(this);
+        synced = true;
         current = hp;
     }
+    bool synced; // had a first value from the owner (so a lower one means damage)
 
     public void DieRemote()
     {
         enabled = false;
+        if (TryGetComponent(out Structure _)) Juice.BuildingExplosion(gameObject);
         if (TryGetComponent(out SelectableUnit unit)) unit.HideRing();
         if (TryGetComponent(out UnitDeath death)) death.Die(); // just the look; the owner despawns it
     }
@@ -85,25 +93,32 @@ public class Health : MonoBehaviour
         if (from != null && TryGetComponent(out Attacker attacker)) attacker.Retaliate(from);
     }
 
+    // This one (ours, or a host-run creep) made a kill: the match score, and veterancy for units.
+    public void CreditKill()
+    {
+        if (team == 0) MatchStats.Add(MatchStats.Kind.Kills);
+        if (!TryGetComponent(out SelectableUnit _)) return;
+        if (!TryGetComponent(out Veterancy vet)) vet = gameObject.AddComponent<Veterancy>();
+        vet.AddKill();
+    }
+
     void Die(Health killer)
     {
         enabled = false; // leaves Health.All, so nobody keeps targeting the wreck
         if (net != null) net.MarkDead(); // multiplayer: everyone plays the death
-        if (killer != null && !Net.Allied(killer.team, team) && killer.TryGetComponent(out SelectableUnit _)) // veterancy: units only
+        if (killer != null && !Net.Allied(killer.team, team))
         {
-            if (killer.TryGetComponent(out NetEntity kn) && kn.IsRemote) kn.RPC_AddKill(); // another player's unit
-            else
-            {
-                if (!killer.TryGetComponent(out Veterancy vet)) vet = killer.gameObject.AddComponent<Veterancy>();
-                vet.AddKill();
-            }
+            if (killer.TryGetComponent(out NetEntity kn) && kn.IsRemote) kn.RPC_AddKill(); // another player's: its owner counts it
+            else killer.CreditKill();
         }
         if (onDeath != null) { onDeath(); return; }
         if (team == 0)
         {
             if (TryGetComponent(out Structure s)) Alerts.Show($"Building destroyed: {s.Name}", Alerts.Bad);
             else Alerts.Show("Unit lost", Alerts.Bad, 5f);
+            MatchStats.Add(TryGetComponent(out Structure _) ? MatchStats.Kind.BuildingsLost : MatchStats.Kind.UnitsLost);
         }
+        if (TryGetComponent(out Structure _)) Juice.BuildingExplosion(gameObject);
         if (TryGetComponent(out SelectableUnit unit)) unit.HideRing(); // or it flies off as debris
         // Pack effect: neon flickers out, the model breaks into physics debris.
         if (TryGetComponent(out UnitDeath death)) death.Die();

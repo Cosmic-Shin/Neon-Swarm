@@ -18,10 +18,13 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: b9e056255596eb0498d5d7e498fadbc0, type: 3}
   cost: 650
   buildTime: 7
+  squadSize: 2
   maxHealth: 150
   damage: 14
   range: 16
   attackCooldown: 1
+  hitsGround: 1
+  hitsAir: 1
   moveSpeed: 14
   sight: 0
   splash: 0

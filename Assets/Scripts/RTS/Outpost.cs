@@ -50,7 +50,7 @@ public class Outpost : MonoBehaviour
     public void ShowShot(Health target)
     {
         laser.SetPosition(0, transform.position + Vector3.up * 6f);
-        laser.SetPosition(1, target.transform.position + Vector3.up * 1f);
+        laser.SetPosition(1, Flyer.Center(target) + Vector3.up * 1f);
         laser.enabled = true;
         laserOff = Time.time + 0.1f;
     }

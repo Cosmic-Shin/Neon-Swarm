@@ -36,15 +36,36 @@ public class Attacker : MonoBehaviour
         laser.positionCount = 2;
         laser.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         laser.enabled = false;
+
+        attackEvents = GetComponentInChildren<AttackEvents>(true);
+        if (attackEvents != null)
+        {
+            attackEvents.OnFire += FireNow;
+            var anim = attackEvents.GetComponent<Animator>();
+            if (anim != null && anim.runtimeAnimatorController != null)
+                foreach (var c in anim.runtimeAnimatorController.animationClips) if (c.name == "Attack") clipLength = c.length;
+        }
+        kick = GetComponentInChildren<RecoilKick>(true);
+        var pattern = new System.Text.RegularExpressions.Regex(string.IsNullOrEmpty(data.muzzles) ? "Muzzle(-?\\d)?$" : data.muzzles);
+        foreach (var t in GetComponentsInChildren<Transform>(true)) if (pattern.IsMatch(t.name)) muzzles.Add(t);
     }
+
+    AttackEvents attackEvents; // the unit's authored Attack clip
+    float clipLength;
+    RecoilKick kick;           // fast shooters without a clip: a procedural kick instead
+    readonly System.Collections.Generic.List<Transform> muzzles = new();
+    Health pending;            // attack started, waiting for the clip's Fire frame
+    bool pendingReal;
 
     Vector3? attackMove; // walking here, but fighting anything met on the way
     bool resume;         // attack-move was interrupted by a fight: walk on afterwards
     bool hold;           // hold position: never walk, only shoot what's in range
 
     public bool HasTarget => target != null;
+    public Health Target => target;
     float Range => Stats.Value(Stat.Range, data.range, this); // research / veterancy
-    public void Attack(Health t) { Stop(); target = t; ordered = true; }
+    public void Attack(Health t) { Stop(); if (!CanHit(t)) return; target = t; ordered = true; }
+    public bool CanHit(Health h) => Flyer.IsAir(h) ? data.hitsAir : data.hitsGround;
     public void Stop() { target = null; ordered = false; attackMove = null; hold = false; }
     public void Hold() { Stop(); hold = true; if (agent.isOnNavMesh) agent.ResetPath(); }
 
@@ -58,7 +79,7 @@ public class Attacker : MonoBehaviour
     // Got shot: answer back unless busy or walking somewhere (attack-move counts as looking for a fight).
     public void Retaliate(Health from)
     {
-        if (target == null && (attackMove != null || !IsMoving()) && !Net.Allied(from.team, self.team)) target = from;
+        if (target == null && (attackMove != null || !IsMoving()) && !Net.Allied(from.team, self.team) && CanHit(from)) target = from;
     }
 
     bool IsMoving() => agent.enabled && (agent.pathPending || (agent.hasPath && agent.remainingDistance > agent.stoppingDistance + 0.5f));
@@ -108,28 +129,135 @@ public class Attacker : MonoBehaviour
         if (to.sqrMagnitude > 0.01f)
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), agent.angularSpeed * Time.deltaTime);
 
-        if (Time.time < nextShot) return;
-        nextShot = Time.time + data.attackCooldown / Stats.Value(Stat.FireRate, 1f, this);
+        if (Time.time < nextShot || pending != null) return;
+        nextShot = Time.time + Mathf.Max(clipLength, data.attackCooldown / Stats.Value(Stat.FireRate, 1f, this)); // never cut the clip short
         Fire(target);
     }
 
     void Fire(Health t)
     {
-        Shoot(t, true);
-        if (TryGetComponent(out NetEntity net)) net.SendShot(t); // other players see the shot
+        Begin(t, true);
+        if (TryGetComponent(out NetEntity net)) net.SendShot(t); // other players play the attack too
     }
 
-    // Multiplayer: another player's unit fired; show it, damage comes from its owner.
-    public void ShowShot(Health t) { if (t != null) Shoot(t, false); }
+    // Multiplayer: another player's unit attacked; show it, damage comes from its owner.
+    public void ShowShot(Health t) { if (t != null) Begin(t, false); }
+
+    // Attack clip (wind-up, bite, recoil): the shot leaves on its "Fire" frame. No clip: right away.
+    void Begin(Health t, bool real)
+    {
+        if (attackEvents == null) { Release(t, real); return; }
+        pending = t;
+        pendingReal = real;
+        attackEvents.PlayAttack();
+        CancelInvoke(nameof(FireNow));
+        Invoke(nameof(FireNow), clipLength + 0.1f); // safety: an off-screen (culled) or interrupted animator skips its events
+    }
+
+    void FireNow()
+    {
+        if (pending == null) return;
+        Health t = pending;
+        pending = null;
+        CancelInvoke(nameof(FireNow));
+        Release(t, pendingReal);
+    }
+
+    void Release(Health t, bool real)
+    {
+        if (t == null) return; // gone during the wind-up
+        if (kick != null) kick.Kick(t.transform.position - transform.position);
+        switch (data.style)
+        {
+            case UnitData.WeaponStyle.ShockPulse: Pulse(real); return;
+            case UnitData.WeaponStyle.PodDrop: if (real) DropPod(t); break;
+            case UnitData.WeaponStyle.FlameStream: StartCoroutine(FlameStream(t)); break;
+        }
+        if (muzzles.Count == 0) { Shoot(t, real, transform.position + Vector3.up * (1f + Flyer.HeightOf(this)) + transform.forward * 0.8f, 1f); return; }
+        foreach (var m in muzzles) Shoot(t, real, m.position, 1f / muzzles.Count); // twin guns, three bombs: damage split
+    }
+
+    // Burner: the flame keeps pouring out for the rest of the clip while the nozzle sweeps.
+    System.Collections.IEnumerator FlameStream(Health t)
+    {
+        var flame = data.visual.muzzleFlash;
+        Transform nozzle = muzzles.Count > 0 ? muzzles[0] : transform;
+        for (float e = 0f; e < 0.45f && flame != null; e += 0.07f)
+        {
+            yield return new WaitForSeconds(0.07f);
+            if (t == null) yield break;
+            Vector3 to = Flyer.Center(t) + Vector3.up;
+            Fx.Spawn(flame, nozzle.position, Quaternion.LookRotation(to - nozzle.position));
+        }
+    }
+
+    // Moth Mothership: a Skitter pod falls from the bay and the crew joins the fight. A few at a time.
+    readonly System.Collections.Generic.List<SelectableUnit> pods = new();
+    const int MaxPods = 4;
+
+    void DropPod(Health t)
+    {
+        pods.RemoveAll(p => p == null || p.GetComponent<Health>().IsDead);
+        if (pods.Count >= MaxPods || data.extra == null) return;
+        Vector3 from = muzzles.Count > 0 ? muzzles[0].position : Flyer.Center(this);
+        Vector3 ground = new(from.x, 0f, from.z);
+        if (NavMesh.SamplePosition(ground, out NavMeshHit hit, 15f, NavMesh.AllAreas)) ground = hit.position;
+        var pod = Net.Spawn(data.extra, from, transform.rotation).GetComponent<SelectableUnit>();
+        SetTeam(pod, self.team);
+        pod.GetComponent<Health>().onDeath = () => // no "unit lost" alert for a pod
+        {
+            if (pod == null) return;
+            pod.HideRing();
+            if (pod.TryGetComponent(out UnitDeath d)) d.Die(); else Net.Destroy(pod.gameObject);
+        };
+        pod.WalkOut(from, ground, 14f, null, t.transform.position);
+        pods.Add(pod);
+        Juice.Burst(from, ProductionFX.HoloColor(gameObject), 10, 5f, 0.15f, 0.5f, -1f);
+    }
+
+    // Offline an enemy carrier's spawn must fight for the enemy (online every spawn is already ours).
+    public static void SetTeam(SelectableUnit u, int team)
+    {
+        if (Net.Online) return;
+        u.GetComponent<Health>().team = team;
+        if (u.TryGetComponent(out TeamMember tm)) tm.team = team;
+        u.ApplyTeamLook();
+    }
+
+    // Jellyfish: a shock pulse hits every ground enemy under it, lightning from the tendril tips to the ground.
+    void Pulse(bool real)
+    {
+        float r = data.splash > 0f ? Stats.Value(Stat.Splash, data.splash, this) : 8f;
+        Vector3 ground = new(transform.position.x, 0.3f, transform.position.z);
+        Color c = ProductionFX.HoloColor(gameObject);
+        Juice.Ring(ground, c, 1f, r, 0.4f, 0.4f);
+        Juice.Flash(Flyer.Center(this), c, 6f, r * 2f, 0.3f);
+
+        hits.Clear();
+        foreach (var h in Health.All)
+        {
+            Vector3 d = h.transform.position - transform.position; d.y = 0f;
+            if (!Net.Allied(h.team, self.team) && !Flyer.IsAir(h) && d.sqrMagnitude <= r * r) hits.Add(h);
+        }
+        for (int i = 0; i < Mathf.Min(6, muzzles.Count) && data.extra != null; i++) // a bolt to each victim, the rest strike the ground
+        {
+            Vector3 from = muzzles[Random.Range(0, muzzles.Count)].position;
+            Vector2 rand = Random.insideUnitCircle * r * 0.6f;
+            Vector3 to = i < hits.Count ? hits[i].transform.position + Vector3.up * 0.5f : ground + new Vector3(rand.x, 0f, rand.y);
+            Fx.Spawn(data.extra, from, Quaternion.LookRotation(to - from), new Vector3(1f, 1f, Vector3.Distance(from, to)));
+        }
+        if (!real) return;
+        float dmg = Stats.Value(Stat.Damage, data.damage, this), stun = Stats.Value(Stat.StunTime, data.stunOnHit, this);
+        foreach (var h in hits.ToArray()) Hit(h, dmg, stun); // copy: kills change the list
+    }
 
     void HideLaser() => laser.enabled = false;
 
-    void Shoot(Health t, bool real)
+    void Shoot(Health t, bool real, Vector3 muzzle, float share)
     {
         var v = data.visual;
-        Vector3 muzzle = transform.position + Vector3.up + transform.forward * 0.8f;
-        Vector3 aim = AimPoint(t, transform.position) + Vector3.up;
-        float dmg = Stats.Value(Stat.Damage, data.damage, this);
+        Vector3 aim = AimPoint(t, transform.position) + Vector3.up * (1f + Flyer.HeightOf(t));
+        float dmg = Stats.Value(Stat.Damage, data.damage, this) * share;
         float splash = data.splash > 0f ? Stats.Value(Stat.Splash, data.splash, this) : 0f; // worked out now: the shell can land after we die
         float stun = Stats.Value(Stat.StunTime, data.stunOnHit, this);
         if (v.muzzleFlash != null) Fx.Spawn(v.muzzleFlash, muzzle, Quaternion.LookRotation(aim - muzzle));
@@ -169,10 +297,11 @@ public class Attacker : MonoBehaviour
         if (splash <= 0f) { if (t != null && t.isActiveAndEnabled) Hit(t, dmg, stun); return; }
         hits.Clear(); // copy first: kills change Health.All
         float s2 = splash * splash;
+        bool air = Flyer.IsAir(t); // bombs hit the ground, flak hits the air
         foreach (var h in Health.All)
         {
             Vector3 d = h.transform.position - at; d.y = 0f;
-            if (!Net.Allied(h.team, self.team) && d.sqrMagnitude <= s2) hits.Add(h);
+            if (!Net.Allied(h.team, self.team) && d.sqrMagnitude <= s2 && Flyer.IsAir(h) == air) hits.Add(h);
         }
         foreach (var h in hits) Hit(h, dmg, stun);
     }
@@ -193,7 +322,7 @@ public class Attacker : MonoBehaviour
         float bestSqr = radius * radius;
         foreach (var h in Health.All)
         {
-            if (Net.Allied(h.team, self.team) || h.CloakedFrom(transform.position)) continue;
+            if (Net.Allied(h.team, self.team) || h.CloakedFrom(transform.position) || !CanHit(h)) continue;
             float sqr = (AimPoint(h, transform.position) - transform.position).sqrMagnitude;
             if (sqr < bestSqr) { bestSqr = sqr; best = h; }
         }
@@ -203,5 +332,5 @@ public class Attacker : MonoBehaviour
     // Units: their centre (minus agent radius). Buildings: the nearest point of their wall, so big ones are reachable.
     static Vector3 AimPoint(Health h, Vector3 from) =>
         !h.TryGetComponent(out NavMeshAgent _) && h.TryGetComponent(out Collider c) ? c.ClosestPoint(from) : h.transform.position;
-    static float Radius(Health h) => h.TryGetComponent(out NavMeshAgent a) ? a.radius * h.transform.lossyScale.x : 0f;
+    static float Radius(Health h) => Flyer.IsAir(h) ? Flyer.SizeOf(h) * 0.5f : h.TryGetComponent(out NavMeshAgent a) ? a.radius * h.transform.lossyScale.x : 0f;
 }

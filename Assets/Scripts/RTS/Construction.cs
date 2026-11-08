@@ -36,6 +36,8 @@ public class Construction : MonoBehaviour
             return;
         }
 
+        bool wall = TryGetComponent(out Structure st) && st.data != null && st.data.dragLine;
+        if (!wall) BuildSlots.Busy.Add(this); // takes one of the 2 build slots until done
         cam = Camera.main;
         col = GetComponent<Collider>();
         fullTop = col.bounds.max.y; // finished height, measured before it sinks
@@ -77,6 +79,7 @@ public class Construction : MonoBehaviour
         foreach (var f in features) if (f != this && f != null && f is not Fusion.NetworkBehaviour) f.enabled = true;
         SendMessage("OnConstructed", SendMessageOptions.DontRequireReceiver); // e.g. FreeHarvester
         if (TryGetComponent(out Structure s)) Alerts.Show($"Construction complete: {s.Name}", Alerts.Good);
+        MatchStats.Add(MatchStats.Kind.BuildingsBuilt);
         Destroy(this);
     }
 
@@ -92,6 +95,7 @@ public class Construction : MonoBehaviour
 
     void OnDestroy()
     {
+        BuildSlots.Busy.Remove(this);
         if (bar != null) Destroy(bar.gameObject);
     }
 }
