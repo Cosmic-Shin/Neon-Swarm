@@ -12,6 +12,7 @@ public class StatusFX : MonoBehaviour
     const int Arcs = 3, ArcPoints = 6;
 
     public bool RemoteStunned;
+    public bool Cloaked => cloaked;
 
     Health health;
     SelectableUnit unit;

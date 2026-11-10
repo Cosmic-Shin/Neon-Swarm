@@ -14,15 +14,15 @@ public class BuildingData : ScriptableObject
     public BuildingData[] requires; // tech tree: a finished one of each must be standing
 
     // Every requirement has a finished building of ours (half-built ones aren't in Structure.All).
-    public bool Unlocked() => Missing() == null;
+    public bool Unlocked(int team = 0) => Missing(team) == null;
 
-    // The required buildings we don't have yet, one per line (null = none missing).
-    public string Missing()
+    // The required buildings a team doesn't have yet, one per line (null = none missing).
+    public string Missing(int team = 0)
     {
         if (requires == null) return null;
         string missing = null;
         foreach (var r in requires)
-            if (r != null && !Structure.All.Exists(s => s.data == r && s.Health.team == 0))
+            if (r != null && !Structure.All.Exists(s => s.data == r && s.Health.team == team))
                 missing = missing == null ? r.displayName : missing + "\n" + r.displayName;
         return missing;
     }

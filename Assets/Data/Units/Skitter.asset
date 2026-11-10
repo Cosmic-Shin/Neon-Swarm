@@ -16,13 +16,13 @@ MonoBehaviour:
   role: 2
   description: 'Light gunner. Fast, rapid fire: good at picking off light units.'
   icon: {fileID: 21300000, guid: 4afc846d503af2e45956b87adf072ee1, type: 3}
-  cost: 450
+  cost: 500
   buildTime: 6
-  squadSize: 5
-  maxHealth: 100
-  damage: 7
+  squadSize: 3
+  maxHealth: 85
+  damage: 6
   range: 11
-  attackCooldown: 0.45
+  attackCooldown: 0.5
   hitsGround: 1
   hitsAir: 1
   moveSpeed: 13
@@ -31,6 +31,9 @@ MonoBehaviour:
   stunOnHit: 0
   slowOnHit: 0
   buildingDamage: 1
+  armor: 0
+  weapon: 1
+  ability: 0
   visual:
     projectile: {fileID: 1058419780056461119, guid: 4cad3a03ccfbfbb4280f6ce00f2f8c38, type: 3}
     speed: 90
@@ -39,3 +42,6 @@ MonoBehaviour:
     impact: {fileID: 0}
     scorch: {fileID: 0}
     hideBeam: 0
+  style: 0
+  muzzles: 
+  extra: {fileID: 0}

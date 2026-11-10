@@ -21,8 +21,18 @@ public class Health : MonoBehaviour
     void Start()
     {
         if (!TryGetComponent(out OutpostCapture _)) TeamLook.Apply(gameObject, team);
-        if (TryGetComponent(out SelectableUnit _)) gameObject.AddComponent<StatusFX>(); // stunned / cloaked look
+        if (TryGetComponent(out SelectableUnit _))
+        {
+            gameObject.AddComponent<StatusFX>(); // stunned / cloaked look
+            gameObject.AddComponent<UnitMotion>(); // lean, footprints, dust
+        }
+        hitFx = gameObject.AddComponent<HitFX>(); // white flash, damage numbers, smoking when hurt
     }
+
+    HitFX hitFx;
+
+    // Death look: flyers crash first, everything else breaks apart where it is.
+    void PlayDeath(UnitDeath death) { if (!AirCrash.Begin(this, death)) death.Die(); }
 
     void Awake()
     {
@@ -30,6 +40,7 @@ public class Health : MonoBehaviour
         if (TryGetComponent(out SelectableUnit unit) && unit.Data != null) maxHealth = unit.Data.maxHealth;
         baseMax = maxHealth;
         current = maxHealth;
+        SpawnPos = transform.position;
         net = GetComponent<NetEntity>();
         if (TryGetComponent(out TeamMember tm)) tm.team = team; // the pack's outpost capture counts TeamMembers
         Stats.Changed += RefreshMax;
@@ -49,6 +60,8 @@ public class Health : MonoBehaviour
 
     public System.Action onDeath; // set = called instead of destroying (outposts fall back to neutral)
     public void Revive() => current = maxHealth;
+    public void SetFraction(float f) => current = Mathf.Clamp(f, 0.01f, 1f) * maxHealth; // loading a save
+    public Vector3 SpawnPos { get; private set; } // where it started (saves match scene objects by it)
     public float MaxHealth => maxHealth;
 
     // Inside a friendly cloak field, the viewer isn't close enough to spot it, and no enemy Uplink Mk II reveals it.
@@ -65,6 +78,7 @@ public class Health : MonoBehaviour
     {
         if (max > 0f) maxHealth = max;
         if (synced && hp < current && team != 0 && Net.Allied(team, 0) && TryGetComponent(out Structure _)) Alerts.AllyAttacked(this);
+        if (synced && hp < current && hp > 0f && hitFx != null) hitFx.Hurt(current - hp);
         synced = true;
         current = hp;
     }
@@ -74,8 +88,8 @@ public class Health : MonoBehaviour
     {
         enabled = false;
         if (TryGetComponent(out Structure _)) Juice.BuildingExplosion(gameObject);
-        if (TryGetComponent(out SelectableUnit unit)) unit.HideRing();
-        if (TryGetComponent(out UnitDeath death)) death.Die(); // just the look; the owner despawns it
+        if (TryGetComponent(out SelectableUnit unit)) { unit.HideRing(); Sfx.At(Snd.BoomSmall, transform.position, 0.7f); }
+        if (TryGetComponent(out UnitDeath death)) PlayDeath(death); // just the look; the owner despawns it
     }
 
     // from: who shot us, so an idle unit can shoot back (and gets the kill).
@@ -90,6 +104,7 @@ public class Health : MonoBehaviour
         current = Mathf.Max(0f, current - amount);
         if (team == 0 && from != null && !Net.Allied(from.team, team)) Alerts.Attacked(this);
         if (IsDead) { Die(from); return; }
+        if (hitFx != null) hitFx.Hurt(amount);
         if (from != null && TryGetComponent(out Attacker attacker)) attacker.Retaliate(from);
     }
 
@@ -119,9 +134,9 @@ public class Health : MonoBehaviour
             MatchStats.Add(TryGetComponent(out Structure _) ? MatchStats.Kind.BuildingsLost : MatchStats.Kind.UnitsLost);
         }
         if (TryGetComponent(out Structure _)) Juice.BuildingExplosion(gameObject);
-        if (TryGetComponent(out SelectableUnit unit)) unit.HideRing(); // or it flies off as debris
+        if (TryGetComponent(out SelectableUnit unit)) { unit.HideRing(); Sfx.At(Snd.BoomSmall, transform.position, 0.7f); } // or it flies off as debris
         // Pack effect: neon flickers out, the model breaks into physics debris.
-        if (TryGetComponent(out UnitDeath death)) death.Die();
+        if (TryGetComponent(out UnitDeath death)) PlayDeath(death);
         else Net.Destroy(gameObject);
     }
 }

@@ -16,6 +16,7 @@ public class Transport : MonoBehaviour
     const float Below = 60f, LoadRange = 3.5f, DropHover = 2f;
 
     readonly List<SelectableUnit> carried = new();
+    public int Carried => carried.Count;
     readonly HashSet<SelectableUnit> inside = new(); // fully aboard (not still being beamed up)
     public int Count => carried.Count;
     public bool Full => carried.Count >= capacity;
@@ -149,16 +150,6 @@ public class Transport : MonoBehaviour
             }
         }
         if (self != null && self.IsSelected && carried.Count > 0 && Keyboard.current != null && Keyboard.current.uKey.wasPressedThisFrame) Unload();
-    }
-
-    void OnGUI() // a small UNLOAD button over the selected Wasp
-    {
-        if (self == null || !self.IsSelected || Camera.main == null) return;
-        Vector3 sp = Camera.main.WorldToScreenPoint(Flyer.Center(this) + Vector3.up * (flyer.size + 1f));
-        if (sp.z < 0f) return;
-        var r = new Rect(sp.x - 60f, Screen.height - sp.y - 14f, 120f, 26f);
-        if (carried.Count == 0) { GUI.Label(r, $"  Empty 0/{capacity}"); return; }
-        if (GUI.Button(r, Busy ? "Unloading..." : $"UNLOAD (U)  {carried.Count}/{capacity}")) Unload();
     }
 
     // Shot down: the passengers go down with it.

@@ -17,8 +17,10 @@ public class Siphon : MonoBehaviour
         if (Time.time < next) return;
         next = Time.time + interval;
         LastPayout = Time.time;
-        int earned = Structure.LowPower ? amount / 2 : amount;
-        ResourceBank.GetOrCreate().Add(earned);
+        int team = TeamEconomy.TeamOf(this);
+        int earned = Structure.LowPowerOf(team) ? amount / 2 : amount;
+        TeamEconomy.Earn(team, earned);
+        if (team != 0) return; // an AI's: no popup
         MatchStats.Add(MatchStats.Kind.Earned, earned);
 
         // The payout: a pulse from the roof and "+$N" floating up.

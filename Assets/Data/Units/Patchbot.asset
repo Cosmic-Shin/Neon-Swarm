@@ -24,12 +24,17 @@ MonoBehaviour:
   damage: 4
   range: 8
   attackCooldown: 1
+  hitsGround: 1
+  hitsAir: 0
   moveSpeed: 11
   sight: 0
   splash: 0
   stunOnHit: 0
   slowOnHit: 0
   buildingDamage: 1
+  armor: 0
+  weapon: 1
+  ability: 0
   visual:
     projectile: {fileID: 0}
     speed: 60
@@ -38,3 +43,6 @@ MonoBehaviour:
     impact: {fileID: 0}
     scorch: {fileID: 0}
     hideBeam: 0
+  style: 0
+  muzzles: 
+  extra: {fileID: 0}

@@ -73,7 +73,7 @@ public class FogOfWar : MonoBehaviour
                 if (Net.Allied(h.team, 0)) Stamp(h.transform.position, Sight(h));
         }
 
-        Color32 clear = new(0, 0, 0, 0), dim = new(5, 3, 12, 150), dark = new(5, 3, 12, 235);
+        Color32 clear = new(0, 0, 0, 0), dim = new(5, 3, 12, 120), dark = new(5, 3, 12, 190); // minimap: the map picture shows faintly through
         for (int i = 0; i < px.Length; i++)
         {
             px[i] = new Color32(visible[i] ? (byte)255 : (byte)0, explored[i] ? (byte)255 : (byte)0, 0, 255);
@@ -88,10 +88,18 @@ public class FogOfWar : MonoBehaviour
         foreach (var h in Health.All)
             if (!Net.Allied(h.team, 0) && !h.TryGetComponent(out OutpostCapture _)) SetHidden(h, !IsVisible(h.transform.position));
 
+        // Last-seen buildings: gone once we look at the spot again (whether the building is still there or not).
+        for (int i = ghosts.Count - 1; i >= 0; i--)
+            if (ghosts[i].go == null || IsVisible(ghosts[i].go.transform.position))
+            {
+                if (ghosts[i].go != null) Destroy(ghosts[i].go);
+                ghosts.RemoveAt(i);
+            }
+
         // Forget ones that died or left (they leave Health.All).
         stale.Clear();
         foreach (var h in hiddenNow.Keys) if (h == null || !h.isActiveAndEnabled) stale.Add(h);
-        foreach (var h in stale) hiddenNow.Remove(h);
+        foreach (var h in stale) { hiddenNow.Remove(h); seen.Remove(h); }
     }
 
     float Sight(Health h)
@@ -121,12 +129,39 @@ public class FogOfWar : MonoBehaviour
             }
     }
 
+    // ---- enemy buildings remembered under the fog (C&C shroud memory) ----
+    readonly HashSet<Health> seen = new();                        // enemies we've had in sight at least once
+    readonly List<(GameObject go, int team)> ghosts = new();       // frozen copies where they were last seen
+    public IReadOnlyList<(GameObject go, int team)> Ghosts => ghosts; // the minimap draws these
+
+    // A copy of the building's meshes as they look right now: no scripts, no colliders, can't be clicked.
+    void MakeGhost(Health h)
+    {
+        var root = new GameObject("LastSeen_" + h.name);
+        root.transform.position = h.transform.position;
+        foreach (var mr in h.GetComponentsInChildren<MeshRenderer>())
+        {
+            if (!mr.TryGetComponent(out MeshFilter mf) || mf.sharedMesh == null) continue;
+            var part = new GameObject(mr.name);
+            part.transform.SetParent(root.transform, false);
+            part.transform.SetPositionAndRotation(mr.transform.position, mr.transform.rotation);
+            part.transform.localScale = mr.transform.lossyScale;
+            part.AddComponent<MeshFilter>().sharedMesh = mf.sharedMesh;
+            var r = part.AddComponent<MeshRenderer>();
+            r.sharedMaterials = mr.sharedMaterials;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+        ghosts.Add((root, h.team));
+    }
+
     void SetHidden(Health h, bool hide)
     {
         bool isHidden = hiddenNow.TryGetValue(h, out var saved);
+        if (!hide) seen.Add(h);
         if (hide == isHidden) return;
         if (hide)
         {
+            if (seen.Contains(h) && h.TryGetComponent(out Structure _)) MakeGhost(h); // walked out of sight of it
             saved = new List<(Transform, int)>();
             foreach (var t in h.GetComponentsInChildren<Transform>(true)) { saved.Add((t, t.gameObject.layer)); t.gameObject.layer = hidden; }
             hiddenNow[h] = saved;

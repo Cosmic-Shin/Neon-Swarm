@@ -143,6 +143,37 @@ MonoBehaviour:
   fill: {fileID: 4355120034466319159}
   width: 7
   height: 0.35
+--- !u!1 &5834138952138460290
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6919260843296197173}
+  m_Layer: 0
+  m_Name: Refinery_DockPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6919260843296197173
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5834138952138460290}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -7.9999995}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3651736771338363014}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6725449398094621704
 GameObject:
   m_ObjectHideFlags: 0
@@ -161,6 +192,7 @@ GameObject:
   - component: {fileID: 6709731457612380504}
   - component: {fileID: 8993738178212410500}
   - component: {fileID: 2957529769510993340}
+  - component: {fileID: 2944484316177723111}
   m_Layer: 9
   m_Name: CoreNexus
   m_TagString: Untagged
@@ -183,6 +215,7 @@ Transform:
   m_Children:
   - {fileID: 729597160255467647}
   - {fileID: 5263931103201177290}
+  - {fileID: 6919260843296197173}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &2106053903810437214
@@ -370,6 +403,22 @@ MonoBehaviour:
     displayName: Core Nexus Mk III
     description: Unlocks Tier 3 research and elite units.
     mods: []
+--- !u!114 &2944484316177723111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6725449398094621704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e317a8e8fcfc04842b1cd060c48e9a92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Refinery
+  dockPoint: {fileID: 6919260843296197173}
+  creditsPerUnit: 1
+  unloadTimeMultiplier: 3
+  queueScale: 4
 --- !u!1 &6807123620625458066
 GameObject:
   m_ObjectHideFlags: 0

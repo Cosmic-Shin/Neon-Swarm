@@ -14,8 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchData
   id: H2
   displayName: Extended Drum
-  description: "Crusher fire rate +20%. (Chromejaw charge cooldown \u221230%: no
-    charge ability yet.)"
+  description: Crusher fire rate +20%. Chromejaw charge cooldown -30%.
   icon: {fileID: 21300000, guid: 1413eaeb4987f3c46ad75774f32917e5, type: 3}
   branch: 2
   tier: 2
@@ -29,5 +28,13 @@ MonoBehaviour:
     roles: 
     units:
     - {fileID: 11400000, guid: 7c3456c428e419a4eaa70bb559eddfbb, type: 2}
+    buildings: []
+    defenses: 0
+  - stat: 14
+    percent: -0.3
+    flat: 0
+    roles: 
+    units:
+    - {fileID: 11400000, guid: b8ba84336f071c1439acd21606b85c0e, type: 2}
     buildings: []
     defenses: 0

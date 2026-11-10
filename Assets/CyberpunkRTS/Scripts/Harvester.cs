@@ -34,6 +34,7 @@ public class Harvester : MonoBehaviour
     static readonly int SpeedId = Animator.StringToHash("Speed");
 
     public OreNode TargetOre => ore;
+    int Team => TeamEconomy.TeamOf(this); // GD5: whose harvester (refinery, danger check, credits)
 
     void Awake()
     {
@@ -66,7 +67,7 @@ public class Harvester : MonoBehaviour
         if ((state == State.ToOre || state == State.Harvesting) && ore && OreNode.IsDangerous != null && Time.time >= nextDangerCheck)
         {
             nextDangerCheck = Time.time + 0.5f;
-            if (OreNode.IsDangerous(ore.transform.position)) { if (cargo > capacity * 0.3f) GoRefinery(); else PickOre(); }
+            if (OreNode.IsDangerous(ore.transform.position, Team)) { if (cargo > capacity * 0.3f) GoRefinery(); else PickOre(); }
         }
 
         switch (state)
@@ -123,13 +124,17 @@ public class Harvester : MonoBehaviour
             case State.Unloading:
                 if (!refinery) { GoRefinery(); break; }
                 timer += Time.deltaTime;
-                SetCargoVisual(cargo * (1f - timer / unloadTime));
-                if (timer >= unloadTime)
+                float unloadFor = unloadTime * refinery.unloadTimeMultiplier; // GD5: the Core Nexus unloads slowly
+                SetCargoVisual(cargo * (1f - timer / unloadFor));
+                if (timer >= unloadFor)
                 {
                     int earned = Mathf.RoundToInt(cargoValue * refinery.creditsPerUnit);
-                    ResourceBank.GetOrCreate().Add(earned);
-                    MatchStats.Add(MatchStats.Kind.Earned, earned);
-                    if (TryGetComponent(out HarvestFX fx)) fx.Delivered(earned); // GD5: "+$N" over the refinery
+                    TeamEconomy.Earn(Team, earned); // GD5: single-player AIs earn their own credits
+                    if (Team == 0)
+                    {
+                        MatchStats.Add(MatchStats.Kind.Earned, earned);
+                        if (TryGetComponent(out HarvestFX fx)) fx.Delivered(earned); // GD5: "+$N" over the refinery
+                    }
                     cargo = 0f; cargoValue = 0f;
                     SetCargoVisual(0f);
                     refinery.Release(this);
@@ -149,7 +154,7 @@ public class Harvester : MonoBehaviour
     void PickOre()
     {
         LeaveOre();
-        ore = OreNode.FindNearest(transform.position);
+        ore = OreNode.FindNearest(transform.position, Team);
         if (ore)
         {
             ore.ActiveHarvesters++;
@@ -163,7 +168,7 @@ public class Harvester : MonoBehaviour
     void GoRefinery()
     {
         LeaveOre();
-        refinery = Refinery.FindNearest(transform.position);
+        refinery = Refinery.FindNearest(transform.position, Team);
         Play("Idle");
         state = refinery ? State.ToRefinery : State.Idle;
     }

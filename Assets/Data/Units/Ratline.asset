@@ -21,15 +21,20 @@ MonoBehaviour:
   buildTime: 6
   squadSize: 3
   maxHealth: 100
-  damage: 10
+  damage: 8
   range: 7
   attackCooldown: 0.8
+  hitsGround: 1
+  hitsAir: 0
   moveSpeed: 15
   sight: 0
   splash: 0
   stunOnHit: 0
   slowOnHit: 0
-  buildingDamage: 3
+  buildingDamage: 2
+  armor: 0
+  weapon: 3
+  ability: 0
   visual:
     projectile: {fileID: 0}
     speed: 60
@@ -38,3 +43,6 @@ MonoBehaviour:
     impact: {fileID: 0}
     scorch: {fileID: 0}
     hideBeam: 0
+  style: 0
+  muzzles: 
+  extra: {fileID: 0}

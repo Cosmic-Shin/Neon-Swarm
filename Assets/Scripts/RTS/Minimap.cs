@@ -29,6 +29,16 @@ public class Minimap : MonoBehaviour, IPointerDownHandler, IDragHandler
     {
         cam = Camera.main;
         selection = FindFirstObjectByType<GoodSelectionManager>();
+
+        // The map picture under everything (the same top-down render the lobby shows), dimmed so dots stand out.
+        var terrain = new GameObject("Terrain", typeof(RectTransform)).AddComponent<RawImage>();
+        terrain.transform.SetParent(map, false);
+        terrain.transform.SetAsFirstSibling();
+        terrain.texture = Resources.Load<Texture>("MapPreview");
+        terrain.color = new Color(0.55f, 0.55f, 0.65f, 1f);
+        terrain.raycastTarget = false;
+        var r = terrain.rectTransform;
+        r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = r.offsetMax = Vector2.zero;
         outposts = FindObjectsByType<OutpostCapture>(FindObjectsSortMode.None); // fixed set, placed in the scene
     }
 
@@ -43,7 +53,10 @@ public class Minimap : MonoBehaviour, IPointerDownHandler, IDragHandler
             if (!o.IsDepleted && Explored(o.transform.position)) Dot(o.transform.position, 3f, o.valueMultiplier > 1f ? RedOre : GreenOre);
         foreach (var h in Health.All)
             if (Net.Allied(h.team, 0) || fog == null || fog.IsVisible(h.transform.position) || (Radar.Active && h.TryGetComponent(out SelectableUnit _))) // enemies: in sight, or radar
-                Dot(h.transform.position, h.TryGetComponent(out SelectableUnit _) ? 4f : 8f, Net.ColorOf(h.team));
+                Dot(h.transform.position, h.TryGetComponent(out SelectableUnit _) ? 5f : 10f, Net.ColorOf(h.team));
+        if (fog != null)
+            foreach (var (go, team) in fog.Ghosts) // enemy buildings where we last saw them
+                if (go != null) { Color c = Net.ColorOf(team); c.a = 0.45f; Dot(go.transform.position, 8f, c); }
         foreach (var o in outposts)
             if (o != null && Explored(o.transform.position)) Dot(o.transform.position, 10f, o.IsOwned ? Net.ColorOf(o.ownerTeam) : Color.white);
         foreach (var p in Ping.Active) // pulsing, fading circles

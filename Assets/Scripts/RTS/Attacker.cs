@@ -46,6 +46,12 @@ public class Attacker : MonoBehaviour
                 foreach (var c in anim.runtimeAnimatorController.animationClips) if (c.name == "Attack") clipLength = c.length;
         }
         kick = GetComponentInChildren<RecoilKick>(true);
+        switch (data.ability) // UnitData picks it; research tunes it (Abilities.cs)
+        {
+            case UnitData.Ability.Brood: gameObject.AddComponent<Brood>(); break;
+            case UnitData.Ability.Overheat: heat = gameObject.AddComponent<Overheat>(); break;
+            case UnitData.Ability.Charge: gameObject.AddComponent<Charge>(); break;
+        }
         var pattern = new System.Text.RegularExpressions.Regex(string.IsNullOrEmpty(data.muzzles) ? "Muzzle(-?\\d)?$" : data.muzzles);
         foreach (var t in GetComponentsInChildren<Transform>(true)) if (pattern.IsMatch(t.name)) muzzles.Add(t);
     }
@@ -53,6 +59,7 @@ public class Attacker : MonoBehaviour
     AttackEvents attackEvents; // the unit's authored Attack clip
     float clipLength;
     RecoilKick kick;           // fast shooters without a clip: a procedural kick instead
+    Overheat heat;             // Overclock: fires in bursts
     readonly System.Collections.Generic.List<Transform> muzzles = new();
     Health pending;            // attack started, waiting for the clip's Fire frame
     bool pendingReal;
@@ -62,6 +69,7 @@ public class Attacker : MonoBehaviour
     bool hold;           // hold position: never walk, only shoot what's in range
 
     public bool HasTarget => target != null;
+    public bool Busy => target != null || attackMove != null; // fighting, or still on an attack-move
     public Health Target => target;
     float Range => Stats.Value(Stat.Range, data.range, this); // research / veterancy
     public void Attack(Health t) { Stop(); if (!CanHit(t)) return; target = t; ordered = true; }
@@ -72,6 +80,7 @@ public class Attacker : MonoBehaviour
     public void AttackMove(Vector3 to)
     {
         Stop();
+        if (NavMesh.SamplePosition(to, out NavMeshHit hit, 12f, NavMesh.AllAreas)) to = hit.position; // inside a building's hole: the ground beside it
         attackMove = to;
         if (agent.isOnNavMesh) agent.SetDestination(to);
     }
@@ -129,9 +138,10 @@ public class Attacker : MonoBehaviour
         if (to.sqrMagnitude > 0.01f)
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), agent.angularSpeed * Time.deltaTime);
 
-        if (Time.time < nextShot || pending != null) return;
+        if (Time.time < nextShot || pending != null || (heat != null && !heat.Ready)) return; // Overclock: venting
         nextShot = Time.time + Mathf.Max(clipLength, data.attackCooldown / Stats.Value(Stat.FireRate, 1f, this)); // never cut the clip short
         Fire(target);
+        if (heat != null) heat.Shot();
     }
 
     void Fire(Health t)
@@ -182,6 +192,8 @@ public class Attacker : MonoBehaviour
     {
         var flame = data.visual.muzzleFlash;
         Transform nozzle = muzzles.Count > 0 ? muzzles[0] : transform;
+        Sfx.At(Snd.Flame, nozzle.position, 0.6f);
+        LightPool.Flash(nozzle.position, Juice.Fire, 4f, 9f, 0.5f);
         for (float e = 0f; e < 0.45f && flame != null; e += 0.07f)
         {
             yield return new WaitForSeconds(0.07f);
@@ -232,6 +244,7 @@ public class Attacker : MonoBehaviour
         Color c = ProductionFX.HoloColor(gameObject);
         Juice.Ring(ground, c, 1f, r, 0.4f, 0.4f);
         Juice.Flash(Flyer.Center(this), c, 6f, r * 2f, 0.3f);
+        Sfx.At(Snd.Zap, ground, 0.8f);
 
         hits.Clear();
         foreach (var h in Health.All)
@@ -261,6 +274,8 @@ public class Attacker : MonoBehaviour
         float splash = data.splash > 0f ? Stats.Value(Stat.Splash, data.splash, this) : 0f; // worked out now: the shell can land after we die
         float stun = Stats.Value(Stat.StunTime, data.stunOnHit, this);
         if (v.muzzleFlash != null) Fx.Spawn(v.muzzleFlash, muzzle, Quaternion.LookRotation(aim - muzzle));
+        Sfx.At(Sfx.ShotOf(data.damage, data.splash, data.stunOnHit > 0f), muzzle, 0.5f);
+        LightPool.Flash(muzzle, Color.Lerp(ProductionFX.HoloColor(gameObject), Color.white, 0.5f), data.damage >= 30f ? 4f : 2.5f);
 
         if (v.projectile != null) // damage lands when the shot does
         {
@@ -289,6 +304,7 @@ public class Attacker : MonoBehaviour
         float r = splash > 0f ? splash : 1f;
         Vector3 flat = at - from; flat.y = 0f;
         if (v.impact != null) Fx.Spawn(v.impact, at, Quaternion.identity, r);
+        if (splash > 0f) Sfx.At(Snd.BoomSmall, at, 0.4f);
         bool rapid = data.attackCooldown < 1f;
         if (v.scorch != null && (!rapid || Random.value < 0.25f)) // rapid fire would carpet the ground
             Fx.Spawn(v.scorch, new Vector3(at.x, 0.04f, at.z), flat.sqrMagnitude > 0.01f ? Quaternion.LookRotation(flat) : Quaternion.identity, r * 0.8f);
@@ -309,6 +325,7 @@ public class Attacker : MonoBehaviour
     void Hit(Health h, float dmg, float stun)
     {
         bool isUnit = h.TryGetComponent(out SelectableUnit u);
+        dmg *= DamageTable.Factor(data.weapon, h); // counters: gun vs light, cannon vs heavy...
         h.TakeDamage(isUnit ? dmg : dmg * data.buildingDamage, self);
         if (!isUnit) return;
         if (stun > 0f) u.Stun(stun);

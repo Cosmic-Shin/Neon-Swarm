@@ -20,7 +20,7 @@ MonoBehaviour:
   cost: 400
   buildTime: 6
   squadSize: 1
-  maxHealth: 110
+  maxHealth: 180
   damage: 10
   range: 6
   attackCooldown: 0.65
@@ -28,10 +28,13 @@ MonoBehaviour:
   hitsAir: 0
   moveSpeed: 10
   sight: 0
-  splash: 3
+  splash: 5
   stunOnHit: 0
   slowOnHit: 0
   buildingDamage: 1
+  armor: 0
+  weapon: 1
+  ability: 0
   visual:
     projectile: {fileID: 0}
     speed: 60

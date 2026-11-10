@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce3eeaf56090b0d439f62d3b5a938184, type: 3}
+  m_Name: Easy
+  m_EditorClassIdentifier: Assembly-CSharp::AIProfile
+  thinkInterval: 3
+  incomeBonus: 0
+  buildOrder:
+  - {fileID: 11400000, guid: 1ea1e89063499434e8a00af834b958dc, type: 2}
+  - {fileID: 11400000, guid: 31a81363c911e9945b10d704c1bda88b, type: 2}
+  - {fileID: 11400000, guid: 3b76cb8b409310244ba1c6cbf84f24d0, type: 2}
+  - {fileID: 11400000, guid: 1659aa0979f965742939e74413da9dff, type: 2}
+  - {fileID: 11400000, guid: 31a81363c911e9945b10d704c1bda88b, type: 2}
+  - {fileID: 11400000, guid: 1659aa0979f965742939e74413da9dff, type: 2}
+  lateGame:
+  - {fileID: 11400000, guid: 1659aa0979f965742939e74413da9dff, type: 2}
+  - {fileID: 11400000, guid: 31a81363c911e9945b10d704c1bda88b, type: 2}
+  armyShare: 0.5
+  harvesters: 3
+  units:
+  - unit: {fileID: 11400000, guid: e1d3ae5e0ffa04d44ac47e2cfa2f1eea, type: 2}
+    weight: 3
+  - unit: {fileID: 11400000, guid: dc727a6ae7029974d9ee49c4e303d6ca, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: b8ba84336f071c1439acd21606b85c0e, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: c5a0375fd8daa524ca167a4b074bdc65, type: 2}
+    weight: 1
+  firstAttack: 420
+  waveValue: 2000
+  waveGrowth: 1.3
+  defendRadius: 45
+  upgrades: 0
+  research: 0
+  counterPick: 0
+  expandBelow: 0
+  harassEvery: 0
+  harassSize: 3

@@ -27,9 +27,13 @@ public class Structure : MonoBehaviour
     float owed; // repair cost not yet charged (credits are whole numbers)
 
     // Ours only (multiplayer: other players' buildings are in All too).
-    public static int PowerMade { get { int n = 0; foreach (var s in All) if (s.power > 0 && s.Health.team == 0) n += s.power; return n; } }
-    public static int PowerUsed { get { int n = 0; foreach (var s in All) if (s.power < 0 && s.Health.team == 0) n -= s.power; return n; } }
-    public static bool LowPower => PowerUsed > PowerMade;
+    public static int PowerMade => PowerMadeOf(0);
+    public static int PowerUsed => PowerUsedOf(0);
+    public static bool LowPower => LowPowerOf(0);
+    // Any team's (single-player AIs run their own power grid).
+    public static int PowerMadeOf(int team) { int n = 0; foreach (var s in All) if (s.power > 0 && s.Health.team == team) n += s.power; return n; }
+    public static int PowerUsedOf(int team) { int n = 0; foreach (var s in All) if (s.power < 0 && s.Health.team == team) n -= s.power; return n; }
+    public static bool LowPowerOf(int team) => PowerUsedOf(team) > PowerMadeOf(team);
 
     Refinery refinery; // Rapid Unload research: more credits per load
     float baseCredits;
@@ -50,8 +54,8 @@ public class Structure : MonoBehaviour
     public void Sell()
     {
         if (!CanSell) return;
-        Alerts.Show($"Sold {Name}: +${SellValue}", Alerts.Good);
-        ResourceBank.GetOrCreate().Add(SellValue);
+        if (Health.team == 0) Alerts.Show($"Sold {Name}: +${SellValue}", Alerts.Good);
+        TeamEconomy.Add(Health.team, SellValue);
         Juice.Sell(gameObject, SellValue); // sinks away as a hologram, "+$N"
         Net.Destroy(gameObject);
     }
@@ -68,7 +72,7 @@ public class Structure : MonoBehaviour
         int pay = Mathf.FloorToInt(owed);
         if (pay > 0)
         {
-            if (!ResourceBank.GetOrCreate().Spend(pay)) { Repairing = false; return; }
+            if (!TeamEconomy.Spend(Health.team, pay)) { Repairing = false; return; }
             owed -= pay;
         }
         Health.Heal(heal * Health.MaxHealth);

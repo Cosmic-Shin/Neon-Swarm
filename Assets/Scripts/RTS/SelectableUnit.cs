@@ -81,7 +81,7 @@ public class SelectableUnit : MonoBehaviour
         selectionRing.SetActive(IsEnemy || IsSelected);
         if (!IsEnemy) return;
         var mat = selectionRing.GetComponent<Renderer>().material; // per-enemy copy
-        Color ring = health.team == Creep.Team ? CreepRing : Net.Online ? Net.ColorOf(health.team) : EnemyRing;
+        Color ring = health.team == Creep.Team ? CreepRing : Net.Online || Skirmish.Active ? Net.ColorOf(health.team) : EnemyRing;
         mat.color = ring;
         mat.SetColor("_EmissionColor", ring * 2f);
     }
@@ -95,7 +95,16 @@ public class SelectableUnit : MonoBehaviour
             harvester.unloadTime = Stats.Value(Stat.UnloadTime, baseUnloadTime, this);
             return;
         }
-        agent.speed = Stats.Value(Stat.MoveSpeed, baseSpeed, this) * (wasSlowed ? 0.5f : 1f);
+        agent.speed = Stats.Value(Stat.MoveSpeed, baseSpeed, this) * (wasSlowed ? 0.5f : 1f) * boost;
+    }
+
+    // Charge: a short burst of speed (1 = normal).
+    float boost = 1f;
+    public void SetBoost(float k)
+    {
+        if (harvester != null || Mathf.Approximately(k, boost)) return;
+        boost = k;
+        RefreshStats();
     }
 
     void Update()
@@ -114,6 +123,7 @@ public class SelectableUnit : MonoBehaviour
         if (slowedNow != wasSlowed) { agent.speed *= slowedNow ? 0.5f : 2f; wasSlowed = slowedNow; } // only on change (harvesters set their own speed)
 
         Settle();
+        NextOrder();
 
         // Formation move done: turn to face the way the formation points (unless busy shooting).
         if (faceOnArrive != Vector3.zero && agent.enabled && agent.isOnNavMesh && !agent.pathPending &&
@@ -193,7 +203,23 @@ public class SelectableUnit : MonoBehaviour
         manager.OnAttackMoveCommand += HandleAttackMoveCommand;
         manager.OnStopCommand += HandleStopCommand;
         manager.OnHoldCommand += HandleHoldCommand;
-        if (selectionRing != null) selectionRing.SetActive(true);
+        manager.OnPatrolCommand += HandlePatrolCommand;
+        if (selectionRing != null) { selectionRing.SetActive(true); if (isActiveAndEnabled) StartCoroutine(PopRing()); }
+    }
+
+    // The ring springs in: big, small, settles.
+    Vector3? ringScale;
+    IEnumerator PopRing()
+    {
+        var t = selectionRing.transform;
+        ringScale ??= t.localScale;
+        for (float e = 0f; e < 0.3f; e += Time.deltaTime)
+        {
+            float k = e / 0.3f;
+            t.localScale = ringScale.Value * (1f + 0.6f * (1f - k) * Mathf.Cos(k * Mathf.PI * 1.5f));
+            yield return null;
+        }
+        t.localScale = ringScale.Value;
     }
 
     public void HideRing() { if (selectionRing != null) selectionRing.SetActive(false); }
@@ -228,10 +254,93 @@ public class SelectableUnit : MonoBehaviour
         if (left < 20f && Time.time - settleSince > 0.6f + left * 0.15f) agent.ResetPath();
     }
 
+    // ---- queued orders (Shift) and patrol (P) ----
+    struct Order { public Vector3 at; public bool attack; }
+    readonly List<Order> queue = new(); // what to do after the current order
+    bool patrol;                         // patrol: orders go back on the end of the queue
+    LineRenderer pathLine;               // shows the queue while selected
+
+    // Shift held and something already going on: add to the queue. Returns true if queued.
+    bool Queued(Vector3 at, bool attack)
+    {
+        if (manager == null || !manager.Queueing || Idle()) { queue.Clear(); patrol = false; return false; }
+        if (patrol) { queue.Clear(); patrol = false; } // Shift+click ends a patrol after this leg
+        queue.Add(new Order { at = at, attack = attack });
+        return true;
+    }
+
+    bool Idle() =>
+        agent.enabled && agent.isOnNavMesh && !agent.pathPending &&
+        (!agent.hasPath || agent.remainingDistance <= agent.stoppingDistance + 0.6f) &&
+        (attacker == null || !attacker.Busy) && garrisonTarget == null && boardTarget == null;
+
+    void Go(Order o)
+    {
+        faceOnArrive = Vector3.zero;
+        if (o.attack && attacker != null) attacker.AttackMove(o.at);
+        else
+        {
+            if (attacker != null) attacker.Stop();
+            if (agent.isOnNavMesh) agent.SetDestination(o.at);
+        }
+    }
+
+    void NextOrder()
+    {
+        if (queue.Count > 0 && Idle())
+        {
+            var o = queue[0];
+            queue.RemoveAt(0);
+            if (patrol) queue.Add(o);
+            Go(o);
+        }
+        ShowPath();
+    }
+
+    void ShowPath()
+    {
+        bool show = IsSelected && queue.Count > 0;
+        if (pathLine == null)
+        {
+            if (!show) return;
+            pathLine = new GameObject("OrderPath").AddComponent<LineRenderer>();
+            pathLine.sharedMaterial = Juice.Additive;
+            pathLine.widthMultiplier = 0.12f;
+            pathLine.useWorldSpace = true;
+            pathLine.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+        pathLine.enabled = show;
+        if (!show) return;
+        Color c = patrol ? Juice.Gold : queue[0].attack ? Juice.Danger : new Color(0.3f, 1f, 1f);
+        pathLine.startColor = pathLine.endColor = new Color(c.r, c.g, c.b, 0.55f);
+        pathLine.positionCount = queue.Count + 2;
+        Vector3 up = Vector3.up * 0.25f;
+        pathLine.SetPosition(0, transform.position + up);
+        pathLine.SetPosition(1, (agent.hasPath ? agent.destination : transform.position) + up);
+        for (int i = 0; i < queue.Count; i++) pathLine.SetPosition(i + 2, queue[i].at + up);
+    }
+
+    // P + click: walk back and forth between here and there, fighting anything met.
+    void HandlePatrolCommand(List<Vector3> slots)
+    {
+        if (formationIndex < 0 || formationIndex >= slots.Count) return;
+        garrisonTarget = null;
+        boardTarget = null;
+        if (harvester != null) harvester.Stop();
+        var there = new Order { at = slots[formationIndex], attack = true };
+        var here = new Order { at = transform.position, attack = true };
+        queue.Clear();
+        queue.Add(here);
+        queue.Add(there);
+        patrol = true;
+        Go(there);
+    }
+
     // Each unit only uses its own slot.
     void HandleMoveCommand(List<Vector3> slots)
     {
         if (formationIndex < 0 || formationIndex >= slots.Count) return;
+        if (Queued(slots[formationIndex], false)) return;
         boardTarget = null;
         garrisonTarget = null;
         if (harvester != null) harvester.Stop(); // a plain move pauses mining
@@ -245,6 +354,7 @@ public class SelectableUnit : MonoBehaviour
     {
         if (attacker == null) { HandleMoveCommand(slots); return; }
         if (formationIndex < 0 || formationIndex >= slots.Count) return;
+        if (Queued(slots[formationIndex], true)) return;
         garrisonTarget = null;
         attacker.AttackMove(slots[formationIndex]);
         faceOnArrive = manager.Facing;
@@ -252,6 +362,8 @@ public class SelectableUnit : MonoBehaviour
 
     void HandleStopCommand()
     {
+        queue.Clear();
+        patrol = false;
         garrisonTarget = null;
         boardTarget = null;
         faceOnArrive = Vector3.zero;
@@ -275,6 +387,8 @@ public class SelectableUnit : MonoBehaviour
     // Right-clicked an enemy: armed units go shoot it.
     void HandleAttackCommand(Health target)
     {
+        queue.Clear();
+        patrol = false;
         faceOnArrive = Vector3.zero;
         if (attacker != null) attacker.Attack(target);
     }
@@ -302,10 +416,12 @@ public class SelectableUnit : MonoBehaviour
         manager.OnAttackMoveCommand -= HandleAttackMoveCommand;
         manager.OnStopCommand -= HandleStopCommand;
         manager.OnHoldCommand -= HandleHoldCommand;
+        manager.OnPatrolCommand -= HandlePatrolCommand;
     }
 
     void OnDestroy()
     {
+        if (pathLine != null) Destroy(pathLine.gameObject);
         Unsubscribe();
         Stats.Changed -= RefreshStats;
     }

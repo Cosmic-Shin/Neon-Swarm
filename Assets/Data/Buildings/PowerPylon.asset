@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PowerPylon
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   displayName: PowerPylon
-  description: Makes +100 power. Build more when the power readout turns red.
+  description: Makes +100 power and extends your build area by 20 m (30 m at Mk II). Build more when the power readout turns red.
   prefab: {fileID: 5016550862087509895, guid: b232085c568e91e46806aa16eadcac1a, type: 3}
   icon: {fileID: 21300000, guid: 642872aac8dd467408a48d79739deacb, type: 3}
   cost: 300

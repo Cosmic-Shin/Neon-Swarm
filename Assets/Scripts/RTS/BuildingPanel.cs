@@ -10,6 +10,9 @@ public class BuildingPanel : MonoBehaviour
     [SerializeField] Button buttonTemplate; // disabled template, cloned per unit
 
     Building building;
+    Building watched; // production state from last frame, for the "done" flash
+    int wasProducing = -1;
+    float wasProgress;
     readonly List<Image> sweeps = new(); // per button: dark clock overlay over the unit being built
     readonly List<Text> counts = new();  // per button: "x2" when queued
     readonly List<Button> buttons = new();
@@ -70,6 +73,13 @@ public class BuildingPanel : MonoBehaviour
     {
         // Panel is docked at the bottom of the screen; just hide it if the building is gone.
         if (building == null) { if (panel.gameObject.activeSelf) panel.gameObject.SetActive(false); return; }
+
+        // Finished one: its button flashes (production moved on, or the bar restarted for the next in the queue).
+        int now = building.Producing;
+        float progress = building.Progress01;
+        if (building == watched && wasProducing >= 0 && wasProducing < buttons.Count && wasProgress > 0.8f && (now != wasProducing || progress < wasProgress - 0.5f))
+            UIJuice.Flash(buttons[wasProducing], Alerts.Good);
+        (watched, wasProducing, wasProgress) = (building, now, progress);
 
         for (int i = 0; i < sweeps.Count; i++)
         {

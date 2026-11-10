@@ -6,7 +6,7 @@ using UnityEngine.UI;
 // Used by the unit/research panel (BuildingPanel) and the build menu (BuildingPlacer).
 public static class LockBadge
 {
-    static readonly Color Red = new(1f, 0.35f, 0.35f);
+    public static readonly Color Red =new(1f, 0.35f, 0.35f);
 
     // needs: what's missing (null = nothing, unlocked). canAfford: colours the price.
     public static void Set(Button button, string needs, bool canAfford)

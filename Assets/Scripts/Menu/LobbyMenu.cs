@@ -14,9 +14,9 @@ public class LobbyMenu : MonoBehaviour
 
     void Awake()
     {
-        skirmish.onClick.AddListener(() => Soon("Skirmish"));
+        skirmish.onClick.AddListener(() => SkirmishPanel.Open(this));
         multiplayer.onClick.AddListener(() => { gameObject.SetActive(false); multiplayerPanel.SetActive(true); });
-        settings.onClick.AddListener(() => Soon("Settings"));
+        settings.onClick.AddListener(() => SettingsPanel.Open(this));
         account.onClick.AddListener(OpenAccount);
         quit.onClick.AddListener(Quit);
         back.onClick.AddListener(() => { accountPanel.SetActive(false); gameObject.SetActive(true); });

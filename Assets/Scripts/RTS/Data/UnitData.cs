@@ -30,6 +30,14 @@ public class UnitData : ScriptableObject
     public float slowOnHit;            // seconds the target moves at half speed
     public float buildingDamage = 1f;  // damage multiplier against buildings
 
+    [Header("Counters (DamageTable)")]
+    public DamageTable.Armor armor = DamageTable.Armor.Light;
+    public DamageTable.Weapon weapon = DamageTable.Weapon.General;
+
+    public enum Ability { None, Brood, Overheat, Charge }
+    [Tooltip("Brood: Queen hatches Skitters (extra). Overheat: fires in bursts. Charge: dashes at far targets.")]
+    public Ability ability;
+
     [Header("Look")]
     public WeaponVisual visual = new();
     public enum WeaponStyle { Shot, FlameStream, PodDrop, ShockPulse }

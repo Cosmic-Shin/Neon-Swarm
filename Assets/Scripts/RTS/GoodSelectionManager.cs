@@ -14,6 +14,7 @@ public class GoodSelectionManager : MonoBehaviour
     public event Action<OutpostCapture> OnGarrisonCommand; // right-clicked our outpost: armed units go inside
     public event Action<Transport> OnBoardCommand;        // right-clicked our Wasp: units that fit climb aboard
     public event Action<List<Vector3>> OnAttackMoveCommand; // A + click: walk there, fighting anything met on the way
+    public event Action<List<Vector3>> OnPatrolCommand; // P + click: back and forth between here and there, fighting
     public event Action OnStopCommand; // S
     public event Action OnHoldCommand; // H: stay put, shoot only what's in range
 
@@ -45,6 +46,9 @@ public class GoodSelectionManager : MonoBehaviour
     public static bool UnitsSelected { get; private set; } // A/S/H are orders then, so the camera ignores WASD
     public Vector3 Facing { get; private set; } // which way the last move's formation faces (zero = don't turn)
     bool attackMoveArmed; // A pressed: next left-click is an attack-move
+    bool patrolArmed;     // P pressed: next left-click is a patrol
+    // Shift held while ordering: units add it to their queue of orders instead of replacing it.
+    public bool Queueing => Chat.Keys is Keyboard kb && (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed);
     bool rightPressing, rightDragging;
     Vector2 rightStart;
     LineRenderer dragLine; // preview of a right-drag formation line
@@ -78,7 +82,7 @@ public class GoodSelectionManager : MonoBehaviour
     // Disabled while a building is being placed.
     void OnDisable()
     {
-        UnitsSelected = rightPressing = rightDragging = attackMoveArmed = false;
+        UnitsSelected = rightPressing = rightDragging = attackMoveArmed = patrolArmed = false;
         if (dragLine != null) dragLine.enabled = false;
     }
 
@@ -96,8 +100,13 @@ public class GoodSelectionManager : MonoBehaviour
         // Attack-move armed: this click is the order, not a selection.
         if (attackMoveArmed && mouse.leftButton.wasPressedThisFrame && !overUI)
         {
-            attackMoveArmed = false;
+            attackMoveArmed = Queueing; // Shift: stay armed to queue more
             IssueAttackMove(mousePos);
+        }
+        else if (patrolArmed && mouse.leftButton.wasPressedThisFrame && !overUI)
+        {
+            patrolArmed = false;
+            if (GroundAt(mousePos, out Vector3 p)) { OnPatrolCommand?.Invoke(GetFormation(p)); ShowMarker(p, Juice.Gold); }
         }
         else if (mouse.leftButton.wasPressedThisFrame && !overUI && !(Net.Online && Ping.AltHeld)) // Alt+click = ping
         {
@@ -134,7 +143,7 @@ public class GoodSelectionManager : MonoBehaviour
         // Right-click: move. Right-drag: units line up along the dragged line, facing forward.
         if (mouse.rightButton.wasPressedThisFrame && !overUI)
         {
-            if (attackMoveArmed) attackMoveArmed = false; // right-click cancels A
+            if (attackMoveArmed || patrolArmed) attackMoveArmed = patrolArmed = false; // right-click cancels A / P
             else { rightPressing = true; rightDragging = false; rightStart = mousePos; }
         }
         if (rightPressing && mouse.rightButton.isPressed && selected.Count > 0 &&
@@ -245,16 +254,68 @@ public class GoodSelectionManager : MonoBehaviour
     {
         var kb = Chat.Keys;
         if (kb == null) return;
-        if (kb.fKey.wasPressedThisFrame)
-        {
-            formation = (Formation)(((int)formation + 1) % 3);
-            Alerts.Show($"Formation: {formation}", Alerts.Info);
-        }
-        if (kb.escapeKey.wasPressedThisFrame) attackMoveArmed = false;
-        if (!UnitsSelected) { attackMoveArmed = false; return; }
-        if (kb.aKey.wasPressedThisFrame) { attackMoveArmed = true; Alerts.Show("Attack-move: left-click a spot", Alerts.Warn); }
-        if (kb.sKey.wasPressedThisFrame) { attackMoveArmed = false; OnStopCommand?.Invoke(); }
-        if (kb.hKey.wasPressedThisFrame) { attackMoveArmed = false; OnHoldCommand?.Invoke(); }
+        if (kb.fKey.wasPressedThisFrame) NextFormation();
+        if (kb.escapeKey.wasPressedThisFrame) attackMoveArmed = patrolArmed = false;
+        if (kb.periodKey.wasPressedThisFrame) NextIdle();
+        if (!UnitsSelected) { attackMoveArmed = patrolArmed = false; return; }
+        if (kb.aKey.wasPressedThisFrame) ArmAttackMove();
+        if (kb.pKey.wasPressedThisFrame) ArmPatrol();
+        if (kb.sKey.wasPressedThisFrame) StopOrder();
+        if (kb.hKey.wasPressedThisFrame) HoldOrder();
+    }
+
+    // ---- orders, also used by the HUD's command buttons ----
+    public Formation CurrentFormation => formation;
+    public bool AttackMoveArmed => attackMoveArmed;
+    public bool PatrolArmed => patrolArmed;
+
+    public void NextFormation()
+    {
+        formation = (Formation)(((int)formation + 1) % 3);
+        Alerts.Show($"Formation: {formation}", Alerts.Info);
+    }
+    public void ArmAttackMove() { attackMoveArmed = true; patrolArmed = false; Alerts.Show("Attack-move: left-click a spot", Alerts.Warn); }
+    public void ArmPatrol() { patrolArmed = true; attackMoveArmed = false; Alerts.Show("Patrol: left-click the far end", Alerts.Warn); }
+    public void StopOrder() { attackMoveArmed = patrolArmed = false; OnStopCommand?.Invoke(); }
+    public void HoldOrder() { attackMoveArmed = patrolArmed = false; OnHoldCommand?.Invoke(); }
+
+    public List<SelectableUnit> Group(int i) => groups[i];
+    public void SelectGroup(int i) { if (groups[i] != null) SelectOnly(groups[i]); }
+
+    // Just this one unit (HUD: idle button, selection grid).
+    public void SelectOne(SelectableUnit u) { DeselectAll(); if (u != null) SelectUnit(u); }
+
+    // A building, as if clicked (HUD: production overview).
+    public void SelectStructure(Structure structure)
+    {
+        DeselectAll();
+        if (structure == null || !structure.enabled) return;
+        selectedStructure = structure;
+        structure.IsSelected = true;
+        OnStructureSelected?.Invoke(structure);
+        if (structure.TryGetComponent(out Building building) && building.enabled) { selectedBuilding = building; OnBuildingSelected?.Invoke(building); }
+    }
+
+    // Our units doing nothing: no order, no fight, harvesters not mining.
+    public static bool IsIdle(SelectableUnit u)
+    {
+        if (u == null || !u.isActiveAndEnabled || u.IsEnemy || u.IsRemote || !u.TryGetComponent(out Health h) || !h.enabled) return false;
+        if (u.TryGetComponent(out Harvester hv)) return hv.enabled && hv.state == Harvester.State.Idle;
+        if (!u.TryGetComponent(out UnityEngine.AI.NavMeshAgent a) || !a.enabled || a.pathPending || a.hasPath) return false;
+        return !u.TryGetComponent(out Attacker at) || !at.Busy;
+    }
+
+    int idleCursor;
+
+    // "." or the HUD's IDLE button: select the next idle unit and look at it.
+    public void NextIdle()
+    {
+        var idle = new List<SelectableUnit>();
+        foreach (var u in FindObjectsByType<SelectableUnit>(FindObjectsSortMode.InstanceID)) if (IsIdle(u)) idle.Add(u);
+        if (idle.Count == 0) { Alerts.Show("No idle units", Alerts.Info, 1f); return; }
+        var pick = idle[idleCursor++ % idle.Count];
+        SelectOne(pick);
+        CameraPan.LookAt(pick.transform.position);
     }
 
     void IssueAttackMove(Vector2 screenPos)
@@ -269,7 +330,7 @@ public class GoodSelectionManager : MonoBehaviour
         }
         if (!GroundAt(screenPos, out Vector3 point)) return;
         OnAttackMoveCommand?.Invoke(GetFormation(point));
-        ShowMarker(point);
+        ShowMarker(point, Juice.Danger);
     }
 
     // Right-drag: units spread along a..b (extra rows behind), facing away from where they stand now.
@@ -408,8 +469,14 @@ public class GoodSelectionManager : MonoBehaviour
         ShowMarker(point);
     }
 
-    void ShowMarker(Vector3 point)
+    static readonly Color MoveColor = new(0.3f, 1f, 1f);
+
+    void ShowMarker(Vector3 point, Color? color = null)
     {
+        Sfx.Play(Snd.Ack, 0.5f); // every move order ends here
+        Color c = color ?? MoveColor;
+        Juice.MoveMarker(point, c);
+        foreach (var u in selected) if (u != null) Juice.OrderLine(Flyer.Center(u), point, c);
         if (targetMarker == null) return;
         targetMarker.transform.position = point + Vector3.up * 0.05f; // avoid z-fighting
         targetMarker.SetActive(true);

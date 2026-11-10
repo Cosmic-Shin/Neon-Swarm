@@ -40,11 +40,25 @@ Shader "RTS/FogOfWar"
                 return o;
             }
 
+            float hash (float n) { return frac(sin(n) * 43758.5453); }
+
             fixed4 frag (v2f i) : SV_Target
             {
-                fixed2 f = tex2D(_FogTex, i.uv).rg;
+                // Glitch: thin horizontal bands of the edge jump sideways for a moment.
+                float2 world = (i.uv - 0.5) * _MapSize;
+                float band = floor(world.y * 0.5);
+                float tick = floor(_Time.y * 8);
+                float jump = step(0.93, hash(band * 1.7 + tick)) * (hash(band + tick * 3.1) - 0.5) * 4 / _MapSize;
+                fixed2 f = tex2D(_FogTex, i.uv + float2(jump, 0)).rg;
                 float a = lerp(_Unexplored, _Explored, f.g) * (1 - f.r);
-                return fixed4(_Color.rgb, a);
+
+                // Where sight ends: a cyan scanline fringe that scrolls slowly.
+                float edge = saturate(f.r * (1 - f.r) * 4);
+                edge = pow(edge, 6); // only the middle of the fade
+                float scan = step(0.5, frac(world.y * 1.5 - _Time.y * 1.5)); // 1/3 m stripes drifting
+                float glow = edge * scan;
+                fixed3 rgb = lerp(_Color.rgb, fixed3(0.2, 0.9, 1.0), glow * 0.6);
+                return fixed4(rgb, max(a, glow * 0.12));
             }
             ENDCG
         }

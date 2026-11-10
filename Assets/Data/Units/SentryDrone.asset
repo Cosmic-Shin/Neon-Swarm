@@ -16,7 +16,7 @@ MonoBehaviour:
   role: 1
   description: Interceptor drone from the Drone Hangar. Fast, rapid fire, fragile.
   icon: {fileID: 21300000, guid: e85328fea441aae4fb106820fd43dcdf, type: 3}
-  cost: 450
+  cost: 500
   buildTime: 6
   squadSize: 3
   maxHealth: 70
@@ -31,6 +31,9 @@ MonoBehaviour:
   stunOnHit: 0
   slowOnHit: 0
   buildingDamage: 1
+  armor: 0
+  weapon: 1
+  ability: 0
   visual:
     projectile: {fileID: 1058419780056461119, guid: 4cad3a03ccfbfbb4280f6ce00f2f8c38, type: 3}
     speed: 90
@@ -39,3 +42,6 @@ MonoBehaviour:
     impact: {fileID: 0}
     scorch: {fileID: 0}
     hideBeam: 0
+  style: 0
+  muzzles: 
+  extra: {fileID: 0}

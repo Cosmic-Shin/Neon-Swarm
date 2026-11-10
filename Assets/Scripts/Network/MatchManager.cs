@@ -40,7 +40,11 @@ public class MatchManager : MonoBehaviour
         timerText.transform.parent.gameObject.SetActive(false);
         var room = RoomState.Instance;
         var runner = Net.Runner;
-        if (room == null || runner == null || !runner.IsRunning) yield break; // single player
+        if (room == null || runner == null || !runner.IsRunning) // single player
+        {
+            if (Skirmish.Active) StartSkirmish();
+            yield break;
+        }
 
         Net.InMatch = true;
         MatchStats.Reset();
@@ -84,6 +88,66 @@ public class MatchManager : MonoBehaviour
 
     void OnDestroy() => RoomService.Disconnected -= OnDisconnected;
 
+    // ================= skirmish (single player vs AI) =================
+
+    // Your base stays where the scene has it (Base_1). The scene's enemy squad goes; creeps and outposts stay.
+    // Each AI gets a copy of the Base_1 layout on its base spot: enemies far away, allies next to you.
+    void StartSkirmish()
+    {
+        MatchStats.Reset();
+        endButton.onClick.AddListener(() => { Skirmish.Active = false; UnityEngine.SceneManagement.SceneManager.LoadScene(0); });
+        BuildEndScreen();
+        if (GameObject.Find("Enemies") is GameObject squad) Destroy(squad);
+        TeamEconomy.Set(0, Skirmish.StartCredits);
+
+        var enemySpots = new Queue<int>(Skirmish.Opponents.FindAll(o => !o.ally).Count switch { 1 => new[] { 4 }, 2 => new[] { 3, 5 }, _ => new[] { 4, 2, 6 } });
+        var allySpots = new Queue<int>(new[] { 1, 7, 2 });
+        Transform homeSpot = baseSpots.GetChild(0);
+        Vector3 centre = Vector3.zero;
+        foreach (var ai in Skirmish.Opponents)
+        {
+            Transform spot = baseSpots.GetChild(ai.ally ? allySpots.Dequeue() : enemySpots.Dequeue());
+            Quaternion turn = Quaternion.Euler(0f, Vector3.SignedAngle(Flat(homeSpot.position), Flat(spot.position), Vector3.up), 0f);
+            Vector3 Place(Transform t) => spot.position + turn * (t.position - homeSpot.position);
+            SpawnFor(ai.team, nexusPrefab, Place(layoutNexus), turn * layoutNexus.rotation);
+            SpawnFor(ai.team, hivePrefab, Place(layoutHive), turn * layoutHive.rotation);
+            foreach (var h in layoutHarvesters) SpawnFor(ai.team, harvesterPrefab, Place(h), turn * h.rotation);
+            TeamEconomy.Set(ai.team, Skirmish.StartCredits);
+
+            var brain = new GameObject($"AI {ai.team}").AddComponent<AIPlayer>();
+            brain.team = ai.team;
+            brain.profile = Resources.Load<AIProfile>($"AI/{ai.difficulty}");
+            brain.home = Flat(spot.position);
+            brain.front = (Flat(centre) - Flat(spot.position)).normalized;
+        }
+        skirmishStarted = Time.time;
+        Alerts.Show("Skirmish: destroy every enemy building!", Alerts.Info, 6f);
+    }
+
+    static void SpawnFor(int team, GameObject prefab, Vector3 pos, Quaternion rot)
+    {
+        var go = Instantiate(prefab, pos, rot);
+        var h = go.GetComponent<Health>();
+        h.team = team; // before Start: colours and power follow the team
+        if (go.TryGetComponent(out TeamMember tm)) tm.team = team;
+        if (go.TryGetComponent(out SelectableUnit u)) u.ApplyTeamLook();
+    }
+
+    float skirmishStarted = -1f;
+
+    // Same rules as online: lose when all your buildings are gone, win when your side is the only one left.
+    void UpdateSkirmish()
+    {
+        if (over || Time.time - skirmishStarted < 5f || Time.time < nextCheck) return;
+        nextCheck = Time.time + 0.5f;
+        var sides = new HashSet<int>();
+        bool mine = false;
+        foreach (var s in Structure.All) if (s != null && !s.Health.IsDead && s.Health.team != Creep.Team) { sides.Add(Skirmish.SideOf(s.Health.team)); mine |= s.Health.team == 0; }
+        foreach (var c in FindObjectsByType<Construction>(FindObjectsSortMode.None)) { int t = TeamEconomy.TeamOf(c); sides.Add(Skirmish.SideOf(t)); mine |= t == 0; }
+        if (!mine) End("DEFEAT", "All your buildings were destroyed.");
+        else if (sides.Count == 1) End("VICTORY", "Every enemy base is destroyed.");
+    }
+
     static Vector3 Flat(Vector3 v) => new(v.x, 0f, v.z);
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
@@ -118,6 +182,7 @@ public class MatchManager : MonoBehaviour
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
         if (Net.InMatch) LogState();
 #endif
+        if (Skirmish.Active && !Net.InMatch) { UpdateSkirmish(); return; }
         if (!Net.InMatch || (over && !spectating)) return;
         var room = RoomState.Instance;
         if (room == null || !Net.Online) { End("DISCONNECTED", "Lost the connection to the match."); return; }
@@ -324,7 +389,7 @@ public class MatchManager : MonoBehaviour
     void FillStats(float amount)
     {
         var room = RoomState.Instance;
-        if (room == null) return;
+        if (room == null) { FillSkirmishStats(amount); return; }
         var names = new System.Text.StringBuilder();
         var cols = new System.Text.StringBuilder[statsColumns.Length];
         for (int k = 0; k < cols.Length; k++) cols[k] = new System.Text.StringBuilder();
@@ -342,6 +407,27 @@ public class MatchManager : MonoBehaviour
                 int v = Mathf.RoundToInt((me ? MatchStats.Values[k] : rp != null ? rp.Stats[k] : 0) * amount);
                 cols[k].AppendLine(k == (int)MatchStats.Kind.Earned ? $"${v:N0}" : v.ToString());
             }
+        }
+        statsNames.text = names.ToString();
+        for (int k = 0; k < cols.Length; k++) statsColumns[k].text = cols[k].ToString();
+    }
+
+    // Skirmish: your numbers; AIs are listed with whether they still stand (they don't keep stats).
+    void FillSkirmishStats(float amount)
+    {
+        if (statsNames == null) return;
+        var names = new System.Text.StringBuilder($"<color=#{ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(0))}>You</color>\n");
+        var cols = new System.Text.StringBuilder[statsColumns.Length];
+        for (int k = 0; k < cols.Length; k++)
+        {
+            int v = Mathf.RoundToInt(MatchStats.Values[k] * amount);
+            cols[k] = new System.Text.StringBuilder((k == (int)MatchStats.Kind.Earned ? $"${v:N0}" : v.ToString()) + "\n");
+        }
+        foreach (var ai in Skirmish.Opponents)
+        {
+            bool alive = Structure.All.Exists(s => s != null && s.Health.team == ai.team);
+            names.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(ai.team))}>{ai.Name}</color>");
+            for (int k = 0; k < cols.Length; k++) cols[k].AppendLine(k == 0 ? (alive ? "standing" : "destroyed") : "");
         }
         statsNames.text = names.ToString();
         for (int k = 0; k < cols.Length; k++) statsColumns[k].text = cols[k].ToString();

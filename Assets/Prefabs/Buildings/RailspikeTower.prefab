@@ -310,6 +310,7 @@ MonoBehaviour:
   splash: 0
   hitsGround: 1
   hitsAir: 0
+  weapon: 2
   beamWidth: 0.5
   beamTime: 0.25
   color: {r: 1, g: 0.85, b: 0.2, a: 1}

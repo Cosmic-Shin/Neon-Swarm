@@ -1,7 +1,8 @@
 using UnityEngine;
 
 // Every number research, building upgrades and veterancy can change.
-public enum Stat { Damage, Range, FireRate, MaxHealth, MoveSpeed, Sight, BuildTime, HarvestCapacity, HarvestRate, UnloadTime, RefineryCredits, RepairRate, Splash, StunTime }
+public enum Stat { Damage, Range, FireRate, MaxHealth, MoveSpeed, Sight, BuildTime, HarvestCapacity, HarvestRate, UnloadTime, RefineryCredits, RepairRate, Splash, StunTime,
+    AbilityCooldown, BroodSize, OverheatRate, BurstTime } // new ones only at the end: assets store the number
 
 // One bonus: (base + flat) * (1 + percent). Research also says who gets it.
 [System.Serializable]
@@ -31,7 +32,7 @@ public class StatMod
     static bool Has<T>(T[] list, T item) => list != null && System.Array.IndexOf(list, item) >= 0;
 }
 
-// The one place stats are worked out: a base value plus research (player only), the building's
+// The one place stats are worked out: a base value plus research (per team), the building's
 // upgrade level and the unit's veterancy rank. Read it where the stat is used, so bonuses reach
 // existing and future units alike; stored stats (max HP, speed, harvester numbers) refresh on Changed.
 public static class Stats
@@ -46,8 +47,8 @@ public static class Stats
         float flat = 0f, percent = 0f;
         void Add(StatMod m) { if (m.stat == stat) { flat += m.flat; percent += m.percent; } }
 
-        if (who.TryGetComponent(out Health h) && h.team == 0)
-            foreach (var r in ResearchManager.Done)
+        if (who.TryGetComponent(out Health h))
+            foreach (var r in ResearchManager.DoneOf(h.team))
                 foreach (var m in r.effects) if (m.stat == stat && m.AppliesTo(who)) Add(m);
 
         if (who.TryGetComponent(out UpgradeEffects up)) foreach (var m in up.Active) Add(m);

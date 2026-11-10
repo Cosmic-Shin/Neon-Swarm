@@ -26,17 +26,19 @@ public static class Net
     public static bool Allied(int a, int b)
     {
         if (a == b) return true;
-        if (!InRoom || a < 0 || b < 0 || a >= RoomService.MaxPlayers || b >= RoomService.MaxPlayers) return false;
+        if (!InRoom) return Skirmish.Allied(a, b); // single player: allied AIs
+        if (a < 0|| b < 0 || a >= RoomService.MaxPlayers || b >= RoomService.MaxPlayers) return false;
         int ta = RoomState.Instance.TeamOf(ToSlot(a));
         return ta != 0 && ta == RoomState.Instance.TeamOf(ToSlot(b));
     }
 
     // Is that side short on power? Ours is worked out here; other players publish theirs (RoomPlayer).
-    // Single-player enemies are always powered.
+    // Single player: worked out from each AI's own buildings.
     public static bool LowPower(int team)
     {
         if (team == 0) return Structure.LowPower;
-        if (!InRoom || team < 0 || team >= RoomService.MaxPlayers) return false;
+        if (!InRoom) return Structure.LowPowerOf(team);
+        if (team < 0|| team >= RoomService.MaxPlayers) return false;
         var p = RoomState.Instance.Slots[ToSlot(team)];
         foreach (var rp in RoomPlayer.All) if (rp != null && rp.Object.StateAuthority == p) return rp.LowPower;
         return false;

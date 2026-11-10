@@ -5,8 +5,8 @@ using UnityEngine;
 public class OreNode : MonoBehaviour
 {
     public static readonly List<OreNode> All = new List<OreNode>();
-    /// <summary>Optional game hook: true when a spot is too dangerous to mine (enemies nearby). FindNearest skips those.</summary>
-    public static System.Func<Vector3, bool> IsDangerous;
+    /// <summary>Optional game hook: true when a spot is too dangerous for that team to mine (its enemies nearby). FindNearest skips those.</summary>
+    public static System.Func<Vector3, int, bool> IsDangerous;
 
     public float maxAmount = 600f;
     public float amount = 600f;
@@ -84,13 +84,13 @@ public class OreNode : MonoBehaviour
     }
 
     /// <summary>Nearest non-depleted ore, lightly preferring patches nobody else is mining.</summary>
-    public static OreNode FindNearest(Vector3 from)
+    public static OreNode FindNearest(Vector3 from, int team = 0)
     {
         OreNode best = null; float bd = float.MaxValue;
         foreach (var o in All)
         {
             if (!o || o.IsDepleted) continue;
-            if (IsDangerous != null && IsDangerous(o.transform.position)) continue;
+            if (IsDangerous != null && IsDangerous(o.transform.position, team)) continue;
             float d = (o.transform.position - from).sqrMagnitude + o.ActiveHarvesters * 16f;
             if (d < bd) { bd = d; best = o; }
         }

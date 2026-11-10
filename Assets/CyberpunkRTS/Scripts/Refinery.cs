@@ -8,6 +8,8 @@ public class Refinery : MonoBehaviour
 
     public Transform dockPoint;
     public float creditsPerUnit = 1f;
+    [Tooltip("GD5: unloading here takes this many times longer (Core Nexus intake: slow, so a real refinery is worth buying).")]
+    public float unloadTimeMultiplier = 1f;
     [Tooltip("Multiplies the queue spacing; match the model's scale.")]
     public float queueScale = 1f;
 
@@ -88,14 +90,17 @@ public class Refinery : MonoBehaviour
         return dockPoint.position + (OutDir * (1.7f + 0.9f * (i / 2)) + side * ((i % 2 == 0) ? 0.6f : -0.6f)) * queueScale;
     }
 
-    public static Refinery FindNearest(Vector3 p)
+    /// <summary>GD5 edit: only refineries of the given team (a harvester never docks at an enemy's).
+    /// A real Data Refinery always wins; the Core Nexus's intake is only the fallback until one is built.</summary>
+    public static Refinery FindNearest(Vector3 p, int team = 0)
     {
-        Refinery best = null; float bd = float.MaxValue;
+        Refinery best = null; float bd = float.MaxValue; bool bestIsHQ = true;
         foreach (var r in All)
         {
-            if (!r) continue;
+            if (!r || TeamEconomy.TeamOf(r) != team) continue;
+            bool hq = r.TryGetComponent(out Structure s) && s.isHQ;
             float d = (r.transform.position - p).sqrMagnitude;
-            if (d < bd) { bd = d; best = r; }
+            if ((bestIsHQ && !hq) || (hq == bestIsHQ && d < bd)) { bd = d; best = r; bestIsHQ = hq; }
         }
         return best;
     }

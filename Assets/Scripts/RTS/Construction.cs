@@ -44,11 +44,14 @@ public class Construction : MonoBehaviour
         features = GetComponents<MonoBehaviour>();
         foreach (var f in features) if (f != this && f is not Health && f is not Fusion.NetworkBehaviour) f.enabled = false; // can be shot while building
 
-        bar = Instantiate(barTemplate, barTemplate.parent);
-        bar.SetSiblingIndex(barTemplate.GetSiblingIndex() + 1); // stays behind the HUD panels
-        bar.gameObject.SetActive(true);
-        fill = bar.Find("Fill").GetComponent<Image>();
-        fill.fillAmount = 0f;
+        if (barTemplate != null && TeamEconomy.TeamOf(this) == 0) // AI sites: no bar
+        {
+            bar = Instantiate(barTemplate, barTemplate.parent);
+            bar.SetSiblingIndex(barTemplate.GetSiblingIndex() + 1); // stays behind the HUD panels
+            bar.gameObject.SetActive(true);
+            fill = bar.Find("Fill").GetComponent<Image>();
+            fill.fillAmount = 0f;
+        }
 
         site = ConstructionSite.Attach(gameObject, duration, kitScale);
         if (startProgress > 0f) site.Skip(startProgress);
@@ -61,6 +64,7 @@ public class Construction : MonoBehaviour
     {
         if (site != null) site.Skip(1f); // the site completes itself next frame
         SetAbilities(true);
+        Juice.ConstructionDone(gameObject);
         Destroy(this);
     }
 
@@ -73,19 +77,23 @@ public class Construction : MonoBehaviour
     void Update()
     {
         if (remote) return;
-        fill.fillAmount = site.Progress;
+        if (fill != null) fill.fillAmount = site.Progress;
         if (site.Progress < 1f) return;
 
         foreach (var f in features) if (f != this && f != null && f is not Fusion.NetworkBehaviour) f.enabled = true;
         SendMessage("OnConstructed", SendMessageOptions.DontRequireReceiver); // e.g. FreeHarvester
-        if (TryGetComponent(out Structure s)) Alerts.Show($"Construction complete: {s.Name}", Alerts.Good);
-        MatchStats.Add(MatchStats.Kind.BuildingsBuilt);
+        Juice.ConstructionDone(gameObject);
+        if (TeamEconomy.TeamOf(this) == 0)
+        {
+            if (TryGetComponent(out Structure s)) Alerts.ShowAt($"Construction complete: {s.Name}", Alerts.Good, transform.position);
+            MatchStats.Add(MatchStats.Kind.BuildingsBuilt);
+        }
         Destroy(this);
     }
 
     void LateUpdate()
     {
-        if (remote) return;
+        if (remote || bar == null) return;
         // Bar floats just above where the finished roof will be.
         Bounds b = col.bounds;
         Vector3 screen = cam.WorldToScreenPoint(new Vector3(b.center.x, fullTop, b.center.z));

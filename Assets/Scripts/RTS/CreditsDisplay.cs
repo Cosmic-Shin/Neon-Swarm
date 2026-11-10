@@ -15,8 +15,20 @@ public class CreditsDisplay : MonoBehaviour
     float gainTime = -10f, flashTime = -10f, shown;
     Color baseColor, flash;
 
-    void OnEnable() => creditsChanged.Raised += Changed;
+    void OnEnable() { creditsChanged.Raised += Changed; instance = this; }
     void OnDisable() => creditsChanged.Raised -= Changed;
+
+    static CreditsDisplay instance;
+    float denyTime = -10f;
+
+    // Tried to buy something too expensive: the counter throbs red twice.
+    public static void Deny()
+    {
+        if (instance == null || !instance.isActiveAndEnabled) return;
+        Sfx.Play(Snd.Bad, 0.5f);
+        instance.denyTime = instance.flashTime = Time.unscaledTime;
+        instance.flash = Spend;
+    }
 
     void Start()
     {
@@ -47,7 +59,9 @@ public class CreditsDisplay : MonoBehaviour
         float f = Time.unscaledTime - flashTime;
         label.color = Color.Lerp(flash, baseColor, Mathf.Clamp01(f / FlashTime));
         bool pop = flash == Earn && f < PopTime;
-        label.rectTransform.localScale = Vector3.one * (pop ? 1f + 0.12f * (1f - f / PopTime) : 1f);
+        float d = Time.unscaledTime - denyTime;
+        float throb = d < 0.5f ? 0.15f * Mathf.Abs(Mathf.Sin(d * Mathf.PI * 4f)) * (1f - d / 0.5f) : 0f;
+        label.rectTransform.localScale = Vector3.one * ((pop ? 1f + 0.12f * (1f - f / PopTime) : 1f) + throb);
 
         float age = Time.unscaledTime - gainTime;
         var c = gain.color; c.a = Mathf.Clamp01(1f - age / 1.5f); gain.color = c;

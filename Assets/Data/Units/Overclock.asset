@@ -15,13 +15,13 @@ MonoBehaviour:
   displayName: Overclock
   role: 5
   description: 'Gatling gunner. Fires four times a second: the highest steady damage
-    at mid range.'
+    at mid range. Fires in 4 s bursts, then overheats and vents for 3 s.'
   icon: {fileID: 21300000, guid: ea3c4604266001d40a511215d46a06d5, type: 3}
   cost: 650
   buildTime: 7
   squadSize: 1
-  maxHealth: 130
-  damage: 6
+  maxHealth: 160
+  damage: 14
   range: 12
   attackCooldown: 0.25
   hitsGround: 1
@@ -32,6 +32,9 @@ MonoBehaviour:
   stunOnHit: 0
   slowOnHit: 0
   buildingDamage: 1
+  armor: 0
+  weapon: 1
+  ability: 2
   visual:
     projectile: {fileID: 1058419780056461119, guid: 4cad3a03ccfbfbb4280f6ce00f2f8c38, type: 3}
     speed: 100
@@ -40,3 +43,6 @@ MonoBehaviour:
     impact: {fileID: 0}
     scorch: {fileID: 0}
     hideBeam: 0
+  style: 0
+  muzzles: 
+  extra: {fileID: 0}

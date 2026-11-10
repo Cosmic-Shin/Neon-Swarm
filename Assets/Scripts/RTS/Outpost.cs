@@ -39,8 +39,8 @@ public class Outpost : MonoBehaviour
 
     void OwnerChanged(int team)
     {
-        if (team == 0) Alerts.Show("Outpost captured", Alerts.Good);
-        else if (health.team == 0) Alerts.Show("Outpost lost", Alerts.Bad);
+        if (team == 0) Alerts.ShowAt("Outpost captured", Alerts.Good, transform.position);
+        else if (health.team == 0) Alerts.ShowAt("Outpost lost", Alerts.Bad, transform.position);
         health.team = team;
         health.Revive();
         health.enabled = team >= 0; // neutral ruins aren't a target

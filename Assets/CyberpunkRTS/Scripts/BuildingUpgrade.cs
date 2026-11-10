@@ -50,9 +50,9 @@ public class BuildingUpgrade : MonoBehaviour
     /// <summary>Start the next upgrade. Pays from the ResourceBank if one exists.</summary>
     public bool Upgrade()
     {
-        if (!CanUpgrade || !BuildSlots.Free) return false; // GD5: max 2 buildings building/upgrading at once
-        var bank = ResourceBank.Instance;
-        if (bank && !bank.Spend(NextCost)) return false;
+        int team = TeamEconomy.TeamOf(this); // GD5: single-player AIs upgrade with their own credits
+        if (!CanUpgrade || !BuildSlots.FreeFor(team)) return false; // GD5: max 2 buildings building/upgrading at once
+        if (!TeamEconomy.Spend(team, NextCost)) return false;
         StartCoroutine(Run(level + 1));
         return true;
     }

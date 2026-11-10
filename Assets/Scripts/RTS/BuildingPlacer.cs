@@ -241,7 +241,11 @@ public class BuildingPlacer : MonoBehaviour
         {
             while (ghosts.Count > 1) RemoveGhost(ghosts.Count - 1);
             ghost.transform.SetPositionAndRotation(p, lastRotation);
+            if (p != lastSnap) { lastSnap = p; snapTime = Time.time; Sfx.Play(Snd.Click, 0.12f, 1.6f); } // a soft tick per grid cell
         }
+        // Snap bounce: a little pop each time it lands on a new cell.
+        float pop = 1f - Mathf.Clamp01((Time.time - snapTime) / 0.15f);
+        ghost.transform.localScale = buildings[chosen].prefab.transform.localScale * (1f + 0.05f * pop * pop);
 
         gridOverlay.material.SetVector(CenterId, ghosts[ghosts.Count / 2].transform.position);
 
@@ -273,6 +277,9 @@ public class BuildingPlacer : MonoBehaviour
     }
 
     float Snap(float v) => Mathf.Round(v / gridSize) * gridSize;
+    public int GroundMask => groundLayer; // AIs place buildings with the same overlap check
+    Vector3 lastSnap;
+    float snapTime = -10f;
 
     // Anything but the ground inside the building's box blocks it (other buildings, cubes, units).
     bool IsBlocked(GameObject g)

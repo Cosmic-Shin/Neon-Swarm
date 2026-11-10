@@ -32,6 +32,9 @@ MonoBehaviour:
   stunOnHit: 1.2
   slowOnHit: 0
   buildingDamage: 1
+  armor: 0
+  weapon: 1
+  ability: 0
   visual:
     projectile: {fileID: 4468561071008097905, guid: c431e574a8815d248b3fc83056f8993e, type: 3}
     speed: 30
@@ -40,3 +43,6 @@ MonoBehaviour:
     impact: {fileID: 7867704074619241271, guid: 0b403134df61caa478fa749cf1fddf02, type: 3}
     scorch: {fileID: 0}
     hideBeam: 0
+  style: 0
+  muzzles: 
+  extra: {fileID: 0}

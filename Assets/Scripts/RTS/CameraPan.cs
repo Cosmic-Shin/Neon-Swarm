@@ -14,6 +14,28 @@ public class CameraPan : MonoBehaviour
 
     bool mouseMoved;
 
+    static CameraPan instance;
+
+    void Awake()
+    {
+        instance = this;
+        gameObject.AddComponent<Ambience>(); // rain, ore glints, city life around the view
+    }
+
+    // Camera position p moved so the screen centre looks at 'spot'.
+    Vector3 Centered(Vector3 p, Vector3 spot)
+    {
+        if (transform.forward.y > -0.01f) return p;
+        Vector3 focus = p + transform.forward * (-p.y / transform.forward.y);
+        p += new Vector3(spot.x - focus.x, 0f, spot.z - focus.z);
+        p.x = Mathf.Clamp(p.x, minXZ.x, maxXZ.x);
+        p.z = Mathf.Clamp(p.z, minXZ.y, maxXZ.y);
+        return p;
+    }
+
+    // Jump the camera to look at a spot (idle button, production overview).
+    public static void LookAt(Vector3 spot) { if (instance != null) instance.transform.position = instance.Centered(instance.transform.position, spot); }
+
     void Update()
     {
         var kb = Chat.Keys;
@@ -48,8 +70,11 @@ public class CameraPan : MonoBehaviour
             if (scroll != 0f && !overUI) p.y = Mathf.Clamp(p.y - Mathf.Sign(scroll) * zoomStep, minHeight, maxHeight);
         }
 
+        // Space: look at where the last alert happened (attack, construction done).
+        if (kb.spaceKey.wasPressedThisFrame && Alerts.LastSpot is Vector3 spot) p = Centered(p, spot);
+
         dir = Vector2.ClampMagnitude(dir, 1f);
-        p += new Vector3(dir.x, 0f, dir.y) * speed * Time.unscaledDeltaTime;
+        p += new Vector3(dir.x, 0f, dir.y) * speed * GameSettings.CameraSpeed * Time.unscaledDeltaTime;
         p.x = Mathf.Clamp(p.x, minXZ.x, maxXZ.x);
         p.z = Mathf.Clamp(p.z, minXZ.y, maxXZ.y);
         transform.position = p;

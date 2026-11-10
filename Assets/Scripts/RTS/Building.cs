@@ -58,7 +58,7 @@ public class Building : MonoBehaviour
         string why = Blocker(i);
         return why == null || queue.Contains(i) ? tip : tip + $"\n<color=#FF5050>{why}</color>";
     }
-    public bool IsResearched(int i) => !IsUnit(i) && ResearchManager.IsDone(Upgrade(i));
+    public bool IsResearched(int i) => !IsUnit(i) && ResearchManager.IsDone(Upgrade(i), Team);
 
     public int Producing => queue.Count > 0 ? queue[0] : -1;
     public float Progress01 => queue.Count > 0 ? progress / TimeOf(queue[0]) : 0f;
@@ -73,7 +73,7 @@ public class Building : MonoBehaviour
         if (IsUnit(i))
         {
             if (unitPrefabs[i].Data.role != UnitData.Role.Elite) return null;
-            if (ResearchManager.CoreLevel < 3) return "Needs Core Nexus Mk III";
+            if (ResearchManager.CoreLevelOf(Team) < 3) return "Needs Core Nexus Mk III";
             return aerie != null && !aerie.HasMast ? "Needs Hive Aerie Mk III" : null; // titans moor at the mast
         }
         if (queue.Exists(q => !IsUnit(q))) return queue.Contains(i) ? "Researching" : "Lab busy: one project at a time";
@@ -91,12 +91,18 @@ public class Building : MonoBehaviour
         return null;
     }
 
-    public bool CanQueue(int i) => ResourceBank.GetOrCreate().Credits >= CostOf(i) && Blocker(i) == null;
+    public bool CanQueue(int i) => TeamEconomy.Credits(Team) >= CostOf(i) && Blocker(i) == null;
+
+    // Whose building (single player: you or an AI); it pays and its units fight for that team.
+    public int Team => structure != null ? structure.Health.team : 0;
+    public UnitData UnitOf(int i) => IsUnit(i) ? unitPrefabs[i].Data : null; // null = research
+    public ResearchData ResearchOf(int i) => IsUnit(i) ? null : Upgrade(i);
+    public int QueueLength => queue.Count;
 
     // Paid up front; refused when short on credits.
     public void Enqueue(int index)
     {
-        if (!CanQueue(index) || !ResourceBank.GetOrCreate().Spend(CostOf(index))) return;
+        if (!CanQueue(index) || !TeamEconomy.Spend(Team, CostOf(index))) return;
         queue.Add(index);
         if (!IsUnit(index)) ResearchManager.Started(Upgrade(index), this);
     }
@@ -108,8 +114,8 @@ public class Building : MonoBehaviour
         if (at < 0) return;
         queue.RemoveAt(at);
         if (at == 0) progress = 0f; // cancelled the one in production
-        if (!IsUnit(index)) ResearchManager.Stopped(Upgrade(index));
-        ResourceBank.GetOrCreate().Add(CostOf(index));
+        if (!IsUnit(index)) ResearchManager.Stopped(Upgrade(index), this);
+        TeamEconomy.Add(Team, CostOf(index));
     }
 
     // Saves: the research project running here and its time left.
@@ -128,7 +134,7 @@ public class Building : MonoBehaviour
     // Destroyed mid-project: the research is lost (paid for, not refunded), another lab can start it.
     void OnDestroy()
     {
-        foreach (int q in queue) if (!IsUnit(q)) ResearchManager.Stopped(Upgrade(q));
+        foreach (int q in queue) if (!IsUnit(q)) ResearchManager.Stopped(Upgrade(q), this);
     }
 
     public int QueuedCount(int index)
@@ -151,14 +157,15 @@ public class Building : MonoBehaviour
 
         ShowProduction(Producing, Progress01);
         if (queue.Count == 0) return;
-        progress += Time.deltaTime * (Structure.LowPower ? 0.5f : 1f); // low power: half speed
+        progress += Time.deltaTime * (Structure.LowPowerOf(Team) ? 0.5f : 1f); // low power: half speed
         if (progress < TimeOf(queue[0])) return;
 
         int done = queue[0];
         queue.RemoveAt(0);
         progress = 0f;
-        if (IsUnit(done)) { SummonUnit(done); Alerts.Show($"Unit ready: {NameOf(done)}{(SquadOf(done) > 1 ? $" x{SquadOf(done)}" : "")}", Alerts.Info); }
-        else { ResearchManager.Complete(Upgrade(done)); MatchStats.Add(MatchStats.Kind.Research); Alerts.Show($"Research complete: {NameOf(done)}", Alerts.Good); }
+        bool ours = Team == 0;
+        if (IsUnit(done)) { SummonUnit(done); if (ours) Alerts.Show($"Unit ready: {NameOf(done)}{(SquadOf(done) > 1 ? $" x{SquadOf(done)}" : "")}", Alerts.Info); }
+        else { ResearchManager.Complete(Upgrade(done), Team); if (ours) { MatchStats.Add(MatchStats.Kind.Research); Alerts.Show($"Research complete: {NameOf(done)}", Alerts.Good); } }
     }
 
     // Squad units (C&C style) come out one after another, this far apart.
@@ -188,7 +195,8 @@ public class Building : MonoBehaviour
 
         // Created at the exit (on the navmesh), then walks there from inside the building, then on to the rally point.
         var unit = Net.Spawn(unitPrefabs[index], exit, Quaternion.LookRotation(spawnPoint.position - transform.position));
-        MatchStats.Add(MatchStats.Kind.UnitsBuilt);
+        if (Team != 0) Attacker.SetTeam(unit, Team); // an AI's factory (offline only; online everything spawned here is ours)
+        else MatchStats.Add(MatchStats.Kind.UnitsBuilt);
         if (aerie != null && Flyer.IsAir(unit))
         {
             float launch = aerie.Launch(unit, exit, rally);

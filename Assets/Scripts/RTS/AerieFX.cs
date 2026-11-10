@@ -129,7 +129,7 @@ public class AerieFX : MonoBehaviour
         Juice.Ring(new Vector3(core.x, 0.3f, core.z), color, 1f, size * 2f, 1f, 0.4f);
         Juice.Burst(core, color, 60, 14f, 0.25f, 1f, 0.2f);
         Juice.Shake(core, 0.6f);
-        Alerts.Show($"Titan online: {unit.DisplayName}", Alerts.Good);
+        if (TeamEconomy.TeamOf(this) == 0) Alerts.Show($"Titan online: {unit.DisplayName}", Alerts.Good);
 
         // Power arcs from the clamps while it spins up.
         var arcs = new List<LineRenderer>();

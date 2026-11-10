@@ -23,6 +23,35 @@ public class Projectile : MonoBehaviour
         p.travelled = 0f;
         p.length = Vector3.Distance(from, to);
         p.onHit = onHit;
+        if (!go.TryGetComponent(out TrailRenderer trail)) trail = AddTrail(go, arc);
+        trail.Clear(); // pooled: no streak from where it last landed
+    }
+
+    // Glowing streak in the shot's own colour; lobbed shells leave a longer one.
+    static TrailRenderer AddTrail(GameObject go, float arc)
+    {
+        Color c = Color.white;
+        float size = 0.3f;
+        foreach (var r in go.GetComponentsInChildren<Renderer>())
+        {
+            var m = r.sharedMaterial;
+            if (m != null && m.HasProperty("_EmissionColor") && m.GetColor("_EmissionColor").maxColorComponent > 0.01f)
+            {
+                c = m.GetColor("_EmissionColor");
+                c /= Mathf.Max(1f, c.maxColorComponent);
+            }
+            size = Mathf.Max(size, Mathf.Min(r.bounds.extents.x, r.bounds.extents.y));
+        }
+        var t = go.AddComponent<TrailRenderer>();
+        t.sharedMaterial = Juice.Additive;
+        t.time = arc > 0f ? 0.35f : 0.15f;
+        t.minVertexDistance = 0.3f;
+        t.widthMultiplier = Mathf.Clamp(size * 1.2f, 0.12f, 0.6f);
+        t.widthCurve = AnimationCurve.Linear(0f, 1f, 1f, 0f);
+        t.startColor = new Color(c.r, c.g, c.b, 0.9f);
+        t.endColor = new Color(c.r, c.g, c.b, 0f);
+        t.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        return t;
     }
 
     void Update()

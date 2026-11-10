@@ -14,6 +14,7 @@ public class FreeHarvester : MonoBehaviour
         inside.y = dock.y;
 
         var unit = Net.Spawn(harvesterPrefab, dock, Quaternion.LookRotation(outDir));
+        Attacker.SetTeam(unit, TeamEconomy.TeamOf(this)); // an AI's refinery: its harvester
         unit.WalkOut(inside, dock, exitSpeed);
     }
 }

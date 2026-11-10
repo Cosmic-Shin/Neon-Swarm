@@ -21,4 +21,20 @@ MonoBehaviour:
   cost: 2000
   researchTime: 120
   requires: {fileID: 0}
-  effects: []
+  effects:
+  - stat: 16
+    percent: -0.4
+    flat: 0
+    roles: 
+    units:
+    - {fileID: 11400000, guid: 911dc702a2716c74898dd086d2402ae3, type: 2}
+    buildings: []
+    defenses: 0
+  - stat: 17
+    percent: 0
+    flat: 2
+    roles: 
+    units:
+    - {fileID: 11400000, guid: 911dc702a2716c74898dd086d2402ae3, type: 2}
+    buildings: []
+    defenses: 0

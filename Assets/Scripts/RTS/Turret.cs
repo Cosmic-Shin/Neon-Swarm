@@ -14,6 +14,9 @@ public class Turret : MonoBehaviour
     [SerializeField] float splash = 0f;
     [SerializeField] bool hitsGround = true; // flak: air only; arc coil / railspike: ground only
     [SerializeField] bool hitsAir = true;
+    public bool HitsAir => hitsAir;
+    public bool HitsGround => hitsGround;
+    [SerializeField] DamageTable.Weapon weapon; // counters (Resources/DamageTable)
     [SerializeField] float beamWidth = 0.2f;
     [SerializeField] float beamTime = 0.08f;
     [SerializeField] Color color = new(0.2f, 1f, 1f);
@@ -52,7 +55,7 @@ public class Turret : MonoBehaviour
     public Health Aim { get; private set; }  // nearest enemy in range, refreshed a few times a second
     public float LastShot { get; private set; } = -99f;
     public float Charge01 => Mathf.Clamp01(1f - (nextShot - Time.time) / Mathf.Max(0.01f, cooldown / Stats.Value(Stat.FireRate, 1f, this)));
-    public bool Online => !(self.team == 0 && Structure.LowPower);
+    public bool Online => !Structure.LowPowerOf(self.team); // single-player AIs have their own power too
     float nextAim;
 
     void Update()
@@ -124,6 +127,8 @@ public class Turret : MonoBehaviour
             Vector3 from = i == 0 ? muzzle : Flyer.Center(list[i - 1]) + Vector3.up; // arcs chain target to target
             Vector3 hit = Flyer.Center(t) + Vector3.up;
             if (i == 0 && visual.muzzleFlash != null) Fx.Spawn(visual.muzzleFlash, muzzle, Quaternion.LookRotation(hit - muzzle));
+            if (i == 0) Sfx.At(Sfx.ShotOf(damage, splash, bolt != null), muzzle, 0.6f);
+            if (i == 0) LightPool.Flash(muzzle, Color.Lerp(ProductionFX.HoloColor(gameObject), Color.white, 0.5f), damage >= 50f ? 6f : 3f, 10f);
 
             if (bolt != null)
             {
@@ -150,9 +155,10 @@ public class Turret : MonoBehaviour
     void Strike(Health t, Vector3 at, float dmg, bool real)
     {
         if (visual.impact != null) Fx.Spawn(visual.impact, at, Quaternion.identity, splash > 0f ? splash : 1f);
+        if (splash > 0f) Sfx.At(Snd.BoomSmall, at, 0.4f);
         if (visual.scorch != null) Fx.Spawn(visual.scorch, new Vector3(at.x, 0.04f, at.z), Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), splash > 0f ? splash * 0.8f : 1f);
         if (!real) return; // just the look
-        if (splash <= 0f) { if (t != null && t.isActiveAndEnabled) t.TakeDamage(dmg, self); return; }
+        if (splash <= 0f) { if (t != null && t.isActiveAndEnabled) t.TakeDamage(dmg * DamageTable.Factor(weapon, t), self); return; }
         float s2 = splash * splash;
         bool air = Flyer.IsAir(t);
         var hits = new List<Health>();
@@ -161,6 +167,6 @@ public class Turret : MonoBehaviour
             Vector3 d = h.transform.position - at; d.y = 0f;
             if (!Net.Allied(h.team, self.team) && d.sqrMagnitude <= s2 && Flyer.IsAir(h) == air) hits.Add(h); // copy: deaths edit Health.All
         }
-        foreach (var h in hits) h.TakeDamage(dmg, self);
+        foreach (var h in hits) h.TakeDamage(dmg * DamageTable.Factor(weapon, h), self);
     }
 }

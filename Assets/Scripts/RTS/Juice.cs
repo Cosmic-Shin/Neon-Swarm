@@ -10,7 +10,7 @@ public static class Juice
     static ParticleSystem glow, sparks; // shared: glowing bits (no gravity) and falling sparks
     static Material additive;
 
-    static Material Additive => additive != null ? additive : additive = Resources.Load<Material>("HarvestFX");
+    public static Material Additive => additive != null ? additive : additive = Resources.Load<Material>("HarvestFX");
 
     // Can the player see this spot? (Own and allied stuff is always in sight.)
     public static bool Seen(Vector3 at) => FogOfWar.Instance == null || FogOfWar.Instance.IsVisible(at);
@@ -72,6 +72,7 @@ public static class Juice
     // Shakes the camera; weaker the further 'at' is from what the camera looks at.
     public static void Shake(Vector3 at, float strength)
     {
+        if (!GameSettings.Shake) return;
         var cam = Camera.main;
         if (cam == null) return;
         var focus = cam.transform.position + cam.transform.forward * 30f;
@@ -112,6 +113,7 @@ public static class Juice
     // A building blows up: fireball, shockwave rings, flying sparks, a flash and a camera shake.
     public static void BuildingExplosion(GameObject building)
     {
+        Sfx.At(Snd.BoomBig, building.transform.position);
         var b = ConstructionSite.RendererBounds(building);
         if (!Seen(b.center)) return;
         float size = Mathf.Max(b.extents.x, b.extents.z);
@@ -130,6 +132,7 @@ public static class Juice
     // credits = 0: another player's building, no popup.
     public static void Sell(GameObject building, int credits)
     {
+        Sfx.At(Snd.Coin, building.transform.position);
         var b = ConstructionSite.RendererBounds(building);
         if (!Seen(b.center)) return;
         Color c = ProductionFX.HoloColor(building);
@@ -150,6 +153,7 @@ public static class Juice
     // A unit ranks up: golden ring and burst, a flash and its new rank name floating up.
     public static void Promoted(GameObject unit, string rankName)
     {
+        Sfx.At(Snd.Promote, unit.transform.position);
         Vector3 p = unit.transform.position;
         if (!Seen(p)) return;
         Ring(p + Vector3.up * 0.2f, Gold, 0.5f, 4f, 0.6f, 0.2f, unit.transform);
@@ -158,10 +162,80 @@ public static class Juice
         CreditsPopup.Show(p + Vector3.up * 4f, rankName.ToUpper(), Gold);
     }
 
+    // Move order: a ring and four chevrons close in on the spot.
+    public static void MoveMarker(Vector3 at, Color c)
+    {
+        at.y += 0.12f;
+        Ring(at, c, 2.4f, 0.3f, 0.35f, 0.18f);
+        for (int i = 0; i < 4; i++)
+        {
+            float a = (i * 90f + 45f) * Mathf.Deg2Rad;
+            Vector3 dir = new(Mathf.Cos(a), 0f, Mathf.Sin(a)), side = Vector3.Cross(Vector3.up, dir);
+            var lr = Line(c, 0.16f, 3);
+            Play(lr.gameObject, 0.45f, k =>
+            {
+                float d = Mathf.Lerp(3.2f, 0.5f, 1f - (1f - k) * (1f - k));
+                Vector3 tip = at + dir * d;
+                lr.SetPosition(0, tip + dir * 0.6f + side * 0.6f); // V pointing at the spot
+                lr.SetPosition(1, tip);
+                lr.SetPosition(2, tip + dir * 0.6f - side * 0.6f);
+                lr.startColor = lr.endColor = new Color(c.r, c.g, c.b, 1f - k);
+            });
+        }
+    }
+
+    // A thin line from a unit to where it was sent, fading out.
+    public static void OrderLine(Vector3 from, Vector3 to, Color c)
+    {
+        var lr = Line(c, 0.07f, 2);
+        from.y += 0.2f; to.y += 0.15f;
+        Play(lr.gameObject, 0.5f, k =>
+        {
+            lr.SetPosition(0, from);
+            lr.SetPosition(1, to);
+            lr.startColor = new Color(c.r, c.g, c.b, 0.15f * (1f - k));
+            lr.endColor = new Color(c.r, c.g, c.b, 0.6f * (1f - k));
+        });
+    }
+
+    static LineRenderer Line(Color c, float width, int points)
+    {
+        var lr = new GameObject("JuiceLine").AddComponent<LineRenderer>();
+        lr.sharedMaterial = Additive;
+        lr.positionCount = points;
+        lr.useWorldSpace = true;
+        lr.widthMultiplier = width;
+        lr.startColor = lr.endColor = c;
+        lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        return lr;
+    }
+
+    // Construction done: it settles with a thump, a dust ring rolls out and sparks fly off the roof.
+    public static void ConstructionDone(GameObject building)
+    {
+        var b = ConstructionSite.RendererBounds(building);
+        Sfx.At(Snd.Cannon, b.center, 0.5f);
+        if (!Seen(b.center)) return;
+        float size = Mathf.Max(b.extents.x, b.extents.z);
+        Vector3 ground = new(b.center.x, 0.15f, b.center.z);
+        Color dust = new(0.55f, 0.5f, 0.45f, 0.55f);
+        Ring(ground, new Color(0.8f, 0.75f, 0.65f), size * 0.9f, size * 2.2f, 0.8f, 0.5f);
+        for (int i = 0; i < 28; i++)
+        {
+            float a = i * Mathf.PI * 2f / 28f;
+            Vector3 dir = new(Mathf.Cos(a), 0f, Mathf.Sin(a));
+            Particles.Emit("Dust", ground + dir * size * 0.9f, dir * Random.Range(2f, 4f) + Vector3.up * 0.4f, size * 0.4f, 1.4f, dust);
+        }
+        Burst(new Vector3(b.center.x, b.max.y, b.center.z), ProductionFX.HoloColor(building), 25, 5f, 0.15f, 0.7f, 1f);
+        Flash(b.center + Vector3.up * b.extents.y, ProductionFX.HoloColor(building), 4f, size * 3f, 0.4f);
+        Shake(b.center, 0.2f);
+    }
+
     // Attack order: a red reticle closes in on the target twice.
     public static void TargetLock(Health target)
     {
         if (target == null) return;
+        Sfx.Play(Snd.Ack, 0.5f);
         float r = target.TryGetComponent(out Collider c) ? Mathf.Max(c.bounds.extents.x, c.bounds.extents.z) + 0.5f : 1.5f;
         Vector3 at = target.transform.position + Vector3.up * 0.2f;
         Ring(at, Danger, r * 3f, r, 0.3f, 0.2f, target.transform);

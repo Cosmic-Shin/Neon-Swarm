@@ -1,0 +1,93 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce3eeaf56090b0d439f62d3b5a938184, type: 3}
+  m_Name: Hard
+  m_EditorClassIdentifier: Assembly-CSharp::AIProfile
+  thinkInterval: 0.75
+  incomeBonus: 0.15
+  buildOrder:
+  - {fileID: 11400000, guid: 1ea1e89063499434e8a00af834b958dc, type: 2}
+  - {fileID: 11400000, guid: 31a81363c911e9945b10d704c1bda88b, type: 2}
+  - {fileID: 11400000, guid: 3b76cb8b409310244ba1c6cbf84f24d0, type: 2}
+  - {fileID: 11400000, guid: 3b76cb8b409310244ba1c6cbf84f24d0, type: 2}
+  - {fileID: 11400000, guid: 31a81363c911e9945b10d704c1bda88b, type: 2}
+  - {fileID: 11400000, guid: 1659aa0979f965742939e74413da9dff, type: 2}
+  - {fileID: 11400000, guid: 9b3f890f62f20d546aa45de9335497f6, type: 2}
+  - {fileID: 11400000, guid: 1e28c3926f47b0a4aaf60427a5823db7, type: 2}
+  - {fileID: 11400000, guid: 31a81363c911e9945b10d704c1bda88b, type: 2}
+  - {fileID: 11400000, guid: 050ed5871d95a5a41bb5f9c88b889ada, type: 2}
+  - {fileID: 11400000, guid: 35219c113a9955a46a8b2529195587d9, type: 2}
+  - {fileID: 11400000, guid: 1659aa0979f965742939e74413da9dff, type: 2}
+  - {fileID: 11400000, guid: 3faff164e000b6842919fd93a3d891e5, type: 2}
+  - {fileID: 11400000, guid: 31a81363c911e9945b10d704c1bda88b, type: 2}
+  - {fileID: 11400000, guid: 9f84673475348ea43bf26d48423a57db, type: 2}
+  - {fileID: 11400000, guid: aa59efcb58273df4bb7a9b8de2234b13, type: 2}
+  - {fileID: 11400000, guid: 31a81363c911e9945b10d704c1bda88b, type: 2}
+  - {fileID: 11400000, guid: 06cf10608f012a047a66f8ad1693b6da, type: 2}
+  - {fileID: 11400000, guid: 1ea1e89063499434e8a00af834b958dc, type: 2}
+  - {fileID: 11400000, guid: aa59efcb58273df4bb7a9b8de2234b13, type: 2}
+  - {fileID: 11400000, guid: 9b3f890f62f20d546aa45de9335497f6, type: 2}
+  lateGame:
+  - {fileID: 11400000, guid: 31a81363c911e9945b10d704c1bda88b, type: 2}
+  - {fileID: 11400000, guid: aa59efcb58273df4bb7a9b8de2234b13, type: 2}
+  - {fileID: 11400000, guid: 3faff164e000b6842919fd93a3d891e5, type: 2}
+  - {fileID: 11400000, guid: 9b3f890f62f20d546aa45de9335497f6, type: 2}
+  - {fileID: 11400000, guid: 050ed5871d95a5a41bb5f9c88b889ada, type: 2}
+  armyShare: 0.6
+  harvesters: 6
+  units:
+  - unit: {fileID: 11400000, guid: e1d3ae5e0ffa04d44ac47e2cfa2f1eea, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: dc727a6ae7029974d9ee49c4e303d6ca, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: b8ba84336f071c1439acd21606b85c0e, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: c5a0375fd8daa524ca167a4b074bdc65, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: c7c1f07612ff5bd42ae8905ea50d3d59, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: a300c0fef78678d41a8fbe2cf9a27ba9, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: 4409065878f662d43a1e625383329c92, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: 7c3456c428e419a4eaa70bb559eddfbb, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: 808d934e8382fe046801adad5ff02c5e, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: f498f65551d1f0f43ae78dce16891886, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 3199220ca6bea3d4b9124eba8c2cef9c, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: c214128a9066e6049a33badc3e3cbfe5, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: a95ddd7c2cdccc94c970b290c11c95cf, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: a4f25253e29f31b41a7f1c9cd4ce9f4f, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 911dc702a2716c74898dd086d2402ae3, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 3db9a37af08014946a597f22aea23351, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 19ebe73a4ca17c6428a337192745bb6a, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 0fe7f07520181534fa64a32618025b38, type: 2}
+    weight: 1
+  firstAttack: 210
+  waveValue: 3500
+  waveGrowth: 1.2
+  defendRadius: 65
+  upgrades: 1
+  research: 1
+  counterPick: 1
+  expandBelow: 3000
+  harassEvery: 90
+  harassSize: 3

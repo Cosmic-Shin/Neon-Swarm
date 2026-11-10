@@ -16,18 +16,24 @@ MonoBehaviour:
   role: 3
   description: Disabler. EMP shots stun everything within 5m of the target for 1.5s.
   icon: {fileID: 21300000, guid: 50cb9b1acef7eb54f9cc32a07b1cc2d0, type: 3}
-  cost: 900
+  cost: 800
   buildTime: 9
+  squadSize: 1
   maxHealth: 260
   damage: 10
   range: 12
   attackCooldown: 2.5
+  hitsGround: 1
+  hitsAir: 0
   moveSpeed: 9
   sight: 0
   splash: 5
   stunOnHit: 1.5
   slowOnHit: 0
   buildingDamage: 1
+  armor: 1
+  weapon: 0
+  ability: 0
   visual:
     projectile: {fileID: 2892717852803902225, guid: 99cdc5a1d169b8a4584e4340e8521cf8, type: 3}
     speed: 16
@@ -36,3 +42,6 @@ MonoBehaviour:
     impact: {fileID: 1465376850780616683, guid: 3498c009ffdc60b45acc09a76006c5b9, type: 3}
     scorch: {fileID: 0}
     hideBeam: 0
+  style: 0
+  muzzles: 
+  extra: {fileID: 0}
