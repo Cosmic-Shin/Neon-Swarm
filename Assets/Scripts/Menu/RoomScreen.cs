@@ -15,6 +15,7 @@ public class RoomScreen : MonoBehaviour
     public InputField customCredits; // host: type any amount, Enter
     public InputField chatInput;     // Enter sends
     public Text chatLog;
+    public Button friends;           // INVITE friends (removed from the skirmish copy)
     const int ChatLines = 14;
     readonly System.Collections.Generic.List<string> chat = new();
 
@@ -45,6 +46,7 @@ public class RoomScreen : MonoBehaviour
         minutes.onClick.AddListener(() => RoomState.Instance?.NextMinutes());
         customCredits.onSubmit.AddListener(SetCustomCredits);
         chatInput.onSubmit.AddListener(SendChat);
+        FriendsPanel.Hook(friends);
         RoomState.ChatReceived += AddChat;
 
         for (int i = 0; i < rows.Length; i++)
@@ -96,7 +98,8 @@ public class RoomScreen : MonoBehaviour
         var room = RoomState.Instance;
         if (!runner || !runner.SessionInfo.IsValid || room == null) return;
         bool host = room.IsHost;
-        title.text = runner.SessionInfo.Name.ToUpper() + "   " + RoomPlayer.All.Count + "/" + runner.SessionInfo.MaxPlayers;
+        title.text = runner.SessionInfo.Name.ToUpper() + "   " + RoomPlayer.All.Count + "/" + runner.SessionInfo.MaxPlayers
+            + (runner.SessionInfo.IsVisible ? "" : "   <size=20>FRIENDS ONLY</size>");
 
         for (int i = 0; i < rows.Length; i++)
         {

@@ -14,7 +14,7 @@ public class DeathFlash : MonoBehaviour
     void Awake()
     {
         flash = GetComponentInChildren<Light>();
-        intensity = flash.intensity;
+        intensity = flash.intensity * GameSettings.FlashScale;
         start = Time.time;
     }
 

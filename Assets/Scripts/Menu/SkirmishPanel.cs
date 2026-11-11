@@ -50,6 +50,8 @@ public class SkirmishPanel : MonoBehaviour
         var copy = Instantiate(src, src.transform.parent);
         src.SetActive(was);
         copy.name = "SkirmishPanel";
+        var invite = copy.transform.Find("FRIENDSButton");
+        if (invite) DestroyImmediate(invite.gameObject); // online only
         foreach (var mb in copy.GetComponents<MonoBehaviour>()) if (!(mb is TabNavigation)) DestroyImmediate(mb);
         var panel = copy.AddComponent<SkirmishPanel>();
         panel.caller = anyUI.gameObject;

@@ -488,7 +488,7 @@ public class BuildingLife : MonoBehaviour
             if (Time.time >= until)
             {
                 float roll = Random.value;
-                level = roll < 0.06f ? 0f : roll < 0.12f ? 2.5f : 1f;
+                level = GameSettings.ReduceFlashing ? 1f : roll < 0.06f ? 0f : roll < 0.12f ? 2.5f : 1f;
                 until = Time.time + (level == 1f ? Random.Range(0.4f, 2.5f) : Random.Range(0.03f, 0.12f));
             }
             foreach (var t in list) SetGlow(t, level);

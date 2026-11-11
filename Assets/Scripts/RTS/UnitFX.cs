@@ -143,7 +143,7 @@ public class HitFX : MonoBehaviour
             if (!r) continue;
             r.GetPropertyBlock(tmp, s);
             if (!flashing) before[i] = (tmp.HasColor(ColorId), tmp.HasColor(ColorId) ? tmp.GetColor(ColorId) : default);
-            tmp.SetColor(ColorId, Color.Lerp(c, Color.white, 0.75f) * 2.2f);
+            tmp.SetColor(ColorId, GameSettings.ReduceFlashing ? Color.Lerp(c, Color.white, 0.25f) * 1.2f : Color.Lerp(c, Color.white, 0.75f) * 2.2f);
             r.SetPropertyBlock(tmp, s);
         }
         flashing = true;
@@ -347,6 +347,7 @@ public class LightPool : MonoBehaviour
         l.transform.position = at;
         l.color = c;
         l.range = range;
+        intensity *= GameSettings.FlashScale;
         l.intensity = intensity;
         l.enabled = true;
         I.born[i] = Time.time;

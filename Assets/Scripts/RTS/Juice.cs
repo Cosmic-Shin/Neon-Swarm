@@ -66,6 +66,7 @@ public static class Juice
         l.color = c;
         l.range = range;
         l.shadows = LightShadows.None;
+        intensity *= GameSettings.FlashScale;
         Play(l.gameObject, time, k => l.intensity = intensity * (1f - k) * (1f - k));
     }
 

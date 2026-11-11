@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.UI;
 
 // Player options, saved in PlayerPrefs: volumes, graphics quality, fullscreen, camera speed, screen shake.
@@ -8,6 +9,11 @@ public static class GameSettings
     public static float Master = Get("master", 1f), Music = Get("music", 0.6f), Effects = Get("effects", 0.8f), CameraSpeed = Get("camSpeed", 1f);
     public static bool Shake = Get("shake", 1f) > 0.5f, Rain = Get("rain", 1f) > 0.5f, DamageNumbers = Get("dmgNumbers", 0f) > 0.5f;
     public static int Quality = (int)Get("quality", -1f); // -1: the project's default level
+    public static float BloomLevel = Get("bloom", 1f);        // x the profile's bloom; 0 = off (bright neon can strain eyes)
+    public static bool PostFX = Get("postfx", 1f) > 0.5f;     // all post-processing (bloom, grading, vignette): off for slow PCs
+    public static float NeonColours = Get("neon", 1f);        // 0.3..1: colour grading saturation/brightness (needs post effects)
+    public static bool ReduceFlashing = Get("calm", 0f) > 0.5f;
+    public static float FlashScale => ReduceFlashing ? 0.3f : 1f; // light flashes (explosions, muzzles, deaths)
     public static event System.Action Changed;
 
     static float Get(string key, float fallback) => PlayerPrefs.GetFloat("settings." + key, fallback);
@@ -18,6 +24,7 @@ public static class GameSettings
         Set("master", Master); Set("music", Music); Set("effects", Effects); Set("camSpeed", CameraSpeed);
         Set("shake", Shake ? 1f : 0f); Set("quality", Quality);
         Set("rain", Rain ? 1f : 0f); Set("dmgNumbers", DamageNumbers ? 1f : 0f);
+        Set("bloom", BloomLevel); Set("postfx", PostFX ? 1f : 0f); Set("neon", NeonColours); Set("calm", ReduceFlashing ? 1f : 0f);
         PlayerPrefs.Save();
         Apply();
     }
@@ -26,7 +33,32 @@ public static class GameSettings
     {
         AudioListener.volume = Master;
         if (Quality >= 0 && Quality < QualitySettings.names.Length && QualitySettings.GetQualityLevel() != Quality) QualitySettings.SetQualityLevel(Quality, true);
+        ApplyPostFX();
         Changed?.Invoke();
+    }
+
+    [RuntimeInitializeOnLoadMethod]
+    static void HookScenes() => UnityEngine.SceneManagement.SceneManager.sceneLoaded += (s, m) => ApplyPostFX();
+
+    // Edits each volume's runtime copy (volume.profile), never the shared asset, so the base look is kept.
+    public static void ApplyPostFX()
+    {
+        foreach (var layer in Object.FindObjectsByType<PostProcessLayer>(FindObjectsSortMode.None)) layer.enabled = PostFX;
+        foreach (var vol in Object.FindObjectsByType<PostProcessVolume>(FindObjectsSortMode.None))
+        {
+            if (vol.sharedProfile == null) continue;
+            if (vol.sharedProfile.TryGetSettings(out Bloom baseBloom) && vol.profile.TryGetSettings(out Bloom bloom))
+            {
+                bloom.active = BloomLevel > 0.01f;
+                bloom.intensity.value = baseBloom.intensity.value * BloomLevel;
+            }
+            if (vol.sharedProfile.TryGetSettings(out ColorGrading baseGrade) && vol.profile.TryGetSettings(out ColorGrading grade))
+            {
+                float dim = 1f - NeonColours; // 0 = the authored look
+                grade.saturation.value = baseGrade.saturation.value - dim * 100f;
+                grade.postExposure.value = baseGrade.postExposure.value - dim * 0.6f;
+            }
+        }
     }
 }
 
@@ -64,25 +96,35 @@ public class SettingsPanel : MonoBehaviour
     {
         var box = new GameObject("Box", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
         box.SetParent(root, false);
-        box.sizeDelta = new Vector2(620f, 740f);
+        box.sizeDelta = new Vector2(620f, 1000f);
         box.GetComponent<Image>().color = Box;
 
-        Label(box, "SETTINGS", new Vector2(0f, 325f), 34, TextAnchor.MiddleCenter, 560f);
-        float y = 245f;
+        Label(box, "SETTINGS", new Vector2(0f, 455f), 34, TextAnchor.MiddleCenter, 560f);
+        float y = 380f;
         Slider(box, "Master volume", ref y, 0f, 1f, GameSettings.Master, v => { GameSettings.Master = v; GameSettings.Apply(); }, v => $"{v:P0}");
         Slider(box, "Music", ref y, 0f, 1f, GameSettings.Music, v => { GameSettings.Music = v; GameSettings.Apply(); }, v => $"{v:P0}");
         Slider(box, "Effects", ref y, 0f, 1f, GameSettings.Effects, v => { GameSettings.Effects = v; Sfx.Play(Snd.Laser, 0.8f); }, v => $"{v:P0}");
         Slider(box, "Camera speed", ref y, 0.5f, 2f, GameSettings.CameraSpeed, v => GameSettings.CameraSpeed = v, v => $"{v:0.0}x");
 
         string[] q = QualitySettings.names;
-        Cycle(box, "Graphics", ref y, () => q[QualitySettings.GetQualityLevel()],
-            () => { GameSettings.Quality = (QualitySettings.GetQualityLevel() + 1) % q.Length; GameSettings.Apply(); });
+        Text postLabel = null;
+        Cycle(box, "Graphics", ref y, () => q[QualitySettings.GetQualityLevel()], () =>
+        {
+            GameSettings.Quality = (QualitySettings.GetQualityLevel() + 1) % q.Length;
+            GameSettings.PostFX = GameSettings.Quality > 1; // Very Low / Low: post effects off too (the toggle below can bring them back)
+            GameSettings.Apply();
+            postLabel.text = GameSettings.PostFX ? "ON" : "OFF";
+        });
+        postLabel = Cycle(box, "Post effects", ref y, () => GameSettings.PostFX ? "ON" : "OFF", () => { GameSettings.PostFX = !GameSettings.PostFX; GameSettings.ApplyPostFX(); });
+        Slider(box, "Bloom (neon glow)", ref y, 0f, 1.5f, GameSettings.BloomLevel, v => { GameSettings.BloomLevel = v; GameSettings.ApplyPostFX(); }, v => v < 0.01f ? "OFF" : $"{v:P0}");
+        Slider(box, "Neon colours", ref y, 0.3f, 1f, GameSettings.NeonColours, v => { GameSettings.NeonColours = v; GameSettings.ApplyPostFX(); }, v => $"{v:P0}");
+        Cycle(box, "Reduce flashing", ref y, () => GameSettings.ReduceFlashing ? "ON" : "OFF", () => GameSettings.ReduceFlashing = !GameSettings.ReduceFlashing);
         Cycle(box, "Fullscreen", ref y, () => Screen.fullScreen ? "ON" : "OFF", () => Screen.fullScreen = !Screen.fullScreen);
         Cycle(box, "Screen shake", ref y, () => GameSettings.Shake ? "ON" : "OFF", () => GameSettings.Shake = !GameSettings.Shake);
         Cycle(box, "Rain", ref y, () => GameSettings.Rain ? "ON" : "OFF", () => GameSettings.Rain = !GameSettings.Rain);
         Cycle(box, "Damage numbers", ref y, () => GameSettings.DamageNumbers ? "ON" : "OFF", () => GameSettings.DamageNumbers = !GameSettings.DamageNumbers);
 
-        var back = Button(box, "BACK", new Vector2(0f, -330f), new Vector2(300f, 56f));
+        var back = Button(box, "BACK", new Vector2(0f, -450f), new Vector2(300f, 56f));
         back.onClick.AddListener(Close);
     }
 
@@ -116,13 +158,14 @@ public class SettingsPanel : MonoBehaviour
         y -= 62f;
     }
 
-    public static void Cycle(Transform box, string name, ref float y, System.Func<string> show, System.Action next)
+    public static Text Cycle(Transform box, string name, ref float y, System.Func<string> show, System.Action next)
     {
         Label(box, name, new Vector2(-145f, y), 22, TextAnchor.MiddleLeft, 260f);
         var b = Button(box, show(), new Vector2(140f, y), new Vector2(230f, 44f));
         var text = b.GetComponentInChildren<Text>();
         b.onClick.AddListener(() => { next(); text.text = show(); });
         y -= 62f;
+        return text;
     }
 
     public static Button Button(Transform parent, string text, Vector2 pos, Vector2 size)

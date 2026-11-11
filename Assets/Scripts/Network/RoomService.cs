@@ -66,10 +66,11 @@ public class RoomService : MonoBehaviour
         return result.Ok ? null : "Can't reach server: " + result.ShutdownReason;
     }
 
-    public async Task<string> Create(string room)
+    // friendsOnly: left off the public room list; friends get in with JOIN or an invite.
+    public async Task<string> Create(string room, bool friendsOnly = false)
     {
         if (Rooms.Exists(r => r.Name == room)) return "A room with that name already exists.";
-        return await StartRoom(room, true);
+        return await StartRoom(room, true, !friendsOnly);
     }
 
     public Task<string> Join(string room) => StartRoom(room, false);
@@ -81,6 +82,7 @@ public class RoomService : MonoBehaviour
         Runner = null;
         inRoom = false;
         Rooms = new();
+        if (FriendsHub.CurrentRoom != null) FriendsHub.SetRoom(null);
         await old.Shutdown();
     }
 
@@ -96,7 +98,7 @@ public class RoomService : MonoBehaviour
         Runner.LoadScene(SceneRef.FromIndex(index));
     }
 
-    async Task<string> StartRoom(string room, bool create)
+    async Task<string> StartRoom(string room, bool create, bool visible = true)
     {
         if (!Runner) Runner = NewRunner();
         var result = await Runner.StartGame(new StartGameArgs
@@ -105,6 +107,7 @@ public class RoomService : MonoBehaviour
             SessionName = room,
             PlayerCount = MaxPlayers,
             EnableClientSessionCreation = create, // Join must not silently create a new room
+            IsVisible = visible,
             SceneManager = Runner.GetComponent<NetworkSceneManagerDefault>(),
         });
         if (!result.Ok)
@@ -119,6 +122,7 @@ public class RoomService : MonoBehaviour
             };
         }
         inRoom = true;
+        FriendsHub.SetRoom(room); // friends see it and can JOIN
         Runner.Spawn(roomPlayerPrefab); // Shared mode: each player spawns and owns their own
         if (Runner.IsSharedModeMasterClient && RoomState.Instance == null) Runner.Spawn(roomStatePrefab); // the room's creator
         return null;
@@ -142,6 +146,7 @@ public class RoomService : MonoBehaviour
             bool wasInRoom = inRoom;
             Runner = null;
             inRoom = false;
+            if (FriendsHub.CurrentRoom != null) FriendsHub.SetRoom(null);
             if (wasInRoom) Disconnected?.Invoke(reason.ToString());
         });
         return runner;

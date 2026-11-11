@@ -6,7 +6,7 @@ public class LobbyMenu : MonoBehaviour
 {
     public LoginScreen login;
     public Text welcome, status;
-    public Button skirmish, multiplayer, settings, account, quit;
+    public Button skirmish, multiplayer, settings, account, friends, quit;
 
     public GameObject accountPanel, multiplayerPanel;
     public Text accountInfo;
@@ -18,9 +18,10 @@ public class LobbyMenu : MonoBehaviour
         multiplayer.onClick.AddListener(() => { gameObject.SetActive(false); multiplayerPanel.SetActive(true); });
         settings.onClick.AddListener(() => SettingsPanel.Open(this));
         account.onClick.AddListener(OpenAccount);
+        FriendsPanel.Hook(friends);
         quit.onClick.AddListener(Quit);
         back.onClick.AddListener(() => { accountPanel.SetActive(false); gameObject.SetActive(true); });
-        signOut.onClick.AddListener(() => { AccountService.SignOut(); ProfileService.Forget(); accountPanel.SetActive(false); login.Show(); });
+        signOut.onClick.AddListener(() => { FriendsHub.SignedOut(); AccountService.SignOut(); ProfileService.Forget(); accountPanel.SetActive(false); login.Show(); });
     }
 
     void OnEnable()

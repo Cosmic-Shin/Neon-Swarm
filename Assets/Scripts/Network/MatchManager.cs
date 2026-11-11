@@ -293,6 +293,7 @@ public class MatchManager : MonoBehaviour
             $"Time's up. {who} army and base are worth the most (${bestWorth}; yours ${mine}).");
     }
 
+    bool friendButtons; // "+ ADD name" for the other players, once
     bool recorded; // the result went into the player's profile (a defeat followed by spectating counts once)
 
     // Into the signed-in player's career stats (Account screen).
@@ -332,6 +333,7 @@ public class MatchManager : MonoBehaviour
         float x = canSpectate ? 210f : 0f;
         ((RectTransform)endButton.transform).anchoredPosition = new Vector2(x, -330f);
         ((RectTransform)spectateButton.transform).anchoredPosition = new Vector2(-x, -330f);
+        if (Net.InMatch && !friendButtons) { friendButtons = true; FriendsPanel.AddButtons(endButton.transform.parent, new Vector2(0f, -262f)); }
         if (title == "DEFEAT" || title == "MATCH OVER") FogOfWar.RevealAll = true; // nothing of yours left to see with: show the whole map behind the results
         StopAllCoroutines();
         StartCoroutine(Finale(title == "VICTORY" || title == "DEFEAT"));
