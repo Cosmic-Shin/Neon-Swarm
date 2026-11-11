@@ -3,7 +3,7 @@ using UnityEngine;
 
 // Paints a unit or building in its owner's colour: the cyan neon accent every model shares is swapped
 // for a copy in the team colour (one copy per colour, shared). Health.Start calls it, once the team is known.
-// Your own side keeps the original cyan in single player.
+// Your own side keeps the original cyan in single player, unless you picked another colour in the skirmish lobby.
 public static class TeamLook
 {
     const string Accent = "Skitter_NeonCyan";
@@ -12,7 +12,7 @@ public static class TeamLook
 
     public static void Apply(GameObject go, int team)
     {
-        if (!Net.Online && team == 0) return;
+        if (!Net.Online && team == 0 && Net.ColorOf(0) == TeamMember.TeamColors[0]) return; // keeps the model's own cyan unless you picked another colour
         Color c = Net.ColorOf(team);
         if (c == Color.white) return; // no colour for this side
         foreach (var r in go.GetComponentsInChildren<Renderer>(true))

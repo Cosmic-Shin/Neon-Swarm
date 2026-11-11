@@ -126,6 +126,117 @@ public static class Juice
         Burst(b.center, team, 50, size * 2.5f, 0.25f, 0.8f, 0.3f);       // neon bits
         Burst(b.center, Fire, 90, size * 3f, 0.18f, 1.2f, 0.8f, true);  // sparks raining down
         Shake(b.center, 0.8f);
+        Aftermath(b);
+    }
+
+    static readonly Color Soot = new(0.12f, 0.11f, 0.12f, 0.85f);
+
+    // A building just placed: rings ripple out across the ground grid from its footprint, with a flash
+    // and a burst of grid-coloured bits where it lands.
+    public static void PlacedRipple(GameObject building)
+    {
+        var col = building.GetComponent<BoxCollider>();
+        Vector3 size = col != null ? Vector3.Scale(col.size, building.transform.lossyScale) : Vector3.one * 8f;
+        float r = Mathf.Max(size.x, size.z) * 0.5f;
+        Vector3 at = new(building.transform.position.x, 0.12f, building.transform.position.z);
+        Color c = new(0.3f, 0.95f, 1f);
+        Ring(at, c, r * 0.8f, r * 2.6f, 0.55f, 0.25f);
+        Ring(at, c, r * 1.0f, r * 4.0f, 0.9f, 0.12f);
+        Ring(at, new Color(1f, 0.2f, 0.85f), r * 1.2f, r * 5.5f, 1.3f, 0.08f);
+        Flash(at + Vector3.up * 2f, c, 4f, r * 4f, 0.35f);
+        Burst(at, c, 24, r * 1.5f, 0.12f, 0.6f, 0.4f);
+    }
+
+    static Material additiveLine; // vertex colour does the colour; shared by every scan ring
+    public static Material AdditiveLine
+    {
+        get
+        {
+            if (additiveLine != null) return additiveLine;
+            additiveLine = new Material(Shader.Find("Legacy Shaders/Particles/Additive"));
+            additiveLine.SetColor("_TintColor", new Color(1.2f, 1.2f, 1.2f, 1f)); // over 0.5 so it blooms
+            return additiveLine;
+        }
+    }
+
+    // A new unit from a factory: once it's out of the door (after `delay`), a ring of light in its colour
+    // sweeps up its body, with a flash at its feet and sparks.
+    public static void Materialize(GameObject unit, float delay)
+    {
+        if (unit == null) return;
+        Color c = ProductionFX.HoloColor(unit);
+        var go = new GameObject("Materialize");
+        go.transform.SetParent(unit.transform, false);
+        var lr = go.AddComponent<LineRenderer>();
+        lr.useWorldSpace = false;
+        lr.loop = true;
+        lr.sharedMaterial = AdditiveLine;
+        lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        lr.enabled = false;
+        const int N = 32;
+        lr.positionCount = N;
+        float radius = 1f, height = 2f;
+        bool started = false;
+        Play(go, delay + 0.75f, k =>
+        {
+            float t = k * (delay + 0.75f) - delay;
+            if (t < 0f || unit == null) return;
+            if (!started)
+            {
+                started = true;
+                var b = ConstructionSite.RendererBounds(unit);
+                float scale = Mathf.Max(0.01f, unit.transform.lossyScale.x);
+                radius = Mathf.Max(b.extents.x, b.extents.z) * 1.1f / scale;
+                height = (b.max.y - unit.transform.position.y) / scale;
+                for (int i = 0; i < N; i++) { float a = i * Mathf.PI * 2f / N; lr.SetPosition(i, new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * radius); }
+                if (!Seen(unit.transform.position)) return;
+                lr.enabled = true;
+                Vector3 feet = unit.transform.position + Vector3.up * 0.15f;
+                Ring(feet, c, radius * scale * 0.4f, radius * scale * 2f, 0.45f, 0.15f);
+                Flash(feet + Vector3.up, c, 3f, radius * scale * 5f, 0.3f);
+            }
+            float p = Mathf.Clamp01(t / 0.75f);
+            go.transform.localPosition = Vector3.up * height * p;
+            float w = 0.12f * (1f - p) + 0.03f;
+            lr.widthMultiplier = w;
+            lr.startColor = lr.endColor = new Color(c.r, c.g, c.b, 1f - p * 0.7f);
+            if (lr.enabled && Random.value < 0.5f) Burst(go.transform.position + Random.insideUnitSphere * radius * 0.5f, c, 2, 2f, 0.1f, 0.4f, 0.3f);
+        });
+    }
+
+    // After the big blast: a chain of smaller ones through the wreck for a second and a half, then a few
+    // fires that burn and smoke on the spot for several seconds.
+    static void Aftermath(Bounds b)
+    {
+        float size = Mathf.Max(b.extents.x, b.extents.z);
+        var fires = new Vector3[Mathf.Clamp(Mathf.RoundToInt(size / 3f), 2, 5)];
+        for (int i = 0; i < fires.Length; i++) fires[i] = new Vector3(Random.Range(b.min.x, b.max.x), 0.3f, Random.Range(b.min.z, b.max.z));
+        var anchor = new GameObject("BuildingAftermath");
+        float nextPop = 0.15f, nextFire = 0f;
+        Play(anchor, 9f, k =>
+        {
+            float t = k * 9f;
+            if (t < 1.6f && t >= nextPop) // secondary explosions
+            {
+                nextPop = t + Random.Range(0.15f, 0.35f);
+                Vector3 p = new(Random.Range(b.min.x, b.max.x), Random.Range(b.min.y, b.center.y + b.extents.y * 0.5f), Random.Range(b.min.z, b.max.z));
+                Flash(p, Fire, 5f, size * 1.5f, 0.25f);
+                Burst(p, Fire, 14, size * 0.8f, 0.18f, 0.5f, 0.6f, true);
+                Particles.Emit("Smoke", p, Vector3.up * 2f, size * 0.4f, 1.6f, Soot);
+                Sfx.At(Snd.BoomSmall, p, 0.5f);
+            }
+            if (t >= nextFire) // lingering fires, dying down
+            {
+                nextFire = t + 0.12f;
+                float left = 1f - k;
+                foreach (var f in fires)
+                {
+                    if (Random.value > left) continue;
+                    Burst(f + Random.insideUnitSphere * 0.6f, Fire, 2, 2.5f, 0.2f * left + 0.08f, 0.6f, 2.5f);
+                    if (Random.value < 0.35f) Particles.Emit("Smoke", f + Vector3.up * 1.5f, Vector3.up * 2.2f + Random.insideUnitSphere * 0.4f, 1.5f + size * 0.15f, 2.4f, Soot);
+                }
+            }
+        });
     }
 
     // Sold (or removed): the building turns into a hologram that sinks into the ground; credits pop up.
@@ -136,15 +247,24 @@ public static class Juice
         var b = ConstructionSite.RendererBounds(building);
         if (!Seen(b.center)) return;
         Color c = ProductionFX.HoloColor(building);
+        // A hologram copy that dissolves top-down: a scan line sweeps from roof to ground (GD5/Hologram draws
+        // only below _CutY and lights the cut), throwing sparks off the line as it goes.
         var holo = ConstructionSite.MakeHologram(building, building.transform.position, building.transform.rotation, new Color(c.r, c.g, c.b, 0.5f));
         holo.transform.localScale = building.transform.lossyScale;
-        Vector3 start = holo.transform.position;
-        float height = b.size.y;
-        Play(holo, 1.2f, k =>
+        var mat = new Material(Shader.Find("GD5/Hologram"));
+        mat.SetColor("_Color", new Color(c.r * 1.5f, c.g * 1.5f, c.b * 1.5f, 1f));
+        foreach (var r in holo.GetComponentsInChildren<Renderer>())
         {
-            holo.transform.position = start + Vector3.down * height * k * k;
-            ConstructionSite.Tint(holo, new Color(c.r, c.g, c.b, 0.5f * (1f - k)));
-            if (Random.value < 0.6f) Burst(new Vector3(Random.Range(b.min.x, b.max.x), b.min.y + height * (1f - k * k), Random.Range(b.min.z, b.max.z)), c, 2, 3f, 0.2f, 0.7f, 2f);
+            var mats = r.sharedMaterials;
+            for (int i = 0; i < mats.Length; i++) mats[i] = mat;
+            r.sharedMaterials = mats;
+        }
+        float top = b.max.y, bottom = b.min.y;
+        Play(holo, 1.4f, k =>
+        {
+            float cut = Mathf.Lerp(top, bottom, k * k * (3f - 2f * k));
+            mat.SetFloat("_CutY", cut);
+            if (Random.value < 0.8f) Burst(new Vector3(Random.Range(b.min.x, b.max.x), cut, Random.Range(b.min.z, b.max.z)), c, 3, 4f, 0.15f, 0.6f, 0.5f, true);
         });
         Ring(new Vector3(b.center.x, 0.15f, b.center.z), c, Mathf.Max(b.extents.x, b.extents.z), Mathf.Max(b.extents.x, b.extents.z) * 1.6f, 0.8f, 0.3f);
         if (credits > 0) CreditsPopup.Show(b.center + Vector3.up * b.extents.y, $"+${credits}", Gold);

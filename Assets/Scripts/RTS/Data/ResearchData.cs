@@ -33,7 +33,10 @@ public static class ResearchManager
     static List<ResearchData> List(int team) => done.TryGetValue(team, out var l) ? l : done[team] = new();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void Reset() { done.Clear(); running.Clear(); } // fresh each play session
+    static void Reset() => Clear(); // fresh each play session
+
+    // A new match (MatchManager.Start); a loaded save puts its research back after.
+    public static void Clear() { done.Clear(); running.Clear(); }
 
     public static bool IsDone(ResearchData r, int team = 0) => List(team).Contains(r);
 
@@ -77,9 +80,9 @@ public static class ResearchManager
     }
 
     // Saves: put back what was done without the alerts.
-    public static void Restore(IEnumerable<ResearchData> list)
+    public static void Restore(IEnumerable<ResearchData> list, int team = 0)
     {
-        var mine = List(0);
+        var mine = List(team);
         mine.Clear();
         mine.AddRange(list);
         Stats.Refresh();

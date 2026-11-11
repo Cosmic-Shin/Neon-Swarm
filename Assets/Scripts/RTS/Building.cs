@@ -135,6 +135,7 @@ public class Building : MonoBehaviour
     void OnDestroy()
     {
         foreach (int q in queue) if (!IsUnit(q)) ResearchManager.Stopped(Upgrade(q), this);
+        if (flag != null) Destroy(flag.gameObject);
     }
 
     public int QueuedCount(int index)
@@ -154,6 +155,7 @@ public class Building : MonoBehaviour
             rallyLine.SetPosition(0, spawnPoint.position + Vector3.up * 0.3f);
             rallyLine.SetPosition(1, Rally.Value + Vector3.up * 0.3f);
         }
+        RallyFlag(showRally);
 
         ShowProduction(Producing, Progress01);
         if (queue.Count == 0) return;
@@ -167,6 +169,60 @@ public class Building : MonoBehaviour
         if (IsUnit(done)) { SummonUnit(done); if (ours) Alerts.Show($"Unit ready: {NameOf(done)}{(SquadOf(done) > 1 ? $" x{SquadOf(done)}" : "")}", Alerts.Info); }
         else { ResearchManager.Complete(Upgrade(done), Team); if (ours) { MatchStats.Add(MatchStats.Kind.Research); Alerts.Show($"Research complete: {NameOf(done)}", Alerts.Good); } }
     }
+
+    // A hologram flag on the rally point while the building is selected: a pole, a waving pennant and a
+    // ring that pulses on the ground, in the building's colour.
+    Transform flag;
+    LineRenderer pennant;
+
+    void RallyFlag(bool show)
+    {
+        if (flag == null)
+        {
+            if (!show) return;
+            Color c = ProductionFX.HoloColor(gameObject);
+            flag = new GameObject("RallyFlag").transform;
+            var pole = flag.gameObject.AddComponent<LineRenderer>();
+            pole.useWorldSpace = false;
+            pole.sharedMaterial = Juice.AdditiveLine;
+            pole.positionCount = 2;
+            pole.SetPosition(0, Vector3.zero);
+            pole.SetPosition(1, Vector3.up * 3.2f);
+            pole.widthMultiplier = 0.08f;
+            pole.startColor = pole.endColor = new Color(c.r, c.g, c.b, 0.9f);
+            pennant = new GameObject("Pennant").AddComponent<LineRenderer>();
+            pennant.transform.SetParent(flag, false);
+            pennant.useWorldSpace = false;
+            pennant.sharedMaterial = Juice.AdditiveLine;
+            pennant.positionCount = 6;
+            pennant.widthCurve = AnimationCurve.Linear(0f, 0.9f, 1f, 0.05f); // a triangle: wide at the pole
+            pennant.startColor = pennant.endColor = new Color(c.r, c.g, c.b, 0.55f);
+            var ring = new GameObject("Ring").AddComponent<LineRenderer>();
+            ring.transform.SetParent(flag, false);
+            ring.useWorldSpace = false;
+            ring.loop = true;
+            ring.sharedMaterial = Juice.AdditiveLine;
+            ring.positionCount = 24;
+            for (int i = 0; i < 24; i++) { float a = i * Mathf.PI / 12f; ring.SetPosition(i, new Vector3(Mathf.Cos(a), 0.08f, Mathf.Sin(a)) * 1.2f); }
+            ring.widthMultiplier = 0.08f;
+            ring.startColor = ring.endColor = new Color(c.r, c.g, c.b, 0.7f);
+            foreach (var lr in flag.GetComponentsInChildren<LineRenderer>()) lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+        flag.gameObject.SetActive(show);
+        if (!show) return;
+        flag.position = Rally.Value;
+        // Face the camera so the pennant reads as a flag, and let it wave.
+        if (Camera.main != null) flag.rotation = Quaternion.Euler(0f, Camera.main.transform.eulerAngles.y, 0f);
+        for (int i = 0; i < 6; i++)
+        {
+            float x = i * 0.32f;
+            pennant.SetPosition(i, new Vector3(x, 2.85f + Mathf.Sin(Time.time * 6f - i * 0.9f) * 0.08f * i, Mathf.Sin(Time.time * 4f - i) * 0.05f * i));
+        }
+        float pulse = 1f + 0.15f * Mathf.Sin(Time.time * 4f);
+        flag.Find("Ring").localScale = new Vector3(pulse, 1f, pulse);
+    }
+
+    void OnDisable() { if (flag != null) flag.gameObject.SetActive(false); }
 
     // Squad units (C&C style) come out one after another, this far apart.
     const float SquadGap = 0.45f;
@@ -201,10 +257,12 @@ public class Building : MonoBehaviour
         {
             float launch = aerie.Launch(unit, exit, rally);
             if (TryGetComponent(out NetEntity n) && n.Online) n.RPC_OpenGate(launch); // others see the hatch open
+            Juice.Materialize(unit.gameObject, launch * 0.6f);
             return;
         }
         unit.WalkOut(inside, exit, exitSpeed, edge, rally);
         float doorTime = Vector3.Distance(inside, exit) / exitSpeed; // shut once it's through
+        Juice.Materialize(unit.gameObject, doorTime * 0.85f); // as it clears the door
         OpenGate(doorTime);
         if (TryGetComponent(out NetEntity net) && net.Online) net.RPC_OpenGate(doorTime);
     }

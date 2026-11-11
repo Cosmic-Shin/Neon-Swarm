@@ -59,6 +59,15 @@ public class Minimap : MonoBehaviour, IPointerDownHandler, IDragHandler
                 if (go != null) { Color c = Net.ColorOf(team); c.a = 0.45f; Dot(go.transform.position, 8f, c); }
         foreach (var o in outposts)
             if (o != null && Explored(o.transform.position)) Dot(o.transform.position, 10f, o.IsOwned ? Net.ColorOf(o.ownerTeam) : Color.white);
+        for (int i = fights.Count - 1; i >= 0; i--) // battles: an orange flash that throbs, then fades
+        {
+            float age = Time.time - fights[i].at;
+            if (age > FightTime) { fights.RemoveAt(i); continue; }
+            float throb = 0.5f + 0.5f * Mathf.Sin(age * 14f);
+            Color c = fights[i].ours ? new Color(1f, 0.3f, 0.2f) : new Color(1f, 0.65f, 0.1f);
+            c.a = (1f - age / FightTime) * (0.45f + 0.55f * throb);
+            Dot(fights[i].p, 10f + 8f * throb, c);
+        }
         foreach (var p in Ping.Active) // pulsing, fading circles
         {
             float age = Time.time - p.born, pulse = age % 1f;
@@ -77,6 +86,27 @@ public class Minimap : MonoBehaviour, IPointerDownHandler, IDragHandler
         }
         viewFrame.anchoredPosition = min;
         viewFrame.sizeDelta = max - min;
+    }
+
+    // Where fighting is going on (Health.TakeDamage reports hits). One flash per 24 m patch, refreshed
+    // while the fight lasts; only what you can see, plus anything hitting your side.
+    const float FightTime = 2.5f, FightPatch = 24f;
+    static readonly List<(Vector3 p, float at, bool ours)> fights = new();
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetFights() => fights.Clear();
+
+    public static void Fight(Vector3 p, bool ours)
+    {
+        if (!ours && FogOfWar.Instance != null && !FogOfWar.Instance.IsVisible(p)) return;
+        for (int i = 0; i < fights.Count; i++)
+        {
+            Vector3 d = fights[i].p - p;
+            if (d.x * d.x + d.z * d.z > FightPatch * FightPatch) continue;
+            if (Time.time - fights[i].at > 0.5f) fights[i] = (fights[i].p, Time.time, fights[i].ours || ours); // still going
+            return;
+        }
+        if (fights.Count < 24) fights.Add((p, Time.time, ours));
     }
 
     void Dot(Vector3 world, float size, Color color)

@@ -26,9 +26,9 @@ public class GameMenu : MonoBehaviour
     void Update()
     {
         var kb = Chat.Keys;
-        if (kb != null && kb.f5Key.wasPressedThisFrame) SaveGame();
-        if (kb != null && kb.f9Key.wasPressedThisFrame) LoadGame();
-        if (kb == null || !kb.escapeKey.wasPressedThisFrame || match.IsOver || SettingsPanel.IsOpen || Hud.HelpOpen) return; // Settings closes itself on Esc
+        if (kb != null && kb.f5Key.wasPressedThisFrame) QuickSave();
+        if (kb != null && kb.f9Key.wasPressedThisFrame) QuickLoad();
+        if (kb == null || !kb.escapeKey.wasPressedThisFrame || match.IsOver || SettingsPanel.IsOpen || SaveSlotsPanel.IsOpen || Hud.HelpOpen) return; // they close themselves on Esc
         if (!IsOpen && (BuildingPlacer.MenuOpen || BuildingPlacer.Placing)) return; // their Esc
         Show(!IsOpen);
     }
@@ -40,7 +40,7 @@ public class GameMenu : MonoBehaviour
         surrender.gameObject.SetActive(Net.Online);
         saveButton.gameObject.SetActive(!Net.Online);
         loadButton.gameObject.SetActive(!Net.Online);
-        loadButton.interactable = SaveSystem.HasSave;
+        loadButton.interactable = SaveSystem.HasAnySave;
     }
 
     Button saveButton, loadButton;
@@ -61,30 +61,39 @@ public class GameMenu : MonoBehaviour
             return b;
         }
         Add("Settings", () => SettingsPanel.Open(panel.transform));
-        saveButton = Add("Save game", () => { SaveGame(); Show(false); });
-        loadButton = Add("Load game", LoadGame);
+        saveButton = Add("Save game", () => { if (!Offline()) return; SaveSlotsPanel.Open(panel.transform, saving: true, onSaved: () => Show(false)); });
+        loadButton = Add("Load game", () => { if (!Offline()) return; SaveSlotsPanel.Open(panel.transform, saving: false); });
         float down = at.y - ((RectTransform)leave.transform).anchoredPosition.y;
         foreach (var other in new[] { leave, surrender }) ((RectTransform)other.transform).anchoredPosition += new Vector2(0f, down);    }
 
-    // F5 / Esc menu. Offline only: an online match lives on several PCs.
-    void SaveGame()
+    // Saving and loading are offline only: an online match lives on several PCs.
+    static bool Offline()
     {
-        if (Net.Online) { Alerts.Show("Saving is offline only", Alerts.Warn, 2f); return; }
-        SaveSystem.Save();
-        Alerts.Show("Game saved", Alerts.Good);
+        if (Net.Online) Alerts.Show("Saving and loading are offline only", Alerts.Warn, 2f);
+        return !Net.Online;
     }
 
-    // F9 / Esc menu: restarts the scene from the save.
-    void LoadGame()
+    // F5: into the last slot used (the Esc menu picks a slot).
+    void QuickSave()
     {
-        if (Net.Online) { Alerts.Show("Loading is offline only", Alerts.Warn, 2f); return; }
-        if (!SaveSystem.LoadGame()) Alerts.Show("No saved game yet (F5 saves)", Alerts.Warn, 2f);
+        if (!Offline() || match.IsOver) return;
+        SaveSystem.Save(SaveSystem.LastSlot);
+        Alerts.Show($"Quick saved to slot {SaveSystem.LastSlot}", Alerts.Good);
+    }
+
+    // F9: the newest save; restarts the map from it.
+    void QuickLoad()
+    {
+        if (!Offline()) return;
+        int slot = SaveSystem.NewestSlot;
+        if (slot == 0) Alerts.Show("No saved game yet (F5 saves)", Alerts.Warn, 2f);
+        else SaveSystem.LoadGame(slot);
     }
 
     void Leave()
     {
         Show(false);
         if (Net.Online) match.BackToMenu(); // our units leave with us (DestroyWhenStateAuthorityLeaves)
-        else { Skirmish.Active = false; SceneManager.LoadScene(0); }
+        else { Skirmish.Active = false; Skirmish.ElapsedBefore = 0f; SceneManager.LoadScene(0); }
     }
 }

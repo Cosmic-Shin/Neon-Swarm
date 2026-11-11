@@ -41,18 +41,21 @@ public static class Stats
 
     public static void Refresh() => Changed?.Invoke();
 
-    // ponytail: walks the done research every call (a few dozen mods); cache per stat if profiling ever shows it.
+    // Walks the done research every call (a few dozen mods). Index loops, not foreach: foreach over an
+    // IReadOnlyList allocates, and this runs for every unit (hot callers like Attacker cache the result).
     public static float Value(Stat stat, float baseValue, Component who)
     {
         float flat = 0f, percent = 0f;
         void Add(StatMod m) { if (m.stat == stat) { flat += m.flat; percent += m.percent; } }
 
         if (who.TryGetComponent(out Health h))
-            foreach (var r in ResearchManager.DoneOf(h.team))
-                foreach (var m in r.effects) if (m.stat == stat && m.AppliesTo(who)) Add(m);
-
-        if (who.TryGetComponent(out UpgradeEffects up)) foreach (var m in up.Active) Add(m);
-        if (who.TryGetComponent(out Veterancy vet)) foreach (var m in vet.Mods) Add(m);
+        {
+            var done = ResearchManager.DoneOf(h.team);
+            for (int i = 0; i < done.Count; i++)
+                foreach (var m in done[i].effects) if (m.stat == stat && m.AppliesTo(who)) Add(m); // effects is an array: no allocation
+        }
+        if (who.TryGetComponent(out UpgradeEffects up)) { var a = up.Active; for (int i = 0; i < a.Count; i++) Add(a[i]); }
+        if (who.TryGetComponent(out Veterancy vet)) { var v = vet.Mods; for (int i = 0; i < v.Count; i++) Add(v[i]); }
 
         return (baseValue + flat) * (1f + percent);
     }

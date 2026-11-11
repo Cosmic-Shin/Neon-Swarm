@@ -74,11 +74,14 @@ public class SelectableUnit : MonoBehaviour
         ApplyTeamLook();
     }
 
-    // Enemy ring always on, tinted (multiplayer: that player's colour). Re-run once a network unit knows its team.
+    // Enemy ring tinted in its side's colour (UnitMarker shows it when hovered or attacking you), plus the
+    // ground glow and brackets. Re-run once a network unit knows its team.
     public void ApplyTeamLook()
     {
+        if (!TryGetComponent(out UnitMarker marker)) { marker = gameObject.AddComponent<UnitMarker>(); marker.Init(selectionRing); }
+        else marker.Recolor();
         if (selectionRing == null) return;
-        selectionRing.SetActive(IsEnemy || IsSelected);
+        selectionRing.SetActive(IsSelected);
         if (!IsEnemy) return;
         var mat = selectionRing.GetComponent<Renderer>().material; // per-enemy copy
         Color ring = health.team == Creep.Team ? CreepRing : Net.Online || Skirmish.Active ? Net.ColorOf(health.team) : EnemyRing;

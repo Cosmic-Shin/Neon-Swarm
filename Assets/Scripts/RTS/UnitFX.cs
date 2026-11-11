@@ -101,6 +101,8 @@ public class HitFX : MonoBehaviour
     (bool had, Color c)[] before; // each slot's own _Color override before the flash
     bool collected, flashing;
     float flashEnd, lastFlash = -1f, pending, pendingSince, nextSmoke, top = 2f;
+    CreditsPopup live; // the damage number currently counting up over this unit
+    float liveTotal;
 
     void Awake()
     {
@@ -174,8 +176,14 @@ public class HitFX : MonoBehaviour
 
         if (pending > 0f && Time.time - pendingSince > 0.25f)
         {
-            Vector3 at = transform.position + Vector3.up * (top + 0.5f) + Random.insideUnitSphere * 0.4f;
-            CreditsPopup.Show(at, Mathf.CeilToInt(pending).ToString(), Net.Allied(health.team, 0) ? OwnDamage : EnemyDamage);
+            // One number per target that adds up while the fight goes on (a new one once it has floated off).
+            if (live != null && live.Age < 0.9f) { liveTotal += pending; live.Restart(Mathf.CeilToInt(liveTotal).ToString()); }
+            else
+            {
+                liveTotal = pending;
+                Vector3 at = transform.position + Vector3.up * (top + 0.5f) + Random.insideUnitSphere * 0.2f;
+                live = CreditsPopup.Show(at, Mathf.CeilToInt(liveTotal).ToString(), Net.Allied(health.team, 0) ? OwnDamage : EnemyDamage);
+            }
             pending = 0f;
         }
 

@@ -65,7 +65,9 @@ public class UnitDeath : MonoBehaviour
         _dead = true;
         foreach (var b in disableOnDeath) if (b) b.enabled = false;
         foreach (var c in GetComponentsInChildren<Collider>()) c.enabled = false;
-        foreach (var fx in spawnOnDeath) if (fx) Instantiate(fx, transform.position, Quaternion.identity);
+        // GD5: the death flash is sized to what died (a fixed 4 m ring covered whole fights of small units)
+        float flashSize = Mathf.Clamp(ConstructionSite.RendererBounds(gameObject).extents.magnitude / 2.5f, 0.35f, 2.5f);
+        foreach (var fx in spawnOnDeath) if (fx) { var go = Instantiate(fx, transform.position, Quaternion.identity); if (go.TryGetComponent(out DeathFlash df)) df.size = flashSize; }
         StartCoroutine(FadeEmission(GetComponentsInChildren<Renderer>()));
         switch (mode)
         {

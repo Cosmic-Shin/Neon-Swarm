@@ -50,11 +50,13 @@ Shader "RTS/FogOfWar"
                 float tick = floor(_Time.y * 8);
                 float jump = step(0.93, hash(band * 1.7 + tick)) * (hash(band + tick * 3.1) - 0.5) * 4 / _MapSize;
                 fixed2 f = tex2D(_FogTex, i.uv + float2(jump, 0)).rg;
-                float a = lerp(_Unexplored, _Explored, f.g) * (1 - f.r);
+                // FogOfWar blurs the cells (smooth curves); smoothstep tightens that soft ramp back to ~10 m.
+                float vis = smoothstep(0.25, 0.75, f.r);
+                float a = lerp(_Unexplored, _Explored, smoothstep(0.2, 0.8, f.g)) * (1 - vis);
 
-                // Where sight ends: a cyan scanline fringe that scrolls slowly.
-                float edge = saturate(f.r * (1 - f.r) * 4);
-                edge = pow(edge, 6); // only the middle of the fade
+                // Where sight ends: a thin cyan scanline fringe that scrolls slowly.
+                float edge = saturate(1 - abs(f.r - 0.5) * 7);
+                edge = edge * edge * edge; // only the middle of the fade
                 float scan = step(0.5, frac(world.y * 1.5 - _Time.y * 1.5)); // 1/3 m stripes drifting
                 float glow = edge * scan;
                 fixed3 rgb = lerp(_Color.rgb, fixed3(0.2, 0.9, 1.0), glow * 0.6);

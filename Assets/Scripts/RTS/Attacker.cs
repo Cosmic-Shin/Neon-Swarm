@@ -27,6 +27,7 @@ public class Attacker : MonoBehaviour
         self = GetComponent<Health>();
         unit = GetComponent<SelectableUnit>();
         data = unit.Data;
+        nextScan = Random.value * ScanEvery;
 
         laser = new GameObject("Laser").AddComponent<LineRenderer>();
         laser.transform.SetParent(transform, false);
@@ -71,7 +72,22 @@ public class Attacker : MonoBehaviour
     public bool HasTarget => target != null;
     public bool Busy => target != null || attackMove != null; // fighting, or still on an attack-move
     public Health Target => target;
-    float Range => Stats.Value(Stat.Range, data.range, this); // research / veterancy
+    // Research / veterancy / upgrades; cached because Update reads it every frame, redone when stats change.
+    float range = -1f;
+    float Range => range >= 0f ? range : range = Stats.Value(Stat.Range, data.range, this);
+    void OnEnable() => Stats.Changed += ForgetRange;
+    void OnDisable() => Stats.Changed -= ForgetRange;
+    void ForgetRange() => range = -1f;
+
+    // Idle units look for enemies a few times a second, not every frame (staggered so they don't all look at once).
+    const float ScanEvery = 0.25f;
+    float nextScan;
+    Health Scan(float radius)
+    {
+        if (Time.time < nextScan) return null;
+        nextScan = Time.time + ScanEvery;
+        return FindEnemy(radius);
+    }
     public void Attack(Health t) { Stop(); if (!CanHit(t)) return; target = t; ordered = true; }
     public bool CanHit(Health h) => Flyer.IsAir(h) ? data.hitsAir : data.hitsGround;
     public void Stop() { target = null; ordered = false; attackMove = null; hold = false; }
@@ -104,7 +120,7 @@ public class Attacker : MonoBehaviour
             if (ordered) { ordered = false; if (agent.isOnNavMesh) agent.ResetPath(); }
             if (attackMove is Vector3 dest)
             {
-                target = FindEnemy(Range + aggroExtra);
+                target = Scan(Range + aggroExtra);
                 if (target == null)
                 {
                     if (resume) { resume = false; if (agent.isOnNavMesh) agent.SetDestination(dest); }
@@ -116,7 +132,7 @@ public class Attacker : MonoBehaviour
             else
             {
                 if (IsMoving()) return; // a move order beats looking for fights
-                target = FindEnemy(hold ? Range : Range + aggroExtra);
+                target = Scan(hold ? Range : Range + aggroExtra);
                 if (target == null) return;
             }
         }
@@ -296,6 +312,30 @@ public class Attacker : MonoBehaviour
 
     readonly System.Collections.Generic.List<Health> hits = new();
 
+    static readonly Color Spark = new(1f, 0.9f, 0.55f), Dirt = new(0.32f, 0.27f, 0.24f, 0.9f), DirtChunk = new(0.45f, 0.38f, 0.3f), Fireball = new(1f, 0.55f, 0.15f), Smoke = new(0.2f, 0.2f, 0.22f, 0.8f);
+
+    // What the counter system means, shown on impact: guns spark, cannons throw up dirt, explosives make a fireball.
+    static void ImpactByWeapon(DamageTable.Weapon w, Vector3 at, float splash)
+    {
+        if (!Juice.Seen(at)) return;
+        Vector3 ground = new(at.x, 0.2f, at.z);
+        switch (w)
+        {
+            case DamageTable.Weapon.Gun:
+                Juice.Burst(at, Spark, 4, 7f, 0.05f, 0.22f, 0.3f);
+                break;
+            case DamageTable.Weapon.Cannon:
+                Juice.Burst(ground, DirtChunk, 7, 5f, 0.14f, 0.8f, 1.4f, gravity: true);
+                for (int i = 0; i < 2; i++) Particles.Emit("Dust", ground, Vector3.up * 1.5f + Random.insideUnitSphere * 1.2f, 1.4f, 1f, Dirt);
+                break;
+            case DamageTable.Weapon.Explosive:
+                Juice.Flash(at, Fireball, 3f, Mathf.Max(6f, splash * 2f), 0.25f);
+                Juice.Burst(at, Juice.Fire, 10, 6f, 0.16f, 0.5f, 0.9f, gravity: true);
+                for (int i = 0; i < 2; i++) Particles.Emit("Smoke", at + Random.insideUnitSphere * 0.5f, Vector3.up * 1.8f, Mathf.Max(1.2f, splash * 0.5f), 1.4f, Smoke);
+                break;
+        }
+    }
+
     // Impact effects, then damage: the target, or everything near the landing point (splash).
     // Can run after this unit died (a shell still in the air), so it only uses data and self's fields.
     void Land(Health t, Vector3 at, float dmg, float splash, float stun, Vector3 from, bool real)
@@ -303,8 +343,9 @@ public class Attacker : MonoBehaviour
         var v = data.visual;
         float r = splash > 0f ? splash : 1f;
         Vector3 flat = at - from; flat.y = 0f;
-        if (v.impact != null) Fx.Spawn(v.impact, at, Quaternion.identity, r);
+        if (v.impact != null) Fx.Spawn(v.impact, at, Quaternion.identity, splash > 0f ? r * 0.6f : r); // the ring grows on its own: full splash size covered the whole fight
         if (splash > 0f) Sfx.At(Snd.BoomSmall, at, 0.4f);
+        ImpactByWeapon(data.weapon, at, splash);
         bool rapid = data.attackCooldown < 1f;
         if (v.scorch != null && (!rapid || Random.value < 0.25f)) // rapid fire would carpet the ground
             Fx.Spawn(v.scorch, new Vector3(at.x, 0.04f, at.z), flat.sqrMagnitude > 0.01f ? Quaternion.LookRotation(flat) : Quaternion.identity, r * 0.8f);
@@ -337,10 +378,16 @@ public class Attacker : MonoBehaviour
     {
         Health best = null;
         float bestSqr = radius * radius;
-        foreach (var h in Health.All)
+        Vector3 me = transform.position;
+        float near = radius + 25f; // centre distance a target could still be in range from (big buildings: their wall counts)
+        var all = Health.All;
+        for (int i = 0; i < all.Count; i++)
         {
-            if (Net.Allied(h.team, self.team) || h.CloakedFrom(transform.position) || !CanHit(h)) continue;
-            float sqr = (AimPoint(h, transform.position) - transform.position).sqrMagnitude;
+            var h = all[i];
+            // Cheap tests first; the cloak check and the building's closest wall point only for what's close.
+            Vector3 d = h.transform.position - me;
+            if (d.x * d.x + d.z * d.z > near * near || Net.Allied(h.team, self.team) || !CanHit(h) || h.CloakedFrom(me)) continue;
+            float sqr = (AimPoint(h, me) - me).sqrMagnitude;
             if (sqr < bestSqr) { bestSqr = sqr; best = h; }
         }
         return best;

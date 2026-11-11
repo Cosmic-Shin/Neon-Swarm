@@ -20,6 +20,7 @@ public class CameraPan : MonoBehaviour
     {
         instance = this;
         gameObject.AddComponent<Ambience>(); // rain, ore glints, city life around the view
+        gameObject.AddComponent<MapDressing>(); // ground detail, roads, traffic, holo ads, searchlights, ore glow, base pads
     }
 
     // Camera position p moved so the screen centre looks at 'spot'.
@@ -35,6 +36,16 @@ public class CameraPan : MonoBehaviour
 
     // Jump the camera to look at a spot (idle button, production overview).
     public static void LookAt(Vector3 spot) { if (instance != null) instance.transform.position = instance.Centered(instance.transform.position, spot); }
+    // The ground point at the middle of the screen.
+    public static Vector3 LookingAt
+    {
+        get
+        {
+            if (instance == null) return Vector3.zero;
+            var t = instance.transform;
+            return t.forward.y < -0.01f ? t.position + t.forward * (-t.position.y / t.forward.y) : t.position;
+        }
+    }
 
     void Update()
     {

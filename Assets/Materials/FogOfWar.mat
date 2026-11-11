@@ -31,7 +31,7 @@ Material:
     m_Floats:
     - _Explored: 0.6
     - _MapSize: 600
-    - _Unexplored: 0.94
+    - _Unexplored: 0.97
     m_Colors:
     - _Color: {r: 0.02, g: 0.01, b: 0.049999982, a: 1}
   m_BuildTextureStacks: []

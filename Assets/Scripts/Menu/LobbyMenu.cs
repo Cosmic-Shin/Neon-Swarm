@@ -20,7 +20,7 @@ public class LobbyMenu : MonoBehaviour
         account.onClick.AddListener(OpenAccount);
         quit.onClick.AddListener(Quit);
         back.onClick.AddListener(() => { accountPanel.SetActive(false); gameObject.SetActive(true); });
-        signOut.onClick.AddListener(() => { AccountService.SignOut(); accountPanel.SetActive(false); login.Show(); });
+        signOut.onClick.AddListener(() => { AccountService.SignOut(); ProfileService.Forget(); accountPanel.SetActive(false); login.Show(); });
     }
 
     void OnEnable()
@@ -31,22 +31,12 @@ public class LobbyMenu : MonoBehaviour
 
     void Soon(string feature) => status.text = feature + " is coming soon.";
 
-    async void OpenAccount()
+    void OpenAccount()
     {
         gameObject.SetActive(false);
         accountPanel.SetActive(true);
-        string info = "Username:  " + AccountService.Username + "\nPlayer ID:  " + AccountService.PlayerId;
-        accountInfo.text = info + "\nMember since:  ...";
-        try
-        {
-            var since = await AccountService.MemberSince();
-            accountInfo.text = info + "\nMember since:  " + (since?.ToLocalTime().ToString("MMM d, yyyy") ?? "unknown");
-        }
-        catch (System.Exception e)
-        {
-            accountInfo.text = info + "\nMember since:  unavailable";
-            Debug.LogWarning(e);
-        }
+        if (!accountPanel.TryGetComponent(out AccountScreen screen)) screen = accountPanel.AddComponent<AccountScreen>();
+        screen.Show(); // profile, rank, win rates, recent matches
     }
 
     void Quit()

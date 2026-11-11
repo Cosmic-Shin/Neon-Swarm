@@ -2,14 +2,26 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-// The whole offline game in one JSON file (F5 / F9, or the Esc menu): credits, ore, every unit and
-// finished building (ours, enemies, creeps), research, upgrades, construction in progress, outposts, veterancy.
+// The whole offline game in one of 5 JSON slots (Esc menu / skirmish lobby slot list; F5 quick-saves to the
+// last slot, F9 loads the newest): credits, ore, every unit and finished building (ours, AIs', creeps), research,
+// upgrades, construction in progress, outposts, veterancy, the skirmish setup and the match clock.
 // Loading restarts the scene and lays the save over it: scene objects are matched by where the scene put
 // them, things built during play are made again from Resources/PrefabList.
 [System.Serializable]
 public class SaveData
 {
-    public int version = 1;
+    public int version = 2;
+    // Shown in the slot list.
+    public long savedAt;                           // UTC ticks
+    public float elapsed;                          // seconds of play in this match
+    public string summary;                         // "SKIRMISH  ·  vs 2 AI: Hard, Normal"
+    // The skirmish lobby setup, so loading rebuilds the same match (AIs, teams, colours, bases, time limit).
+    public bool skirmish;
+    public int startCredits, minutes, playerSide, playerColor, playerBase;
+    public List<Skirmish.Opponent> opponents = new();
+    public List<TeamResearch> teamResearch = new(); // AI research (yours is `research`)
+    public int[] matchStats;                       // MatchStats.Values, for the end screen and your career stats
+
     public List<string> research = new();          // completed research ids
     public List<LabSave> labs = new();             // project running in each lab
     public List<UpgradeSave> upgrades = new();     // building upgrade levels (Mk II / III)
@@ -17,7 +29,7 @@ public class SaveData
     public List<OutpostSave> outposts = new();
     public List<VeterancySave> veterans = new();
     public int credits = -1;
-    public List<int> aiCredits = new();            // skirmish: AI teams 1..3
+    public List<int> aiCredits = new();            // skirmish: AI teams 1..7
     public List<EntitySave> entities = new();      // every unit and finished building, ours and theirs
     public List<OreSave> ores = new();
 }
@@ -28,7 +40,8 @@ public class SaveData
 
 [System.Serializable] public class LabSave { public string lab; public string research; public float timeLeft; }
 [System.Serializable] public class UpgradeSave { public string building; public int level; }
-[System.Serializable] public class SiteSave { public string prefab; public Vector3 position; public Quaternion rotation; public float progress; }
+[System.Serializable] public class SiteSave { public string prefab; public Vector3 position; public Quaternion rotation; public float progress; public int team; }
+[System.Serializable] public class TeamResearch { public int team; public List<string> ids = new(); }
 [System.Serializable] public class OutpostSave { public string outpost; public int owner; public int capturing; public float progress; public float holdTimeLeft; public List<string> garrison = new(); }
 [System.Serializable] public class VeterancySave { public string unit; public int kills; }
 
@@ -41,34 +54,81 @@ public class SaveLoader : MonoBehaviour
 
 public static class SaveSystem
 {
-    public static string DefaultPath => Path.Combine(Application.persistentDataPath, "save.json");
+    // ---- slots: save_1.json .. save_5.json ----
+    public const int Slots = 5;
+    const int MapScene = 1; // the RTS map (build index)
 
-    public static void Save(string path = null) => File.WriteAllText(path ?? DefaultPath, ToJson());
+    public static string SlotPath(int slot) => Path.Combine(Application.persistentDataPath, $"save_{slot}.json");
+    public static bool HasSave(int slot) => File.Exists(SlotPath(slot));
+    public static bool HasAnySave { get { for (int s = 1; s <= Slots; s++) if (HasSave(s)) return true; return false; } }
 
-    public static bool Load(string path = null)
+    // The slot F5 saves to: the last one used (slot 1 at first).
+    public static int LastSlot
     {
-        path ??= DefaultPath;
-        if (!File.Exists(path)) return false;
-        FromJson(File.ReadAllText(path));
-        return true;
+        get => Mathf.Clamp(PlayerPrefs.GetInt("save.lastSlot", 1), 1, Slots);
+        set { PlayerPrefs.SetInt("save.lastSlot", value); PlayerPrefs.Save(); }
     }
 
-    public static bool HasSave => File.Exists(DefaultPath);
+    // The newest save (F9), 0 = none.
+    public static int NewestSlot
+    {
+        get
+        {
+            int best = 0; System.DateTime bestTime = System.DateTime.MinValue;
+            for (int s = 1; s <= Slots; s++)
+                if (HasSave(s) && File.GetLastWriteTimeUtc(SlotPath(s)) > bestTime) { best = s; bestTime = File.GetLastWriteTimeUtc(SlotPath(s)); }
+            return best;
+        }
+    }
 
-    // Load a whole game: the scene restarts fresh, then the save is laid over it (LoadAfterReload).
+    public static void Save(int slot)
+    {
+        File.WriteAllText(SlotPath(slot), ToJson());
+        LastSlot = slot;
+    }
+
+    // What the slot list shows (the whole save; they're small). Null = empty or unreadable.
+    public static SaveData Info(int slot)
+    {
+        if (!HasSave(slot)) return null;
+        try { return JsonUtility.FromJson<SaveData>(File.ReadAllText(SlotPath(slot))); }
+        catch (System.Exception e) { Debug.LogWarning($"Save slot {slot}: {e.Message}"); return null; }
+    }
+
+    public static void Delete(int slot) { if (HasSave(slot)) File.Delete(SlotPath(slot)); }
+
+    // Load a whole game, from the map or the main menu: the skirmish setup goes back first so the map
+    // starts as the same match, then the save is laid over it (Hook -> SaveLoader -> Apply).
     static SaveData pending;
 
-    public static bool LoadGame()
+    public static bool LoadGame(int slot)
     {
-        if (!HasSave) return false;
-        pending = JsonUtility.FromJson<SaveData>(File.ReadAllText(DefaultPath));
-        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+        var d = Info(slot);
+        if (d == null) return false;
+        Skirmish.Active = d.skirmish;
+        Skirmish.Opponents.Clear();
+        if (d.skirmish)
+        {
+            Skirmish.Opponents.AddRange(d.opponents);
+            Skirmish.StartCredits = d.startCredits;
+            Skirmish.Minutes = d.minutes;
+            Skirmish.PlayerSide = d.playerSide;
+            Skirmish.PlayerColor = d.playerColor;
+            Skirmish.PlayerBase = d.playerBase;
+        }
+        Skirmish.ElapsedBefore = d.elapsed;
+        LastSlot = slot;
+        pending = d;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(MapScene);
         return true;
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Hook()
     {
+        // The old single save becomes slot 1.
+        string old = Path.Combine(Application.persistentDataPath, "save.json");
+        if (File.Exists(old) && !File.Exists(SlotPath(1))) File.Move(old, SlotPath(1));
         pending = null;
         UnityEngine.SceneManagement.SceneManager.sceneLoaded += (_, _) =>
         {
@@ -113,7 +173,7 @@ public static class SaveSystem
     static void CaptureWorld(SaveData d)
     {
         if (ResourceBank.Instance != null) d.credits = ResourceBank.Instance.Credits;
-        for (int t = 1; t <= 3; t++) d.aiCredits.Add(TeamEconomy.Credits(t));
+        for (int t = 1; t <= 7; t++) d.aiCredits.Add(TeamEconomy.Credits(t));
         foreach (var h in Object.FindObjectsByType<Health>(FindObjectsInactive.Include, FindObjectsSortMode.None)) // garrisoned units are inactive
         {
             if (!IsEntity(h) || h.IsDead || h.TryGetComponent(out Construction _)) continue; // sites are saved on their own
@@ -171,12 +231,29 @@ public static class SaveSystem
     }
 
     public static string ToJson() => JsonUtility.ToJson(Capture(), true);
-    public static void FromJson(string json) => Restore(JsonUtility.FromJson<SaveData>(json));
 
     // ---- what goes in ----
     public static SaveData Capture()
     {
-        var d = new SaveData();
+        var d = new SaveData { savedAt = System.DateTime.UtcNow.Ticks, elapsed = Skirmish.Elapsed, skirmish = Skirmish.Active, matchStats = (int[])MatchStats.Values.Clone() };
+        if (d.skirmish)
+        {
+            d.opponents.AddRange(Skirmish.Opponents);
+            d.startCredits = Skirmish.StartCredits;
+            d.minutes = Skirmish.Minutes;
+            d.playerSide = Skirmish.PlayerSide;
+            d.playerColor = Skirmish.PlayerColor;
+            d.playerBase = Skirmish.PlayerBase;
+            var enemies = Skirmish.Opponents.FindAll(o => !o.ally);
+            d.summary = $"SKIRMISH  ·  vs {enemies.Count} AI: " + string.Join(", ", enemies.ConvertAll(o => o.difficulty.ToString()));
+            foreach (var o in Skirmish.Opponents)
+            {
+                var tr = new TeamResearch { team = o.team };
+                foreach (var r in ResearchManager.DoneOf(o.team)) tr.ids.Add(r.id);
+                d.teamResearch.Add(tr);
+            }
+        }
+        else d.summary = "SANDBOX";
         foreach (var r in ResearchManager.Done) d.research.Add(r.id);
 
         foreach (var b in Object.FindObjectsByType<Building>(FindObjectsSortMode.None))
@@ -186,7 +263,7 @@ public static class SaveSystem
             if (up.level > 1) d.upgrades.Add(new UpgradeSave { building = Key(up), level = up.level });
 
         foreach (var c in Object.FindObjectsByType<Construction>(FindObjectsSortMode.None))
-            d.sites.Add(new SiteSave { prefab = PrefabName(c), position = c.PlacedAt, rotation = c.transform.rotation, progress = c.Progress });
+            d.sites.Add(new SiteSave { prefab = PrefabName(c), position = c.PlacedAt, rotation = c.transform.rotation, progress = c.Progress, team = TeamEconomy.TeamOf(c) });
 
         foreach (var o in Object.FindObjectsByType<OutpostCapture>(FindObjectsSortMode.None))
         {
@@ -209,6 +286,13 @@ public static class SaveSystem
         var done = new List<ResearchData>();
         foreach (var id in d.research) if (all.TryGetValue(id, out var r)) done.Add(r);
         ResearchManager.Restore(done);
+        foreach (var tr in d.teamResearch)
+        {
+            var theirs = new List<ResearchData>();
+            foreach (var id in tr.ids) if (all.TryGetValue(id, out var r)) theirs.Add(r);
+            ResearchManager.Restore(theirs, tr.team);
+        }
+        if (d.matchStats != null) System.Array.Copy(d.matchStats, MatchStats.Values, Mathf.Min(d.matchStats.Length, MatchStats.Values.Length));
 
         foreach (var l in d.labs)
             if (all.TryGetValue(l.research, out var r) && Find<Building>(l.lab) is Building lab) lab.RestoreResearch(r, l.timeLeft);
@@ -222,6 +306,8 @@ public static class SaveSystem
             var data = placer != null ? System.Array.Find(placer.Buildings, b => b.prefab.name == s.prefab) : null;
             if (data == null) { Debug.LogWarning($"Save: no building called {s.prefab}"); continue; }
             var b = Object.Instantiate(data.prefab, s.position, s.rotation);
+            b.GetComponent<Health>().team = s.team; // before Start, like the AI's own sites: colours, power, build slots
+            if (b.TryGetComponent(out TeamMember tm)) tm.team = s.team;
             var c = b.AddComponent<Construction>();
             c.duration = data.buildTime;
             c.barTemplate = placer.ProgressBarTemplate;

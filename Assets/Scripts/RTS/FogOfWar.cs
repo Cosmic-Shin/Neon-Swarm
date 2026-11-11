@@ -38,6 +38,7 @@ public class FogOfWar : MonoBehaviour
         explored = new bool[n];
         px = new Color32[n];
         miniPx = new Color32[n];
+        softVisible = new float[n]; softExplored = new float[n]; blurTmp = new float[n]; blurOut = new float[n];
         tex = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
         MinimapTexture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
         fogPlane.material.SetTexture("_FogTex", tex);
@@ -73,10 +74,15 @@ public class FogOfWar : MonoBehaviour
                 if (Net.Allied(h.team, 0)) Stamp(h.transform.position, Sight(h));
         }
 
+        // The screen gets a softened copy: on/off cells blurred so the edge is a smooth curve, not 4 m stair
+        // steps, and eased towards the new sight so it glides instead of jumping a cell at a time.
+        // (IsVisible and enemy hiding still use the sharp cells.)
+        Blur(visible, softVisible, ease: 0.55f);
+        Blur(explored, softExplored, ease: 1f);
         Color32 clear = new(0, 0, 0, 0), dim = new(5, 3, 12, 120), dark = new(5, 3, 12, 190); // minimap: the map picture shows faintly through
         for (int i = 0; i < px.Length; i++)
         {
-            px[i] = new Color32(visible[i] ? (byte)255 : (byte)0, explored[i] ? (byte)255 : (byte)0, 0, 255);
+            px[i] = new Color32((byte)(softVisible[i] * 255f), (byte)(softExplored[i] * 255f), 0, 255);
             miniPx[i] = visible[i] ? clear : explored[i] ? dim : dark;
         }
         tex.SetPixels32(px);
@@ -100,6 +106,36 @@ public class FogOfWar : MonoBehaviour
         stale.Clear();
         foreach (var h in hiddenNow.Keys) if (h == null || !h.isActiveAndEnabled) stale.Add(h);
         foreach (var h in stale) { hiddenNow.Remove(h); seen.Remove(h); }
+    }
+
+    float[] softVisible, softExplored, blurTmp, blurOut;
+    const int BlurRadius = 2; // cells (8 m of soft edge)
+
+    // Box blur (rows then columns) of the on/off cells into `soft`, eased by `ease` (1 = jump straight there).
+    void Blur(bool[] cells, float[] soft, float ease)
+    {
+        int r = resolution, w = BlurRadius * 2 + 1;
+        for (int z = 0; z < r; z++)
+        {
+            int sum = 0, row = z * r;
+            for (int k = -BlurRadius; k <= BlurRadius; k++) sum += cells[row + Mathf.Clamp(k, 0, r - 1)] ? 1 : 0;
+            for (int x = 0; x < r; x++)
+            {
+                blurTmp[row + x] = sum;
+                sum += (cells[row + Mathf.Min(x + BlurRadius + 1, r - 1)] ? 1 : 0) - (cells[row + Mathf.Max(x - BlurRadius, 0)] ? 1 : 0);
+            }
+        }
+        for (int x = 0; x < r; x++)
+        {
+            float sum = 0f;
+            for (int k = -BlurRadius; k <= BlurRadius; k++) sum += blurTmp[Mathf.Clamp(k, 0, r - 1) * r + x];
+            for (int z = 0; z < r; z++)
+            {
+                blurOut[z * r + x] = sum / (w * w);
+                sum += blurTmp[Mathf.Min(z + BlurRadius + 1, r - 1) * r + x] - blurTmp[Mathf.Max(z - BlurRadius, 0) * r + x];
+            }
+        }
+        for (int i = 0; i < soft.Length; i++) soft[i] = Mathf.Lerp(soft[i], blurOut[i], ease);
     }
 
     float Sight(Health h)

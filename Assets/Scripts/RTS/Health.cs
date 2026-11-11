@@ -5,6 +5,8 @@ using UnityEngine;
 public class Health : MonoBehaviour
 {
     public static readonly List<Health> All = new(); // every living thing, for target searches
+    public static Vector3? LastBuildingDeath; // where (and when) a building last blew up: the match-end camera goes there
+    public static float LastBuildingDeathAt;
 
     [SerializeField] float maxHealth = 100f;
     public int team; // 0 = player, 1 = enemy
@@ -87,8 +89,8 @@ public class Health : MonoBehaviour
     public void DieRemote()
     {
         enabled = false;
-        if (TryGetComponent(out Structure _)) Juice.BuildingExplosion(gameObject);
-        if (TryGetComponent(out SelectableUnit unit)) { unit.HideRing(); Sfx.At(Snd.BoomSmall, transform.position, 0.7f); }
+        if (TryGetComponent(out Structure _)) { Juice.BuildingExplosion(gameObject); LastBuildingDeath = transform.position; LastBuildingDeathAt = Time.time; }
+        if (TryGetComponent(out SelectableUnit unit)) { unit.HideRing(); if (unit.TryGetComponent(out UnitMarker marker)) marker.Remove(); Sfx.At(Snd.BoomSmall, transform.position, 0.7f); }
         if (TryGetComponent(out UnitDeath death)) PlayDeath(death); // just the look; the owner despawns it
     }
 
@@ -102,6 +104,7 @@ public class Health : MonoBehaviour
         if (RemoteDamage != null && net == null && RemoteDamage(this, amount, from)) return; // multiplayer: a host-run outpost
         if (IsDead) return;
         current = Mathf.Max(0f, current - amount);
+        Minimap.Fight(transform.position, Net.Allied(team, 0)); // a flash on the minimap where the fighting is
         if (team == 0 && from != null && !Net.Allied(from.team, team)) Alerts.Attacked(this);
         if (IsDead) { Die(from); return; }
         if (hitFx != null) hitFx.Hurt(amount);
@@ -133,8 +136,8 @@ public class Health : MonoBehaviour
             else Alerts.Show("Unit lost", Alerts.Bad, 5f);
             MatchStats.Add(TryGetComponent(out Structure _) ? MatchStats.Kind.BuildingsLost : MatchStats.Kind.UnitsLost);
         }
-        if (TryGetComponent(out Structure _)) Juice.BuildingExplosion(gameObject);
-        if (TryGetComponent(out SelectableUnit unit)) { unit.HideRing(); Sfx.At(Snd.BoomSmall, transform.position, 0.7f); } // or it flies off as debris
+        if (TryGetComponent(out Structure _)) { Juice.BuildingExplosion(gameObject); LastBuildingDeath = transform.position; LastBuildingDeathAt = Time.time; }
+        if (TryGetComponent(out SelectableUnit unit)) { unit.HideRing(); if (unit.TryGetComponent(out UnitMarker marker)) marker.Remove(); Sfx.At(Snd.BoomSmall, transform.position, 0.7f); } // or it flies off as debris
         // Pack effect: neon flickers out, the model breaks into physics debris.
         if (TryGetComponent(out UnitDeath death)) PlayDeath(death);
         else Net.Destroy(gameObject);

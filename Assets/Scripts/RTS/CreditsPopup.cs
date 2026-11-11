@@ -9,7 +9,17 @@ public class CreditsPopup : MonoBehaviour
     Color color;
     float born;
 
-    public static void Show(Vector3 at, string message, Color color)
+    public float Age => Time.time - born;
+
+    // Damage numbers: the same popup counts up while the target keeps getting hit (HitFX), popping again
+    // each time, instead of a new number stacking on top every quarter second.
+    public void Restart(string message)
+    {
+        text.text = message;
+        born = Time.time - 0.05f; // keeps it from snapping back to the bottom of its pop
+    }
+
+    public static CreditsPopup Show(Vector3 at, string message, Color color)
     {
         var go = new GameObject("CreditsPopup");
         go.transform.position = at;
@@ -26,6 +36,7 @@ public class CreditsPopup : MonoBehaviour
         p.color = Color.Lerp(color, Color.white, 0.1f);
         p.born = Time.time;
         p.LateUpdate();
+        return p;
     }
 
     void LateUpdate()

@@ -11,7 +11,7 @@ public class TeamMember : MonoBehaviour
     public static Color ColorOf(int slot)
     {
         if (slot < 0 || slot >= TeamColors.Length) return Color.white;
-        int i = RoomState.Instance != null ? RoomState.Instance.ColorIndexOf(slot) : slot;
+        int i = RoomState.Instance != null ? RoomState.Instance.ColorIndexOf(slot) : Skirmish.Active ? Skirmish.ColorIndexOf(slot) : slot; // GD5: skirmish lobby colours
         return TeamColors[Mathf.Clamp(i, 0, TeamColors.Length - 1)];
     }
 }

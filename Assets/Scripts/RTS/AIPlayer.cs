@@ -41,7 +41,7 @@ public class AIPlayer : MonoBehaviour
     void Start()
     {
         placer = FindFirstObjectByType<BuildingPlacer>();
-        started = Time.time;
+        started = Time.time - Skirmish.ElapsedBefore; // a loaded save: the match is already this old
         waveValue = profile.waveValue;
         TeamEconomy.SetIncomeBonus(team, profile.incomeBonus);
         nextThink = Time.time + 2f + team * 0.3f; // AIs don't all think on the same frame

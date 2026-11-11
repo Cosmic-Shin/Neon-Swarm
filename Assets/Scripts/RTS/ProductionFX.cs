@@ -118,7 +118,7 @@ public class ProductionFX : MonoBehaviour
     public static Color HoloColor(GameObject go)
     {
         int team = go.TryGetComponent(out Health h) ? h.team : 0;
-        Color c = !Net.Online && team == 0 ? Cyan : Net.ColorOf(team);
+        Color c = !Net.Online && team == 0 && Net.ColorOf(0) == TeamMember.TeamColors[0] ? Cyan : Net.ColorOf(team);
         return c == Color.white ? Cyan : c;
     }
 

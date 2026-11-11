@@ -45,11 +45,13 @@ public class Hud : MonoBehaviour
         UpdateGroups();
         UpdateProduction();
         UpdateIdle();
-        if (!Net.Online && clock != null) // offline: the online timer box shows the time played
+        if (!Net.Online && clock != null) // offline: the online timer box shows the time played, or the skirmish time left
         {
             clock.transform.parent.gameObject.SetActive(true);
-            float t = Time.timeSinceLevelLoad;
+            bool limit = Skirmish.Active && Skirmish.Minutes > 0;
+            float t = limit ? Mathf.Max(0f, MatchManager.SkirmishTimeLeft) : Skirmish.Elapsed;
             clock.text = $"{(int)t / 60:00}:{(int)t % 60:00}";
+            clock.color = limit && t < 60f ? new Color(1f, 0.3f, 0.3f) : Color.white;
         }
         var kb = Chat.Keys;
         if (kb != null && kb.f1Key.wasPressedThisFrame) help.SetActive(!help.activeSelf);
@@ -298,7 +300,7 @@ public class Hud : MonoBehaviour
         }
         foreach (var c in FindObjectsByType<Construction>(FindObjectsSortMode.None))
         {
-            if (c.remote) continue;
+            if (c.remote || TeamEconomy.TeamOf(c) != 0) continue; // AI sites aren't yours
             var st = c.GetComponent<Structure>();
             jobs.Add((c.transform, null, st != null && st.data != null ? st.data.icon : null, c.Progress, "BUILD"));
         }

@@ -36,6 +36,8 @@ public class MatchManager : MonoBehaviour
 
     System.Collections.IEnumerator Start()
     {
+        ResearchManager.Clear(); // research belongs to one match
+        Health.LastBuildingDeath = null;
         endPanel.SetActive(false);
         timerText.transform.parent.gameObject.SetActive(false);
         var room = RoomState.Instance;
@@ -90,24 +92,23 @@ public class MatchManager : MonoBehaviour
 
     // ================= skirmish (single player vs AI) =================
 
-    // Your base stays where the scene has it (Base_1). The scene's enemy squad goes; creeps and outposts stay.
-    // Each AI gets a copy of the Base_1 layout on its base spot: enemies far away, allies next to you.
+    // The scene's enemy squad goes; creeps and outposts stay. Your base (the scene's, at Base_1) moves to the
+    // base you picked in the lobby; each AI gets a copy of the Base_1 layout on its own base spot.
     void StartSkirmish()
     {
         MatchStats.Reset();
-        endButton.onClick.AddListener(() => { Skirmish.Active = false; UnityEngine.SceneManagement.SceneManager.LoadScene(0); });
+        endButton.onClick.AddListener(() => { Skirmish.Active = false; Skirmish.ElapsedBefore = 0f; UnityEngine.SceneManagement.SceneManager.LoadScene(0); });
         BuildEndScreen();
         if (GameObject.Find("Enemies") is GameObject squad) Destroy(squad);
         TeamEconomy.Set(0, Skirmish.StartCredits);
 
-        var enemySpots = new Queue<int>(Skirmish.Opponents.FindAll(o => !o.ally).Count switch { 1 => new[] { 4 }, 2 => new[] { 3, 5 }, _ => new[] { 4, 2, 6 } });
-        var allySpots = new Queue<int>(new[] { 1, 7, 2 });
         Transform homeSpot = baseSpots.GetChild(0);
+        Quaternion TurnTo(Transform spot) => Quaternion.Euler(0f, Vector3.SignedAngle(Flat(homeSpot.position), Flat(spot.position), Vector3.up), 0f);
         Vector3 centre = Vector3.zero;
         foreach (var ai in Skirmish.Opponents)
         {
-            Transform spot = baseSpots.GetChild(ai.ally ? allySpots.Dequeue() : enemySpots.Dequeue());
-            Quaternion turn = Quaternion.Euler(0f, Vector3.SignedAngle(Flat(homeSpot.position), Flat(spot.position), Vector3.up), 0f);
+            Transform spot = baseSpots.GetChild(ai.baseIndex);
+            Quaternion turn = TurnTo(spot);
             Vector3 Place(Transform t) => spot.position + turn * (t.position - homeSpot.position);
             SpawnFor(ai.team, nexusPrefab, Place(layoutNexus), turn * layoutNexus.rotation);
             SpawnFor(ai.team, hivePrefab, Place(layoutHive), turn * layoutHive.rotation);
@@ -120,6 +121,24 @@ public class MatchManager : MonoBehaviour
             brain.home = Flat(spot.position);
             brain.front = (Flat(centre) - Flat(spot.position)).normalized;
         }
+        // Yours last: the AIs copy the layout from where it stood.
+        if (Skirmish.PlayerBase != 0)
+        {
+            Transform mine = baseSpots.GetChild(Skirmish.PlayerBase);
+            Quaternion turn = TurnTo(mine);
+            var cam = Camera.main.transform;
+            cam.position = mine.position + (cam.position - homeSpot.position); // CameraPan keeps its angle
+            var moving = new List<Transform> { layoutNexus, layoutHive };
+            moving.AddRange(layoutHarvesters);
+            foreach (var t in moving)
+            {
+                if (t == null) continue;
+                Vector3 to = mine.position + turn * (t.position - homeSpot.position);
+                t.SetPositionAndRotation(to, turn * t.rotation);
+                if (t.TryGetComponent(out UnityEngine.AI.NavMeshAgent agent) && agent.enabled) agent.Warp(to);
+            }
+        }
+
         skirmishStarted = Time.time;
         Alerts.Show("Skirmish: destroy every enemy building!", Alerts.Info, 6f);
     }
@@ -146,6 +165,31 @@ public class MatchManager : MonoBehaviour
         foreach (var c in FindObjectsByType<Construction>(FindObjectsSortMode.None)) { int t = TeamEconomy.TeamOf(c); sides.Add(Skirmish.SideOf(t)); mine |= t == 0; }
         if (!mine) End("DEFEAT", "All your buildings were destroyed.");
         else if (sides.Count == 1) End("VICTORY", "Every enemy base is destroyed.");
+        else if (Skirmish.Minutes > 0 && SkirmishTimeLeft <= 0f) SkirmishTimeUp();
+    }
+
+    // Seconds left of the lobby's time limit (Hud shows it as a countdown).
+    public static float SkirmishTimeLeft => Skirmish.Minutes * 60f - Skirmish.Elapsed;
+
+    // Like online: the side whose army and base are worth the most (by cost) wins.
+    void SkirmishTimeUp()
+    {
+        var worth = new Dictionary<int, int>();
+        foreach (var h in Health.All)
+        {
+            if (h == null || h.IsDead || h.team == Creep.Team) continue;
+            int value = h.TryGetComponent(out SelectableUnit u) ? u.Cost
+                      : h.TryGetComponent(out Structure s) ? (s.data != null ? s.data.cost : 3000) : 0;
+            int side = Skirmish.SideOf(h.team);
+            worth.TryGetValue(side, out int sum);
+            worth[side] = sum + value;
+        }
+        int best = -1, bestWorth = -1;
+        foreach (var kv in worth) if (kv.Value > bestWorth) { best = kv.Key; bestWorth = kv.Value; }
+        int us = Skirmish.SideOf(0);
+        worth.TryGetValue(us, out int mine);
+        string who = best == us ? (us >= 100 ? "Your team's" : "Your") : best >= 100 ? $"Team {best - 100}'s" : (Skirmish.Find(best)?.Name ?? "An AI") + "'s";
+        End(best == us ? "VICTORY" : "DEFEAT", $"Time's up. {who} army and base are worth the most (${bestWorth:N0}; yours ${mine:N0}).");
     }
 
     static Vector3 Flat(Vector3 v) => new(v.x, 0f, v.z);
@@ -249,10 +293,34 @@ public class MatchManager : MonoBehaviour
             $"Time's up. {who} army and base are worth the most (${bestWorth}; yours ${mine}).");
     }
 
+    bool recorded; // the result went into the player's profile (a defeat followed by spectating counts once)
+
+    // Into the signed-in player's career stats (Account screen).
+    void RecordResult(bool won)
+    {
+        var m = new PlayerProfile.MatchRecord { won = won, online = Net.InMatch, difficulty = -1, when = System.DateTime.UtcNow.Ticks,
+            seconds = Net.InMatch ? Time.timeSinceLevelLoad : Skirmish.Elapsed, kills = MatchStats.Values[(int)MatchStats.Kind.Kills], unitsLost = MatchStats.Values[(int)MatchStats.Kind.UnitsLost] };
+        if (m.online)
+        {
+            int others = RoomState.Instance != null ? RoomPlayer.All.Count - 1 : 0;
+            m.opponents = $"{others} player{(others == 1 ? "" : "s")}";
+        }
+        else
+        {
+            var enemies = Skirmish.Opponents.FindAll(o => !o.ally);
+            foreach (var o in enemies) m.difficulty = Mathf.Max(m.difficulty, (int)o.difficulty);
+            m.opponents = $"{enemies.Count} AI: " + string.Join(", ", enemies.ConvertAll(o => o.difficulty.ToString()));
+            int allies = Skirmish.Opponents.Count - enemies.Count;
+            if (allies > 0) m.opponents += $"  (+{allies} all{(allies == 1 ? "y" : "ies")})";
+        }
+        ProfileService.Record(m, MatchStats.Values);
+    }
+
     // canSpectate: we lost but the others play on, so we may stay and watch.
     void End(string title, string detail, bool canSpectate = false)
     {
         Debug.Log($"[GD5] end {title}: {detail}");
+        if (!recorded && (title == "VICTORY" || title == "DEFEAT")) { recorded = true; RecordResult(title == "VICTORY"); }
         over = true;
         spectating = false;
         spectateBanner.gameObject.SetActive(false);
@@ -264,9 +332,30 @@ public class MatchManager : MonoBehaviour
         float x = canSpectate ? 210f : 0f;
         ((RectTransform)endButton.transform).anchoredPosition = new Vector2(x, -330f);
         ((RectTransform)spectateButton.transform).anchoredPosition = new Vector2(-x, -330f);
-        endPanel.SetActive(true);
+        if (title == "DEFEAT" || title == "MATCH OVER") FogOfWar.RevealAll = true; // nothing of yours left to see with: show the whole map behind the results
         StopAllCoroutines();
-        StartCoroutine(RevealEnd());
+        StartCoroutine(Finale(title == "VICTORY" || title == "DEFEAT"));
+    }
+
+    // The match was just decided by a building going up: the camera flies to it in slow motion (offline;
+    // online the clock can't slow down) for a moment before the results.
+    System.Collections.IEnumerator Finale(bool decided)
+    {
+        if (decided && Health.LastBuildingDeath is Vector3 boom && Time.time - Health.LastBuildingDeathAt < 3f)
+        {
+            Vector3 from = CameraPan.LookingAt;
+            float slow = Net.InMatch ? 1f : 0.3f, before = Time.timeScale;
+            Time.timeScale = slow;
+            for (float t = 0f; t < 1.6f; t += Time.unscaledDeltaTime)
+            {
+                float k = Mathf.Clamp01(t / 0.6f);
+                CameraPan.LookAt(Vector3.Lerp(from, boom, k * k * (3f - 2f * k)));
+                yield return null;
+            }
+            Time.timeScale = before == 0f ? 1f : before;
+        }
+        endPanel.SetActive(true);
+        yield return RevealEnd();
     }
 
     // The title slams in, then everyone's stats count up.
@@ -426,8 +515,9 @@ public class MatchManager : MonoBehaviour
         foreach (var ai in Skirmish.Opponents)
         {
             bool alive = Structure.All.Exists(s => s != null && s.Health.team == ai.team);
-            names.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(ai.team))}>{ai.Name}</color>");
-            for (int k = 0; k < cols.Length; k++) cols[k].AppendLine(k == 0 ? (alive ? "standing" : "destroyed") : "");
+            // AIs keep no stats: their status goes after the name, the columns show a dash.
+            names.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(ai.team))}>{ai.Name}</color>  <color=#{(alive ? "60FF90" : "FF6070")}>{(alive ? "standing" : "destroyed")}</color>");
+            for (int k = 0; k < cols.Length; k++) cols[k].AppendLine("<color=#6A7690>-</color>");
         }
         statsNames.text = names.ToString();
         for (int k = 0; k < cols.Length; k++) statsColumns[k].text = cols[k].ToString();

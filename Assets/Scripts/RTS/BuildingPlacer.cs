@@ -309,6 +309,7 @@ public class BuildingPlacer : MonoBehaviour
             var site = b.AddComponent<Construction>();
             site.duration = buildings[chosen].buildTime;
             site.barTemplate = progressBarTemplate;
+            Juice.PlacedRipple(b);
             built++;
         }
         if (built > 0) Cancel();

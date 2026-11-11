@@ -37,6 +37,23 @@ public class Flyer : MonoBehaviour
         seed = Random.value * 10f;
     }
 
+    // Engine trail: a soft streak in its side's colour behind the model (team known by now).
+    void Start()
+    {
+        if (model == null) return;
+        var t = model.gameObject.AddComponent<TrailRenderer>();
+        t.sharedMaterial = Juice.AdditiveLine;
+        t.time = 0.45f;
+        t.minVertexDistance = 0.3f;
+        t.widthMultiplier = Mathf.Max(0.3f, size * 0.12f);
+        t.widthCurve = AnimationCurve.Linear(0f, 1f, 1f, 0f);
+        t.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        Color c = TryGetComponent(out Health h) ? Net.ColorOf(h.team) : Color.cyan;
+        if (c == Color.white) c = Color.cyan;
+        t.startColor = new Color(c.r, c.g, c.b, 0.55f);
+        t.endColor = new Color(c.r, c.g, c.b, 0f);
+    }
+
     void OnEnable() => all.Add(this);
     void OnDisable() => all.Remove(this);
 
