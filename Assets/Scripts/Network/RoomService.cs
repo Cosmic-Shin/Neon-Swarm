@@ -33,6 +33,15 @@ public class RoomService : MonoBehaviour
     async void Start()
     {
         var args = System.Environment.GetCommandLineArgs();
+        if (FriendsHub.DevArg("-quickmatch")) // "-quickmatch": QUICK MATCH once signed in, then ready up
+        {
+            while (this && !AccountService.SignedIn) await Task.Delay(500);
+            await Task.Delay(2000);
+            string err = await QuickMatch();
+            Debug.Log("[GD5] quickmatch: " + (err ?? "in " + Runner.SessionInfo.Name));
+            if (err == null) AutoReady(args);
+            return;
+        }
         int i = System.Array.IndexOf(args, "-autojoin");
         if (i < 0 || i + 1 >= args.Length) return;
         while (this)
@@ -75,6 +84,36 @@ public class RoomService : MonoBehaviour
 
     public Task<string> Join(string room) => StartRoom(room, false);
 
+    // Joins it if it exists, else creates it (Photon decides atomically, so a group racing here meets up).
+    public Task<string> JoinOrCreate(string room, bool visible) => StartRoom(room, true, visible);
+
+    // QUICK MATCH: the fullest open public room with a seat, else a new public one.
+    public Task<string> QuickMatch()
+    {
+        SessionInfo best = null;
+        foreach (var r in Rooms)
+            if (r.IsOpen && r.IsVisible && r.PlayerCount < r.MaxPlayers && (best == null || r.PlayerCount > best.PlayerCount)) best = r;
+        return best != null ? Join(best.Name) : JoinOrCreate("Quick " + UnityEngine.Random.Range(1000, 10000), true);
+    }
+
+    public static string HostOf(SessionInfo r) =>
+        r.Properties != null && r.Properties.TryGetValue("host", out var h) ? (string)h.PropertyValue : null;
+
+    // PLAY AGAIN: the group's next room ("Name #2", "#3"...) and the settings to bring along.
+    public static (string room, bool visible, int credits, int minutes)? Again;
+
+    public void SetUpPlayAgain()
+    {
+        var info = Runner ? Runner.SessionInfo : null;
+        var state = RoomState.Instance;
+        if (info == null || !info.IsValid) return;
+        string name = info.Name;
+        int hash = name.LastIndexOf(" #");
+        int round = hash > 0 && int.TryParse(name[(hash + 2)..], out int n) ? n + 1 : 2;
+        if (hash > 0 && round > 2) name = name[..hash];
+        Again = (name + " #" + round, info.IsVisible, state ? state.Credits : 0, state ? state.Minutes : 0);
+    }
+
     public async Task Leave()
     {
         if (!Runner) return;
@@ -108,6 +147,7 @@ public class RoomService : MonoBehaviour
             PlayerCount = MaxPlayers,
             EnableClientSessionCreation = create, // Join must not silently create a new room
             IsVisible = visible,
+            SessionProperties = new System.Collections.Generic.Dictionary<string, SessionProperty> { { "host", AccountService.Username ?? "Player" } },
             SceneManager = Runner.GetComponent<NetworkSceneManagerDefault>(),
         });
         if (!result.Ok)
@@ -124,7 +164,12 @@ public class RoomService : MonoBehaviour
         inRoom = true;
         FriendsHub.SetRoom(room); // friends see it and can JOIN
         Runner.Spawn(roomPlayerPrefab); // Shared mode: each player spawns and owns their own
-        if (Runner.IsSharedModeMasterClient && RoomState.Instance == null) Runner.Spawn(roomStatePrefab); // the room's creator
+        if (Runner.IsSharedModeMasterClient && RoomState.Instance == null) // the room's creator
+        {
+            var state = Runner.Spawn(roomStatePrefab).GetComponent<RoomState>();
+            if (Again is var (againRoom, _, credits, minutes) && againRoom == room && credits > 0) { state.Credits = credits; state.Minutes = minutes; }
+        }
+        Again = null;
         return null;
     }
 

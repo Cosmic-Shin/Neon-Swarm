@@ -30,7 +30,7 @@ public class MatchManager : MonoBehaviour
     float started = -1f, nextCheck;
     bool hadOpponent, over;
     bool spectating; // lost, still watching (fog lifted) until the match is decided
-    Button spectateButton;
+    Button spectateButton, playAgainButton;
     Text spectateBanner, statsNames;
     readonly Text[] statsColumns = new Text[MatchStats.Headers.Length];
 
@@ -330,14 +330,27 @@ public class MatchManager : MonoBehaviour
         endDetail.text = detail;
         FillStats(1f);
         spectateButton.gameObject.SetActive(canSpectate);
-        float x = canSpectate ? 210f : 0f;
-        ((RectTransform)endButton.transform).anchoredPosition = new Vector2(x, -330f);
-        ((RectTransform)spectateButton.transform).anchoredPosition = new Vector2(-x, -330f);
+        bool again = Net.InMatch && title != "DISCONNECTED";
+        playAgainButton.gameObject.SetActive(again);
+        // Left to right: SPECTATE, PLAY AGAIN, BACK TO MENU (whichever show), 420 apart.
+        var row = new System.Collections.Generic.List<Button>();
+        if (canSpectate) row.Add(spectateButton);
+        if (again) row.Add(playAgainButton);
+        row.Add(endButton);
+        for (int i = 0; i < row.Count; i++)
+            ((RectTransform)row[i].transform).anchoredPosition = new Vector2((i - (row.Count - 1) / 2f) * 420f, -330f);
         if (Net.InMatch && !friendButtons) { friendButtons = true; FriendsPanel.AddButtons(endButton.transform.parent, new Vector2(0f, -262f)); }
         if (title == "DEFEAT" || title == "MATCH OVER") FogOfWar.RevealAll = true; // nothing of yours left to see with: show the whole map behind the results
         StopAllCoroutines();
         StartCoroutine(Finale(title == "VICTORY" || title == "DEFEAT"));
+#if DEVELOPMENT_BUILD
+        if (again && FriendsHub.DevArg("-playagain")) Invoke(nameof(DevPlayAgain), 4f); // test builds click PLAY AGAIN
+#endif
     }
+
+#if DEVELOPMENT_BUILD
+    void DevPlayAgain() { Debug.Log("[GD5] play again"); playAgainButton.onClick.Invoke(); }
+#endif
 
     // The match was just decided by a building going up: the camera flies to it in slow motion (offline;
     // online the clock can't slow down) for a moment before the results.
@@ -433,6 +446,14 @@ public class MatchManager : MonoBehaviour
         spectateButton.onClick = new Button.ButtonClickedEvent();
         spectateButton.onClick.AddListener(Spectate);
         spectateButton.GetComponentInChildren<Text>().text = "SPECTATE";
+
+        // Online: everyone who clicks it meets in the room's next round ("Name #2").
+        playAgainButton = Instantiate(endButton, endButton.transform.parent);
+        playAgainButton.name = "PlayAgainButton";
+        playAgainButton.onClick = new Button.ButtonClickedEvent();
+        playAgainButton.onClick.AddListener(() => { playAgainButton.interactable = false; RoomService.Instance.SetUpPlayAgain(); BackToMenu(); });
+        playAgainButton.GetComponentInChildren<Text>().text = "PLAY AGAIN";
+        playAgainButton.gameObject.SetActive(false);
 
         // Columns: player names, then one per stat; a header on top, one line per player below.
         const float nameWidth = 340f, statWidth = 170f;

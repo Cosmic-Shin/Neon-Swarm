@@ -14,7 +14,7 @@ using UnityEngine.SceneManagement;
 public static class FriendsHub
 {
     [Serializable] public class Activity { public string status = "In menus"; public string room; public long at; } // at: unix seconds, refreshed each minute
-    [Serializable] public class Invite { public string room; }
+    [Serializable] public class Note { public string room; public string text; } // an invite (room) or a chat message (text)
 
     public static bool Ready { get; private set; }
     public static string MyTag { get; private set; }
@@ -22,6 +22,15 @@ public static class FriendsHub
     public static string CurrentRoom => me.room;
     public static event Action Changed;
     public static event Action<string, string> Invited; // friend name, room
+    public static event Action<string, string> Messaged; // friend name, text
+
+    // Chat with each friend (by player ID) for this session; nothing is stored.
+    public static readonly Dictionary<string, List<(bool mine, string text)>> Chats = new();
+    static readonly Dictionary<string, int> unread = new();
+    public static int Unread(string id) => unread.TryGetValue(id, out int n) ? n : 0;
+    public static int UnreadTotal { get { int n = 0; foreach (var v in unread.Values) n += v; return n; } }
+    public static void MarkRead(string id) { if (unread.Remove(id)) Changed?.Invoke(); }
+    static List<(bool, string)> ChatWith(string id) => Chats.TryGetValue(id, out var c) ? c : Chats[id] = new();
 
     static readonly Activity me = new();
     static bool hooked;
@@ -66,11 +75,12 @@ public static class FriendsHub
                 Service.RelationshipAdded += _ => OnChanged();
                 Service.RelationshipDeleted += _ => OnChanged();
                 Service.PresenceUpdated += _ => OnChanged();
-                Service.MessageReceived += e => Invited?.Invoke(NameOf(e.UserId), e.GetAs<Invite>().room);
+                Service.MessageReceived += OnNote;
                 Heartbeat();
             }
             Ready = true;
             lastIncoming = Incoming.Count;
+            _ = ProfileService.Load(); // makes sure friends can see this player's public stats
             LastError = null;
             await Push();
         }
@@ -78,9 +88,26 @@ public static class FriendsHub
         Changed?.Invoke();
     }
 
+    static void OnNote(Unity.Services.Friends.Notifications.IMessageReceivedEvent e)
+    {
+        var note = e.GetAs<Note>();
+        if (string.IsNullOrEmpty(note.text)) { Invited?.Invoke(NameOf(e.UserId), note.room); return; }
+        ChatWith(e.UserId).Add((false, note.text));
+        Debug.Log("[GD5] message from " + NameOf(e.UserId) + ": " + note.text);
+#if DEVELOPMENT_BUILD
+        if (DevArg("-echomessages")) _ = SendText(e.UserId, "echo: " + note.text); // test builds answer back
+#endif
+        unread[e.UserId] = Unread(e.UserId) + 1;
+        Messaged?.Invoke(NameOf(e.UserId), note.text);
+        Changed?.Invoke();
+    }
+
     static void OnChanged()
     {
         if (Incoming.Count > lastIncoming) Sfx.Play(Snd.Info);
+#if DEVELOPMENT_BUILD
+        if (DevArg("-acceptfriends")) foreach (var r in Incoming) _ = Accept(r.Member.Id); // test builds say yes
+#endif
         lastIncoming = Incoming.Count;
         Changed?.Invoke();
     }
@@ -107,6 +134,8 @@ public static class FriendsHub
         Ready = false;
         MyTag = null;
         me.room = null;
+        Chats.Clear();
+        unread.Clear();
         Changed?.Invoke();
     }
 
@@ -151,7 +180,18 @@ public static class FriendsHub
     public static Task<string> Cancel(string id) => Run(() => Service.DeleteOutgoingFriendRequestAsync(id));
     public static Task<string> Remove(string id) => Run(() => Service.DeleteFriendAsync(id));
     public static Task<string> SendInvite(string id) =>
-        me.room == null ? Task.FromResult("You're not in a room.") : Run(() => Service.MessageAsync(id, new Invite { room = me.room }));
+        me.room == null ? Task.FromResult("You're not in a room.") : Run(() => Service.MessageAsync(id, new Note { room = me.room }));
+
+    public const int MaxMessage = 200;
+    public static async Task<string> SendText(string id, string text)
+    {
+        text = text.Trim();
+        if (text.Length == 0) return null;
+        if (text.Length > MaxMessage) text = text[..MaxMessage];
+        string error = await Run(() => Service.MessageAsync(id, new Note { text = text }));
+        if (error == null) { ChatWith(id).Add((true, text)); Changed?.Invoke(); }
+        return error;
+    }
 
     static async Task<string> Run(Func<Task> call)
     {
@@ -168,6 +208,10 @@ public static class FriendsHub
         msg.Contains("self", StringComparison.OrdinalIgnoreCase) ? "That's your own tag." :
         msg.Contains("block", StringComparison.OrdinalIgnoreCase) ? "Can't add that player (blocked)." :
         msg.Contains("exist", StringComparison.OrdinalIgnoreCase) ? "Already friends or already requested." : msg;
+
+#if DEVELOPMENT_BUILD
+    public static bool DevArg(string flag) => Array.IndexOf(Environment.GetCommandLineArgs(), flag) >= 0;
+#endif
 
     // ---- reading a friend ----
 

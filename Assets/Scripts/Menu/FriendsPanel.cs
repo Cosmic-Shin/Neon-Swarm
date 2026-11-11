@@ -6,7 +6,8 @@ using UnityEngine.UI;
 using static SettingsPanel; // Label, Button, Stretch, colours
 
 // Friends overlay (opened from the main menu, room browser and room screen), built in code:
-//   your tag + COPY, add by tag, incoming requests, friends (online first) with JOIN / INVITE, sent requests.
+//   your tag + COPY, add by tag, incoming requests, friends (online first) with JOIN / INVITE / VIEW, sent requests.
+//   VIEW opens a friend's card: their public stats, a chat with them, REMOVE and BLOCK.
 // Also shows the invite pop-up when a friend invites you while you're in the menus.
 public class FriendsPanel : MonoBehaviour
 {
@@ -18,6 +19,9 @@ public class FriendsPanel : MonoBehaviour
     int strangersShown = -1; // redraw when someone joins or leaves the room
     Text tag, status;
     InputField addBox;
+    RectTransform box, card;  // card: one friend's stats + chat, over the list
+    string cardId, cardName;  // whose card is open
+    Text cardChat, cardStatus;
 
     // A menu button that opens the panel; its label shows pending requests.
     public static void Hook(Button b)
@@ -28,7 +32,7 @@ public class FriendsPanel : MonoBehaviour
         update = () =>
         {
             if (!b) { FriendsHub.Changed -= update; return; }
-            int n = FriendsHub.Incoming.Count;
+            int n = FriendsHub.Incoming.Count + FriendsHub.UnreadTotal;
             label.text = n > 0 ? $"FRIENDS ({n})" : "FRIENDS";
         };
         FriendsHub.Changed += update;
@@ -51,13 +55,13 @@ public class FriendsPanel : MonoBehaviour
 
     void Update()
     {
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Destroy(gameObject);
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) { if (card) CloseCard(); else Destroy(gameObject); }
         if (FriendsHub.CurrentRoom != null && Time.frameCount % 30 == 0 && RoomPlayer.Strangers().Count != strangersShown) Redraw();
     }
 
     void Build(RectTransform root)
     {
-        var box = Box(root, new Vector2(Width + 60f, 900f));
+        box = Box(root, new Vector2(Width + 60f, 900f));
         Label(box, "FRIENDS", new Vector2(0f, 405f), 34, TextAnchor.MiddleCenter, Width);
 
         tag = Label(box, "", new Vector2(-90f, 345f), 22, TextAnchor.MiddleLeft, Width - 180f);
@@ -95,6 +99,7 @@ public class FriendsPanel : MonoBehaviour
     void Redraw()
     {
         if (!this) return;
+        if (card) RefreshChat();
         tag.text = "YOUR TAG   " + (FriendsHub.MyTag ?? "-");
         if (!FriendsHub.Ready && FriendsHub.LastError != null) status.text = FriendsHub.LastError;
         foreach (Transform c in content) Destroy(c.gameObject);
@@ -126,13 +131,15 @@ public class FriendsPanel : MonoBehaviour
             string id = m.Id;
             var act = FriendsHub.ActivityOf(m);
             string sub = act == null ? "Offline" : act.room != null ? act.status + ": " + act.room : act.status;
+            int unread = FriendsHub.Unread(id);
+            if (unread > 0) sub = $"<color=#FF40E0>{unread} new message{(unread == 1 ? "" : "s")}</color>   " + sub;
             bool canJoin = act?.room != null && act.room != FriendsHub.CurrentRoom && UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex == 0;
             bool canInvite = act != null && FriendsHub.CurrentRoom != null && act.room != FriendsHub.CurrentRoom;
             var buttons = new System.Collections.Generic.List<(string, Func<Task<string>>)>();
             if (canJoin) { string room = act.room; buttons.Add(("JOIN", () => { Destroy(gameObject); MultiplayerMenu.JoinFriendRoom(room); return Task.FromResult<string>(null); })); }
             if (canInvite) buttons.Add(("INVITE", async () => { var e = await FriendsHub.SendInvite(id); return e ?? "Invite sent."; }));
-            buttons.Add(("REMOVE", () => FriendsHub.Remove(id)));
-            buttons.Add(("BLOCK", () => FriendsHub.Block(id)));
+            var member = m;
+            buttons.Add((unread > 0 ? $"VIEW ({unread})" : "VIEW", () => { OpenCard(member); return Task.FromResult<string>(null); }));
             Row(ref y, FriendsHub.NameOf(m), sub, act != null ? Online : Offline, buttons.ToArray());
         }
 
@@ -212,6 +219,94 @@ public class FriendsPanel : MonoBehaviour
         y -= RowH;
     }
 
+    // ---- a friend's card: stats, chat, REMOVE / BLOCK ----
+
+    async void OpenCard(Unity.Services.Friends.Models.Member m)
+    {
+        if (card) Destroy(card.gameObject);
+        cardId = m.Id;
+        cardName = FriendsHub.NameOf(m);
+        card = Box(box, new Vector2(Width + 20f, 700f));
+        card.anchoredPosition = new Vector2(0f, -40f);
+        string id = m.Id, name = FriendsHub.NameOf(m);
+
+        Button(card, "< BACK", new Vector2(-Width / 2f + 70f, 315f), new Vector2(120f, 44f)).onClick.AddListener(CloseCard);
+        Label(card, name.ToUpper(), new Vector2(0f, 315f), 30, TextAnchor.MiddleCenter, 400f).color = Color.white;
+        var act = FriendsHub.ActivityOf(m);
+        Label(card, act == null ? "Offline" : act.room != null ? act.status + ": " + act.room : act.status, new Vector2(0f, 278f), 18, TextAnchor.MiddleCenter, Width).color = Dim;
+        var stats = Label(card, "Loading stats...", new Vector2(0f, 205f), 20, TextAnchor.UpperCenter, Width - 40f);
+        stats.rectTransform.sizeDelta = new Vector2(Width - 40f, 110f);
+        stats.color = Color.white;
+
+        Label(card, "CHAT", new Vector2(-Width / 2f + 130f, 135f), 20, TextAnchor.MiddleLeft, 200f);
+        cardChat = Label(card, "", new Vector2(0f, 0f), 19, TextAnchor.LowerLeft, Width - 60f);
+        cardChat.rectTransform.sizeDelta = new Vector2(Width - 60f, 240f);
+        cardChat.color = Color.white;
+        var input = Input(card, "Message (Enter to send)", new Vector2(-75f, -160f), new Vector2(Width - 190f, 48f), tag.font);
+        input.characterLimit = FriendsHub.MaxMessage;
+        async void Send()
+        {
+            string text = input.text;
+            input.text = "";
+            string e = await FriendsHub.SendText(id, text);
+            if (cardStatus) cardStatus.text = e ?? "";
+            if (input) input.ActivateInputField();
+        }
+        input.onSubmit.AddListener(_ => Send());
+        Button(card, "SEND", new Vector2(Width / 2f - 70f, -160f), new Vector2(120f, 48f)).onClick.AddListener(Send);
+        cardStatus = Label(card, "", new Vector2(0f, -205f), 18, TextAnchor.MiddleCenter, Width);
+        cardStatus.color = Dim;
+
+        // Two clicks each, like the list.
+        Risky(Button(card, "REMOVE FRIEND", new Vector2(-150f, -290f), new Vector2(250f, 48f)), async () => { await FriendsHub.Remove(id); CloseCard(); });
+        Risky(Button(card, "BLOCK", new Vector2(150f, -290f), new Vector2(250f, 48f)), async () => { await FriendsHub.Block(id); CloseCard(); });
+
+        FriendsHub.MarkRead(id);
+        RefreshChat();
+        var p = await ProfileService.LoadPublic(id);
+        if (!stats) return;
+        stats.text = p == null ? "No stats yet." : StatsText(p);
+    }
+
+    static string StatsText(PlayerProfile p)
+    {
+        string streak = p.streak > 0 ? $"W{p.streak}" : p.streak < 0 ? $"L{-p.streak}" : "-";
+        var lines = $"<color=#FFCC40>{PlayerProfile.Ranks[p.RankIndex].name}</color>     {Plural(p.all.games, "game")}     {Plural(p.all.wins, "win")}     " +
+                    $"{(p.all.games > 0 ? $"{p.all.Rate * 100f:0}%" : "-")} win rate     streak {streak}\n<color=#8A96B0>";
+        for (int i = 0; i < Mathf.Min(3, p.recent.Count); i++)
+        {
+            var m = p.recent[i];
+            lines += (m.won ? "<color=#60FF90>WIN</color>" : "<color=#FF6070>LOSS</color>") + $" vs {m.opponents}   ";
+        }
+        return lines + "</color>";
+    }
+
+    static string Plural(int n, string word) => n + " " + word + (n == 1 ? "" : "s");
+
+    void RefreshChat()
+    {
+        if (cardId == null || !cardChat) return;
+        FriendsHub.MarkRead(cardId);
+        var lines = new System.Text.StringBuilder();
+        if (FriendsHub.Chats.TryGetValue(cardId, out var chat))
+            for (int i = Mathf.Max(0, chat.Count - 9); i < chat.Count; i++)
+                lines.AppendLine((chat[i].mine ? "<color=#4CFFFF>You:</color> " : $"<color=#FF40E0>{cardName}:</color> ") + chat[i].text);
+        cardChat.text = lines.Length > 0 ? lines.ToString() : "<color=#8A96B0>No messages yet. Messages last until you close the game.</color>";
+    }
+
+    void CloseCard()
+    {
+        if (card) Destroy(card.gameObject);
+        card = null;
+        cardId = null;
+    }
+
+    static void Risky(Button b, Action act)
+    {
+        var text = b.GetComponentInChildren<Text>();
+        b.onClick.AddListener(() => { if (text.text != "SURE?") { text.text = "SURE?"; return; } b.interactable = false; act(); });
+    }
+
     // Results screen: "+ ADD NAME" for each player from the match you aren't friends with yet.
     public static void AddButtons(Transform parent, Vector2 center)
     {
@@ -283,6 +378,11 @@ public class FriendsPanel : MonoBehaviour
     static void HookInvites()
     {
         FriendsHub.Invited += ShowInvite;
+        FriendsHub.Messaged += (from, text) =>
+        {
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != 0) Alerts.Show(from + ": " + text, Alerts.Info); // mid-match
+            else Sfx.Play(Snd.Info); // menus: the FRIENDS button counts it
+        };
         UnityEngine.SceneManagement.SceneManager.activeSceneChanged += (old, scene) =>
         {
             if (scene.buildIndex != 0 || waiting is not var (from, room)) return;

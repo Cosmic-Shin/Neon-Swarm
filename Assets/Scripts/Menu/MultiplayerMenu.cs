@@ -1,21 +1,23 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// Room browser: create a room by name, join by name or by clicking a listed room.
+// Room browser: QUICK MATCH, create a room by name, join by name or by clicking a listed room (each shows
+// its host and which friends are in it; friends' rooms first).
 public class MultiplayerMenu : MonoBehaviour
 {
     public GameObject lobbyPanel, roomPanel;
     public InputField roomName;
-    public Button create, join, back, leave, friends, friendsOnly;
+    public Button create, join, back, leave, friends, friendsOnly, quickMatch;
     public Text status, listHint;
     public Transform roomList;   // ScrollRect content
     public Button roomTemplate;  // inactive child of roomList, cloned per room
     string notice;               // shown after reconnecting, e.g. why we got dropped
-    string pendingJoin;          // a friend's room to join once connected
+    (string label, System.Func<System.Threading.Tasks.Task<string>> go)? pending; // a room to enter once connected (friend's, play again)
     bool hidden;                 // FRIENDS ONLY: the next room created is off the public list
 
     void Awake()
     {
+        quickMatch.onClick.AddListener(() => EnterWith("Finding a match...", RoomService.Instance.QuickMatch));
         create.onClick.AddListener(() => Enter(true, roomName.text));
         join.onClick.AddListener(() => Enter(false, roomName.text));
         // Enter in the name box: join it if it exists, otherwise create it.
@@ -27,12 +29,14 @@ public class MultiplayerMenu : MonoBehaviour
         onlyText.text = "PUBLIC";
         friendsOnly.onClick.AddListener(() => { hidden = !hidden; onlyText.text = hidden ? "FRIENDS ONLY" : "PUBLIC"; });
         RoomService.RoomsChanged += Redraw;
+        FriendsHub.Changed += Redraw; // friends moving between rooms
         RoomService.Disconnected += OnDisconnected;
     }
 
     void OnDestroy()
     {
         RoomService.RoomsChanged -= Redraw;
+        FriendsHub.Changed -= Redraw;
         RoomService.Disconnected -= OnDisconnected;
     }
 
@@ -46,11 +50,19 @@ public class MultiplayerMenu : MonoBehaviour
         status.text = error ?? notice ?? "";
         notice = null;
         SetBusy(false);
-        if (error == null && pendingJoin != null) { string room = pendingJoin; pendingJoin = null; Enter(false, room); }
+        if (error == null && pending is var (label, go)) { pending = null; EnterWith(label, go); }
     }
 
     // JOIN on a friend or an invite, from any menu screen: close it, reconnect (leaving any room), join.
-    public static void JoinFriendRoom(string room)
+    public static void JoinFriendRoom(string room) => Open("Joining room...", () => RoomService.Instance.Join(room));
+
+    // Back from an online match with PLAY AGAIN: straight into the group's next room.
+    public static void PlayAgain()
+    {
+        if (RoomService.Again is var (room, visible, _, _)) Open("Joining your group...", () => RoomService.Instance.JoinOrCreate(room, visible));
+    }
+
+    static void Open(string label, System.Func<System.Threading.Tasks.Task<string>> go)
     {
         var menu = FindFirstObjectByType<MultiplayerMenu>(FindObjectsInactive.Include);
         if (!menu) return;
@@ -60,19 +72,24 @@ public class MultiplayerMenu : MonoBehaviour
             if (screen.GetComponent<SkirmishPanel>() || screen.GetComponent<SettingsPanel>() || screen.GetComponent<FriendsPanel>()) Destroy(screen.gameObject);
             else screen.gameObject.SetActive(false);
         }
-        menu.pendingJoin = room;
+        menu.pending = (label, go);
         if (menu.gameObject.activeSelf) menu.OnEnable(); // reconnects (leaving any room), then joins
         else menu.gameObject.SetActive(true);
     }
 
-    async void Enter(bool isNew, string room)
+    void Enter(bool isNew, string room)
     {
         room = room.Trim();
         if (room.Length == 0) { status.text = "Enter a room name."; return; }
+        EnterWith(isNew ? "Creating room..." : "Joining room...", () => isNew ? RoomService.Instance.Create(room, hidden) : RoomService.Instance.Join(room));
+    }
+
+    async void EnterWith(string label, System.Func<System.Threading.Tasks.Task<string>> go)
+    {
         SetBusy(true);
-        status.text = isNew ? "Creating room..." : "Joining room...";
+        status.text = label;
         string error;
-        try { error = isNew ? await RoomService.Instance.Create(room, hidden) : await RoomService.Instance.Join(room); }
+        try { error = await go(); }
         catch (System.Exception e) { Debug.LogException(e); error = "Something went wrong. Try again."; await RoomService.Instance.EnterLobby(); }
         SetBusy(false);
         if (error != null) { status.text = error; return; }
@@ -109,12 +126,16 @@ public class MultiplayerMenu : MonoBehaviour
             if (child != roomTemplate.transform) Destroy(child.gameObject);
 
         int shown = 0;
-        foreach (var room in RoomService.Instance.Rooms)
+        var rooms = RoomService.Instance.Rooms.FindAll(r => r.IsOpen && r.IsVisible);
+        rooms.Sort((a, b) => FriendsIn(b.Name).Length.CompareTo(FriendsIn(a.Name).Length)); // friends' rooms first
+        foreach (var room in rooms)
         {
-            if (!room.IsOpen || !room.IsVisible) continue;
             var b = Instantiate(roomTemplate, roomList);
             b.gameObject.SetActive(true);
-            b.GetComponentInChildren<Text>().text = room.Name + "    " + room.PlayerCount + "/" + room.MaxPlayers;
+            string host = RoomService.HostOf(room), pals = FriendsIn(room.Name);
+            b.GetComponentInChildren<Text>().text = room.Name + "    " + room.PlayerCount + "/" + room.MaxPlayers
+                + (pals.Length > 0 ? "    <color=#60FF90>" + pals + "</color>" // friends matter more than who hosts
+                   : host != null ? "    <color=#8A96B0>host " + host + "</color>" : "");
             string name = room.Name;
             b.onClick.AddListener(() => Enter(false, name));
             shown++;
@@ -122,5 +143,13 @@ public class MultiplayerMenu : MonoBehaviour
         listHint.text = shown == 0 ? "No rooms yet. Create one!" : "";
     }
 
-    void SetBusy(bool busy) => create.interactable = join.interactable = !busy;
+    // "★ ann, bob" for friends whose status says they're in this room.
+    static string FriendsIn(string room)
+    {
+        var names = new System.Collections.Generic.List<string>();
+        foreach (var f in FriendsHub.Friends) if (FriendsHub.ActivityOf(f.Member)?.room == room) names.Add(FriendsHub.NameOf(f.Member));
+        return names.Count > 0 ? "★ " + string.Join(", ", names) : "";
+    }
+
+    void SetBusy(bool busy) => create.interactable = join.interactable = quickMatch.interactable = !busy;
 }

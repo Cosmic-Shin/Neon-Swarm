@@ -56,6 +56,7 @@ public class LoginScreen : MonoBehaviour
         signInPanel.SetActive(!inside);
         lobbyPanel.SetActive(inside);
         if (inside) _ = FriendsHub.Init();
+        if (inside && RoomService.Again != null) MultiplayerMenu.PlayAgain(); // back from a match with PLAY AGAIN
     }
 
     void SetBusy(bool busy) => signIn.interactable = signUp.interactable = !busy;
