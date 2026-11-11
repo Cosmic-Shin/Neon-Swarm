@@ -41,6 +41,8 @@ public class UIJuice : MonoBehaviour
         return s;
     }
 
+    Transform lastHovered;
+
     void Update()
     {
         Transform hovered = null;
@@ -55,6 +57,8 @@ public class UIJuice : MonoBehaviour
             if (button != null && !button.IsInteractable() && mouse.leftButton.wasPressedThisFrame && CantAfford(button)) CreditsDisplay.Deny();
         }
         if (hovered != null) Get(hovered);
+        if (hovered != lastHovered && hovered != null) Sfx.Play(Snd.Hover, 0.25f); // a soft tick as the mouse lands on a button
+        lastHovered = hovered;
 
         settled.Clear();
         float dt = Time.unscaledDeltaTime;

@@ -11,7 +11,7 @@ using UnityEngine;
 //  - empty base spots: a hologram landing pad with its number, gone once someone builds there
 public class MapDressing : MonoBehaviour
 {
-    const float MapHalf = 300f;
+    static float MapHalf => GameMaps.Current.Half;
     static readonly Color[] Neon = { new(0.2f, 0.9f, 1f), new(1f, 0.2f, 0.85f), new(1f, 0.75f, 0.2f), new(0.4f, 1f, 0.5f) };
 
     Shader additive;
@@ -121,22 +121,43 @@ public class MapDressing : MonoBehaviour
         var dash = Glow(dashTex, new Color(0.3f, 0.85f, 1f, 0.5f), 1.1f); // bright enough to bloom a little, not to shine through fog
         flowing.Add((dash, -1.2f)); // ~7 m/s towards the centre
 
-        // The ring runs inside the ring of bases (they sit at ~235 m), so roads never cross a base.
-        const float RingRadius = 195f, Inner = 40f;
+        // The ring runs inside the bases (83% of the nearest one's distance), so roads never cross a base.
+        // Two bases (duel) make no ring, just the spokes.
+        float near = float.MaxValue;
+        foreach (Transform s in spots.transform) near = Mathf.Min(near, new Vector2(s.position.x, s.position.z).magnitude);
+        float RingRadius = near * 0.83f, Inner = Mathf.Min(40f, near * 0.3f);
         var dirs = new List<Vector3>();
         foreach (Transform s in spots.transform) dirs.Add(new Vector3(s.position.x, 0f, s.position.z).normalized);
         dirs.Sort((a, b) => Mathf.Atan2(a.z, a.x).CompareTo(Mathf.Atan2(b.z, b.x)));
         var ring = new List<Vector3>();
         foreach (var d in dirs) ring.Add(d * RingRadius + Vector3.up * 0.08f);
         ring.Add(ring[0]);
-        Line("RingRoad", bed, 7f, ring.ToArray());
-        Line("RingRoadLights", dash, 0.35f, ring.ToArray());
+        bool ringClear = true; // no ring road over a chasm (map features)
+        for (int i = 1; i < ring.Count; i++) if (ChasmAlong(ring[i - 1], ring[i]) < float.MaxValue) ringClear = false;
+        if (dirs.Count > 2 && ringClear)
+        {
+            Line("RingRoad", bed, 7f, ring.ToArray());
+            Line("RingRoadLights", dash, 0.35f, ring.ToArray());
+        }
         foreach (var d in dirs)
         {
             Vector3 outer = d * RingRadius + Vector3.up * 0.08f, inner = d * Inner + Vector3.up * 0.08f; // stop short of the centre zone
+            float stop = ChasmAlong(outer, inner); // the road ends at a chasm's edge
+            if (stop < float.MaxValue) inner = outer + (inner - outer).normalized * Mathf.Max(0f, stop - 3f);
+            if ((inner - outer).sqrMagnitude < 25f) continue;
             Line("Spoke", bed, 5f, outer, inner);
             Line("SpokeLights", dash, 0.3f, outer, inner);
         }
+    }
+
+    // Distance from a to the first chasm or bridge on the way to b (MaxValue = none).
+    static float ChasmAlong(Vector3 a, Vector3 b)
+    {
+        Vector3 from = new(a.x, 0.1f, a.z), d = new(b.x - a.x, 0f, b.z - a.z);
+        float best = float.MaxValue;
+        foreach (var hit in Physics.RaycastAll(from, d.normalized, d.magnitude, ~0, QueryTriggerInteraction.Ignore))
+            if ((hit.collider.name == "Chasm" || hit.collider.name == "Deck") && hit.distance < best) best = hit.distance;
+        return best;
     }
 
     // ---- sky ----
@@ -148,7 +169,7 @@ public class MapDressing : MonoBehaviour
         for (int lane = 0; lane < 7; lane++)
         {
             bool alongX = lane % 2 == 0;
-            float offset = (float)(rng.NextDouble() * 2 - 1) * 240f;
+            float offset = (float)(rng.NextDouble() * 2 - 1) * MapHalf * 0.8f;
             float height = 20f + (float)rng.NextDouble() * 8f;
             int dirSign = rng.Next(2) == 0 ? -1 : 1;
             Vector3 dir = (alongX ? Vector3.right : Vector3.forward) * dirSign;

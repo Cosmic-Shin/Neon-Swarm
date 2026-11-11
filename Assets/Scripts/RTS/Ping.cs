@@ -40,6 +40,7 @@ public class Ping : MonoBehaviour
     public static void Show(Vector3 at, Color color, string who)
     {
         Active.Add((at, color, Time.time));
+        Sfx.Play(Snd.Ping, 0.8f);
         Debug.Log($"[GD5] ping from {who} at {at}");
         if (who != null) Alerts.Show($"{who} pinged the map", color, 2f);
         if (material == null) material = Resources.Load<Material>("HarvestFX"); // additive glow

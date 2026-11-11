@@ -130,8 +130,30 @@ public class SettingsPanel : MonoBehaviour
         Cycle(box, "Rain", ref y, () => GameSettings.Rain ? "ON" : "OFF", () => GameSettings.Rain = !GameSettings.Rain);
         Cycle(box, "Damage numbers", ref y, () => GameSettings.DamageNumbers ? "ON" : "OFF", () => GameSettings.DamageNumbers = !GameSettings.DamageNumbers);
 
-        var back = Button(box, "BACK", new Vector2(0f, -450f), new Vector2(300f, 56f));
+        var back = Button(box, "BACK", new Vector2(-150f, -450f), new Vector2(270f, 56f));
         back.onClick.AddListener(Close);
+        Button(box, "CREDITS", new Vector2(150f, -450f), new Vector2(270f, 56f)).onClick.AddListener(() => ShowCredits(root));
+    }
+
+    // The music's CC BY 4.0 credits, in the form incompetech.com asks for (one block per track).
+    static void ShowCredits(RectTransform root)
+    {
+        var cover = new GameObject("Credits", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+        cover.SetParent(root, false);
+        Stretch(cover);
+        cover.GetComponent<Image>().color = new Color(0f, 0f, 0.01f, 0.97f); // hides the settings underneath
+        var box = new GameObject("Box", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+        box.SetParent(cover, false);
+        box.sizeDelta = new Vector2(760f, 1000f);
+        HoloSkin.Modal(box);
+        HoloSkin.Title(Label(box, "CREDITS", new Vector2(0f, 455f), 34, TextAnchor.MiddleCenter, 700f), 680f);
+        Label(box, "MUSIC", new Vector2(0f, 395f), 24, TextAnchor.MiddleCenter, 700f).color = Cyan;
+        var lines = new System.Text.StringBuilder();
+        foreach (var title in Sfx.Credits)
+            lines.Append($"{title} Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0\nhttps://creativecommons.org/licenses/by/4.0/\n\n");
+        var text = Label(box, lines.ToString().TrimEnd(), new Vector2(0f, -20f), 19, TextAnchor.UpperCenter, 700f);
+        text.rectTransform.sizeDelta = new Vector2(700f, 760f);
+        Button(box, "CLOSE", new Vector2(0f, -450f), new Vector2(300f, 56f)).onClick.AddListener(() => Destroy(cover.gameObject));
     }
 
     // ---- widgets ----

@@ -20,8 +20,11 @@ public class Chat : MonoBehaviour
 
     void OnEnable() => RoomState.ChatReceived += Show;
     void OnDisable() => RoomState.ChatReceived -= Show;
-    static void Show(int slot, string text, bool toAll) =>
-        Alerts.Show($"{(toAll ? "" : "(Team) ")}{RoomState.Instance?.NameOf(slot)}: {text}", TeamMember.ColorOf(slot));
+    static void Show(int slot, string text, bool toAll)
+    {
+        Sfx.Play(Snd.Chat, 0.7f);
+        Alerts.Show($"{(toAll ? "" : "(Team) ")}{RoomState.Instance?.NameOf(slot)}: {text}", TeamMember.ColorOf(slot), silent: true);
+    }
 
     void Update()
     {

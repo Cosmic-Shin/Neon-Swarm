@@ -74,8 +74,15 @@ public class Construction : MonoBehaviour
         if (TryGetComponent(out Revealer r)) r.enabled = on;
     }
 
+    float nextClank;
+
     void Update()
     {
+        if (Time.time >= nextClank && site != null && site.Progress < 1f) // welding drones at work
+        {
+            nextClank = Time.time + Random.Range(0.5f, 1.1f);
+            Sfx.At(Snd.Weld, transform.position, 0.3f);
+        }
         if (remote) return;
         if (fill != null) fill.fillAmount = site.Progress;
         if (site.Progress < 1f) return;
@@ -86,6 +93,7 @@ public class Construction : MonoBehaviour
         if (TeamEconomy.TeamOf(this) == 0)
         {
             if (TryGetComponent(out Structure s)) Alerts.ShowAt($"Construction complete: {s.Name}", Alerts.Good, transform.position);
+            Sfx.Say(Line.Built, 5f);
             MatchStats.Add(MatchStats.Kind.BuildingsBuilt);
         }
         Destroy(this);

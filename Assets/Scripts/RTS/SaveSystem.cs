@@ -18,6 +18,7 @@ public class SaveData
     // The skirmish lobby setup, so loading rebuilds the same match (AIs, teams, colours, bases, time limit).
     public bool skirmish;
     public int startCredits, minutes, playerSide, playerColor, playerBase;
+    public string map; // the map's scene name (empty in old saves = the big map)
     public List<Skirmish.Opponent> opponents = new();
     public List<TeamResearch> teamResearch = new(); // AI research (yours is `research`)
     public int[] matchStats;                       // MatchStats.Values, for the end screen and your career stats
@@ -56,7 +57,6 @@ public static class SaveSystem
 {
     // ---- slots: save_1.json .. save_5.json ----
     public const int Slots = 5;
-    const int MapScene = 1; // the RTS map (build index)
 
     public static string SlotPath(int slot) => Path.Combine(Application.persistentDataPath, $"save_{slot}.json");
     public static bool HasSave(int slot) => File.Exists(SlotPath(slot));
@@ -119,7 +119,8 @@ public static class SaveSystem
         Skirmish.ElapsedBefore = d.elapsed;
         LastSlot = slot;
         pending = d;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(MapScene);
+        var map = System.Array.Find(GameMaps.All, m => m.scene == d.map) ?? GameMaps.All[0];
+        UnityEngine.SceneManagement.SceneManager.LoadScene(map.scene);
         return true;
     }
 
@@ -155,7 +156,7 @@ public static class SaveSystem
     static readonly List<(Health, float)> healthToSet = new();
 
     static bool IsEntity(Health h) =>
-        (h.TryGetComponent(out SelectableUnit _) || h.TryGetComponent(out Structure _)) && !h.TryGetComponent(out OutpostCapture _);
+        (h.TryGetComponent(out SelectableUnit _) || h.TryGetComponent(out Structure _) || h.TryGetComponent(out Barrier _)) && !h.TryGetComponent(out OutpostCapture _);
 
     static string Origin(Health h)
     {
@@ -235,7 +236,7 @@ public static class SaveSystem
     // ---- what goes in ----
     public static SaveData Capture()
     {
-        var d = new SaveData { savedAt = System.DateTime.UtcNow.Ticks, elapsed = Skirmish.Elapsed, skirmish = Skirmish.Active, matchStats = (int[])MatchStats.Values.Clone() };
+        var d = new SaveData { savedAt = System.DateTime.UtcNow.Ticks, elapsed = Skirmish.Elapsed, skirmish = Skirmish.Active, map = GameMaps.Current.scene, matchStats = (int[])MatchStats.Values.Clone() };
         if (d.skirmish)
         {
             d.opponents.AddRange(Skirmish.Opponents);

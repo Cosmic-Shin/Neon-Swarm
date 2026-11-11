@@ -50,6 +50,7 @@ public class Hud : MonoBehaviour
             float t = limit ? Mathf.Max(0f, MatchManager.SkirmishTimeLeft) : Skirmish.Elapsed;
             clock.text = $"{(int)t / 60:00}:{(int)t % 60:00}";
             clock.color = limit && t < 60f ? new Color(1f, 0.3f, 0.3f) : Color.white;
+            if (limit && t < 60f && t > 0f) Sfx.Say(Line.Hurry, 3600f); // the last minute
         }
         var kb = Chat.Keys;
         if (kb != null && kb.f1Key.wasPressedThisFrame) help.SetActive(!help.activeSelf);

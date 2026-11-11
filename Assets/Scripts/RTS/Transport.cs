@@ -62,6 +62,7 @@ public class Transport : MonoBehaviour
 
     IEnumerator BeamUp(SelectableUnit u)
     {
+        Sfx.At(Snd.Load, transform.position, 0.6f);
         Stow(u);
         Color c = ProductionFX.HoloColor(gameObject);
         Juice.Ring(u.transform.position + Vector3.up * 0.2f, c, 0.5f, 2.5f, 0.4f, 0.2f);
@@ -105,6 +106,7 @@ public class Transport : MonoBehaviour
 
     IEnumerator Drop()
     {
+        Sfx.At(Snd.Unload, transform.position, 0.6f);
         Busy = true;
         var agent = GetComponent<NavMeshAgent>();
         if (agent.isOnNavMesh) agent.ResetPath();

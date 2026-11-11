@@ -14,12 +14,25 @@ public partial class RoomState
     [Networked, Capacity(MaxOutposts)] NetworkArray<float> OutProgress => default;
     [Networked, Capacity(MaxOutposts)] NetworkArray<float> OutHp => default;
     [Networked] NetworkBool OutpostsReady { get; set; }
+    const int MaxBarriers = 64; // destructible walls (map feature): the host runs their health too
+    [Networked, Capacity(MaxBarriers)] NetworkArray<float> WallHp => default;
+    static readonly List<Barrier> barriers = new(); // keeps destroyed ones (null) so the numbers stay put
+    static bool barriersFound;
 
     static readonly List<OutpostCapture> outposts = new();
 
     // Numbered by position, the same on every PC (they are fixed scene objects).
     static void FindOutposts()
     {
+        if (!barriersFound) // once per match, numbered by position like the outposts
+        {
+            barriersFound = true;
+            barriers.AddRange(FindObjectsByType<Barrier>(FindObjectsSortMode.None));
+            barriers.Sort((a, b) => a.transform.position.x != b.transform.position.x
+                ? a.transform.position.x.CompareTo(b.transform.position.x)
+                : a.transform.position.z.CompareTo(b.transform.position.z));
+            if (barriers.Count > MaxBarriers) Debug.LogError($"[GD5] {barriers.Count} walls; only {MaxBarriers} are synced.");
+        }
         outposts.RemoveAll(o => o == null);
         if (outposts.Count > 0) return;
         outposts.AddRange(FindObjectsByType<OutpostCapture>(FindObjectsSortMode.None));
@@ -47,10 +60,24 @@ public partial class RoomState
         Health.RemoteDamage = host ? null : (h, amount, from) =>
         {
             int i = h.TryGetComponent(out OutpostCapture o) ? outposts.IndexOf(o) : -1;
-            if (i < 0 || i >= n) return false;
-            RPC_OutpostDamage(i, amount, NetEntity.IdOf(from));
-            return true;
+            if (i >= 0 && i < n) { RPC_OutpostDamage(i, amount, NetEntity.IdOf(from)); return true; }
+            int w = h.TryGetComponent(out Barrier b) ? barriers.IndexOf(b) : -1;
+            if (w >= 0 && w < MaxBarriers) { RPC_BarrierDamage(w, amount); return true; }
+            return false;
         };
+
+        // Walls: the host publishes health (0 = broken); everyone else follows and breaks theirs.
+        for (int w = 0; w < barriers.Count && w < MaxBarriers; w++)
+        {
+            var b = barriers[w];
+            var hp = b != null ? b.GetComponent<Health>() : null;
+            if (host) WallHp.Set(w, hp != null && !hp.IsDead ? hp.Current : 0f);
+            else if (OutpostsReady && hp != null && !hp.IsDead)
+            {
+                if (WallHp[w] <= 0f) { hp.SetFromNet(0f, hp.MaxHealth); hp.DieRemote(); }
+                else hp.SetFromNet(WallHp[w], hp.MaxHealth);
+            }
+        }
 
         for (int i = 0; i < n; i++)
         {
@@ -89,9 +116,17 @@ public partial class RoomState
             outposts[index].GetComponent<Outpost>().ShowShot(obj.GetComponent<Health>());
     }
 
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    void RPC_BarrierDamage(int index, float amount)
+    {
+        if (index < barriers.Count && barriers[index] != null) barriers[index].GetComponent<Health>().TakeDamage(amount);
+    }
+
     static void ClearOutposts()
     {
         outposts.Clear();
+        barriers.Clear();
+        barriersFound = false;
         Outpost.ShotHook = null;
         Health.RemoteDamage = null;
     }

@@ -59,7 +59,18 @@ public class Ambience : MonoBehaviour
             Vector3 at = Around(focus, 0.06f);
             if (Juice.Seen(at)) Particles.Emit("Ripple", at, Vector3.zero, Random.Range(0.6f, 1.1f), 0.45f, RippleColor);
         }
+        // Drops landing on roofs and walls: a tiny upward splash where a raindrop meets anything standing.
+        for (splashDebt += 70f * dt; splashDebt >= 1f; splashDebt--)
+        {
+            Vector3 top = Around(focus, 40f);
+            if (!Physics.Raycast(top, Vector3.down, out RaycastHit hit, 39.5f, ~0, QueryTriggerInteraction.Ignore) || hit.point.y < 0.5f) continue; // ground: the ripples do that
+            if (!Juice.Seen(hit.point)) continue;
+            for (int i = 0; i < 3; i++)
+                Particles.Emit("Mote", hit.point + Vector3.up * 0.05f, new Vector3(Random.Range(-1f, 1f), Random.Range(1.2f, 2.2f), Random.Range(-1f, 1f)), 0.06f, 0.25f, RainColor * 2f);
+        }
     }
+
+    float splashDebt;
 
     void Motes(Vector3 focus, float dt)
     {

@@ -28,13 +28,14 @@ public class Minimap : MonoBehaviour, IPointerDownHandler, IDragHandler
     void Awake()
     {
         cam = Camera.main;
+        worldSize = GameMaps.Of(gameObject.scene).size;
         selection = FindFirstObjectByType<GoodSelectionManager>();
 
         // The map picture under everything (the same top-down render the lobby shows), dimmed so dots stand out.
         var terrain = new GameObject("Terrain", typeof(RectTransform)).AddComponent<RawImage>();
         terrain.transform.SetParent(map, false);
         terrain.transform.SetAsFirstSibling();
-        terrain.texture = Resources.Load<Texture>("MapPreview");
+        terrain.texture = Resources.Load<Texture>(GameMaps.Of(gameObject.scene).preview);
         terrain.color = new Color(0.55f, 0.55f, 0.65f, 1f);
         terrain.raycastTarget = false;
         var r = terrain.rectTransform;

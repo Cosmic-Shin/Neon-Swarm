@@ -11,12 +11,14 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
 
     public static readonly int[] CreditOptions = { 2500, 5000, 10000, 20000 };
     public static readonly int[] MinuteOptions = { 0, 15, 30, 45, 60 }; // 0 = no limit
-    static readonly int[] DefaultBases = { 0, 4, 2, 6, 1, 5, 3, 7 };    // 2 players start opposite each other
+
 
     [Networked, Capacity(RoomService.MaxPlayers)] public NetworkArray<PlayerRef> Slots => default;
     [Networked, Capacity(RoomService.MaxPlayers)] public NetworkArray<int> Bases => default; // slot -> base 0..7
     [Networked] public int Credits { get; set; }
     [Networked] public int Minutes { get; set; }
+    [Networked] public int Map { get; set; } // GameMaps.All index
+    public GameMap MapInfo => GameMaps.At(Map);
     [Networked] public float MatchStart { get; set; } // Runner.SimulationTime when the map loaded; 0 = not yet
     [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> Colors => default; // slot -> TeamMember.TeamColors index
     [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> Teams => default;  // slot -> 0 = no team, 1..TeamCount
@@ -39,7 +41,8 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
         if (HasStateAuthority && Credits == 0)
         {
             Credits = 5000;
-            for (int i = 0; i < RoomService.MaxPlayers; i++) { Bases.Set(i, DefaultBases[i]); Colors.Set(i, i); }
+            for (int i = 0; i < RoomService.MaxPlayers; i++) Colors.Set(i, i);
+            ResetBases();
         }
     }
 
@@ -138,6 +141,7 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
             for (int i = 0; i < RoomService.MaxPlayers; i++)
                 if (Slots[i] == PlayerRef.None) { Slots.Set(i, p); Teams.Set(i, 0); Ready.Set(i, false); if (ColorTaken(i, Colors[i])) RPC_NextColor(i); break; }
         }
+        if (!Net.InMatch) KeepPlayersOnMap();
     }
 
     bool ColorTaken(int slot, int color)
@@ -231,6 +235,54 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
         Bases.Set(slot, baseIndex);
         Bases.Set(other, mine);
         Unready();
+    }
+
+    // The next map that fits everyone in the room; bases start over (base 1, then across the map).
+    public void NextMap()
+    {
+        if (!IsHost) return;
+        int players = 0;
+        for (int i = 0; i < RoomService.MaxPlayers; i++) if (Slots[i] != PlayerRef.None) players++;
+        for (int step = 1; step <= GameMaps.All.Length; step++)
+        {
+            int m = (Map + step) % GameMaps.All.Length;
+            if (GameMaps.All[m].Players < players) continue;
+            Map = m;
+            ResetBases();
+            Unready();
+            return;
+        }
+    }
+
+    public void SetMap(int index) { if (IsHost) { Map = Mathf.Clamp(index, 0, GameMaps.All.Length - 1); ResetBases(); } }
+
+    void ResetBases()
+    {
+        var b = GameMaps.DefaultBases(MapInfo, RoomService.MaxPlayers);
+        for (int i = 0; i < b.Length; i++) Bases.Set(i, b[i]);
+    }
+
+    // Host, every tick: a seated player on a base the map doesn't have swaps with an empty seat that has one.
+    void KeepPlayersOnMap()
+    {
+        int cap = MapInfo.Players;
+        for (int i = 0; i < RoomService.MaxPlayers; i++)
+        {
+            if (Slots[i] == PlayerRef.None || Bases[i] < cap) continue;
+            for (int j = 0; j < RoomService.MaxPlayers; j++)
+                if (Slots[j] == PlayerRef.None && Bases[j] < cap) { int b = Bases[i]; Bases.Set(i, Bases[j]); Bases.Set(j, b); break; }
+        }
+    }
+
+    // More players than bases (someone joined a small map): the host must pick a bigger map.
+    public bool TooManyPlayers
+    {
+        get
+        {
+            int players = 0;
+            for (int i = 0; i < RoomService.MaxPlayers; i++) if (Slots[i] != PlayerRef.None) players++;
+            return players > MapInfo.Players;
+        }
     }
 
     public void NextCredits() { if (IsHost) { Credits = Next(CreditOptions, Credits); Unready(); } }

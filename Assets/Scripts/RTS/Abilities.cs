@@ -57,6 +57,7 @@ public class Brood : MonoBehaviour
             Color c = ProductionFX.HoloColor(gameObject);
             Juice.Burst(from + Vector3.up, c, 14, 3f, 0.15f, 0.5f, 1f);
             Juice.Ring(from + Vector3.up * 0.1f, c, 0.3f, 2.5f, 0.4f, 0.15f);
+            Sfx.At(Snd.Ability, from, 0.5f); // a hatchling
         }
     }
 }
@@ -87,6 +88,7 @@ public class Overheat : MonoBehaviour
         heat = 0f;
         ventingUntil = Time.time + VentTime;
         if (Juice.Seen(transform.position)) Juice.Burst(transform.position + Vector3.up * 1.5f, Juice.Fire, 12, 4f, 0.15f, 0.4f, 1f, true);
+        Sfx.At(Snd.Vent, transform.position, 0.45f); // overheated: venting steam
     }
 
     void Update()
@@ -143,7 +145,7 @@ public class Charge : MonoBehaviour
         if (Juice.Seen(transform.position))
         {
             Juice.Ring(transform.position + Vector3.up * 0.1f, Juice.Danger, 0.5f, 4f, 0.35f, 0.25f);
-            Sfx.At(Snd.Cannon, transform.position, 0.4f);
+            Sfx.At(Snd.Ability, transform.position, 0.6f); // charge!
         }
     }
 

@@ -100,6 +100,7 @@ public class StatusFX : MonoBehaviour
     {
         if (on == cloaked || rends == null) return;
         cloaked = on;
+        Sfx.At(Snd.Cloak, transform.position, 0.35f); // shimmering in or out
         if (on)
         {
             if (cloakMat == null)

@@ -34,6 +34,7 @@ public class EmpMine : MonoBehaviour
         ready = Time.time + recharge;
         LastPulse = Time.time;
         Fx.Spawn(pulseEffect, transform.position, Quaternion.identity, radius);
+        Sfx.At(Snd.Emp, transform.position, 0.9f);
         Fx.Spawn(ringEffect, transform.position + Vector3.up * 0.05f, Quaternion.identity, radius);
     }
 }

@@ -11,6 +11,18 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/RTSSelection.unity
     guid: eb621de12ceda054a91d13c9ec1851b7
+  - enabled: 1
+    path: Assets/Scenes/Map_Duel.unity
+    guid: 55ebdec8a2a387b4981799bb9efade4a
+  - enabled: 1
+    path: Assets/Scenes/Map_TwinFront.unity
+    guid: eb69e2ab972b762438ca4d2972071785
+  - enabled: 1
+    path: Assets/Scenes/Map_BreachLine.unity
+    guid: dcdeff6030ad9544a82c6f4a950f49c0
+  - enabled: 1
+    path: Assets/Scenes/Map_QuadCore.unity
+    guid: 0f55943b95f47994989f2c16ce8e5315
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 289c1b55c9541489481df5cc06664110, type: 3}

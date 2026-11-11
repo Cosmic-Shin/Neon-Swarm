@@ -86,6 +86,7 @@ public class MatchManager : MonoBehaviour
             foreach (var c in creeps) if (c.prefab != null) Net.Spawn(c.prefab, c.position, c.rotation, Creep.Team);
         }
         Alerts.Show($"You are Player {Net.LocalSlot + 1}. Destroy every enemy building!", Alerts.Info, 6f);
+        Sfx.Say(Line.Start, 30f);
     }
 
     void OnDestroy() => RoomService.Disconnected -= OnDisconnected;
@@ -96,6 +97,7 @@ public class MatchManager : MonoBehaviour
     // base you picked in the lobby; each AI gets a copy of the Base_1 layout on its own base spot.
     void StartSkirmish()
     {
+        Sfx.Say(Line.Start, 30f);
         MatchStats.Reset();
         endButton.onClick.AddListener(() => { Skirmish.Active = false; Skirmish.ElapsedBefore = 0f; UnityEngine.SceneManagement.SceneManager.LoadScene(0); });
         BuildEndScreen();
@@ -174,6 +176,7 @@ public class MatchManager : MonoBehaviour
     // Like online: the side whose army and base are worth the most (by cost) wins.
     void SkirmishTimeUp()
     {
+        Sfx.Say(Line.TimeUp, 3600f);
         var worth = new Dictionary<int, int>();
         foreach (var h in Health.All)
         {
@@ -240,6 +243,7 @@ public class MatchManager : MonoBehaviour
             float left = Mathf.Max(0f, room.Minutes * 60f - elapsed);
             timerText.text = $"{(int)left / 60:00}:{(int)left % 60:00}";
             timerText.color = left < 60f ? new Color(1f, 0.3f, 0.3f) : Color.white;
+            if (left < 60f && left > 0f) Sfx.Say(Line.Hurry, 3600f); // the last minute
             if (left <= 0f) { TimeUp(); return; }
         }
         else timerText.text = $"{(int)elapsed / 60:00}:{(int)elapsed % 60:00}";
@@ -273,6 +277,7 @@ public class MatchManager : MonoBehaviour
 
     void TimeUp()
     {
+        Sfx.Say(Line.TimeUp, 3600f);
         var worth = new Dictionary<int, int>();
         foreach (var e in NetEntity.All)
         {
@@ -342,6 +347,7 @@ public class MatchManager : MonoBehaviour
         if (Net.InMatch && !friendButtons) { friendButtons = true; FriendsPanel.AddButtons(endButton.transform.parent, new Vector2(0f, -262f)); }
         if (title == "DEFEAT" || title == "MATCH OVER") FogOfWar.RevealAll = true; // nothing of yours left to see with: show the whole map behind the results
         StopAllCoroutines();
+        if (title == "VICTORY" || title == "DEFEAT") Sfx.Stinger(title == "VICTORY");
         StartCoroutine(Finale(title == "VICTORY" || title == "DEFEAT"));
 #if DEVELOPMENT_BUILD
         if (again && FriendsHub.DevArg("-playagain")) Invoke(nameof(DevPlayAgain), 4f); // test builds click PLAY AGAIN

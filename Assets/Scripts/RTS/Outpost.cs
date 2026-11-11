@@ -35,12 +35,34 @@ public class Outpost : MonoBehaviour
         laser.enabled = false;
 
         OwnerChanged(capture.ownerTeam);
+        started = true;
+    }
+
+    bool started; // the first OwnerChanged (scene start) shows no capture
+
+    // Changing hands: rings sweep out and a beam of the new owner's colour shoots up, then fades.
+    void CaptureFX(int team)
+    {
+        Color c = team >= 0 ? Net.ColorOf(team) : new Color(0.6f, 0.6f, 0.7f);
+        Vector3 p = transform.position;
+        Juice.Ring(p + Vector3.up * 0.15f, c, 1f, 16f, 0.7f, 0.4f);
+        Juice.Ring(p + Vector3.up * 0.15f, c, 0.5f, 10f, 0.5f, 0.25f);
+        Juice.Burst(p + Vector3.up * 2f, c, 30, 8f, 0.2f, 0.9f, 1.5f);
+        var beam = new GameObject("CaptureBeam").AddComponent<LineRenderer>();
+        beam.sharedMaterial = laser.material;
+        beam.positionCount = 2;
+        beam.SetPosition(0, p);
+        beam.SetPosition(1, p + Vector3.up * 45f);
+        beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        beam.startColor = beam.endColor = c * 2f;
+        Juice.Play(beam.gameObject, 1.2f, k => beam.widthMultiplier = Mathf.Lerp(2.5f, 0f, k)); // destroyed when done
     }
 
     void OwnerChanged(int team)
     {
-        if (team == 0) Alerts.ShowAt("Outpost captured", Alerts.Good, transform.position);
-        else if (health.team == 0) Alerts.ShowAt("Outpost lost", Alerts.Bad, transform.position);
+        if (team == 0) { Alerts.ShowAt("Outpost captured", Alerts.Good, transform.position); Sfx.Play(Snd.OutpostWon, 0.8f); }
+        else if (health.team == 0) { Alerts.ShowAt("Outpost lost", Alerts.Bad, transform.position); Sfx.Play(Snd.OutpostLost, 0.8f); }
+        if (started && health.team != team && Juice.Seen(transform.position)) CaptureFX(team);
         health.team = team;
         health.Revive();
         health.enabled = team >= 0; // neutral ruins aren't a target

@@ -59,7 +59,7 @@ public class MultiplayerMenu : MonoBehaviour
     // Back from an online match with PLAY AGAIN: straight into the group's next room.
     public static void PlayAgain()
     {
-        if (RoomService.Again is var (room, visible, _, _)) Open("Joining your group...", () => RoomService.Instance.JoinOrCreate(room, visible));
+        if (RoomService.Again is var (room, visible, _, _, _)) Open("Joining your group...", () => RoomService.Instance.JoinOrCreate(room, visible));
     }
 
     static void Open(string label, System.Func<System.Threading.Tasks.Task<string>> go)

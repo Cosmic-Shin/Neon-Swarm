@@ -72,7 +72,10 @@ public class Health : MonoBehaviour
     public float Current => current;
     public void Heal(float amount) => current = Mathf.Min(maxHealth, current + amount);
 
-    void OnEnable() => All.Add(this);
+    [Tooltip("Map scenery (destructible walls): left out of Health.All, so nothing targets it on its own, fog doesn't hide it and splash skips it. Only a direct attack order hits it.")]
+    public bool scenery;
+
+    void OnEnable() { if (!scenery) All.Add(this); }
     void OnDisable() => All.Remove(this);
 
     // Multiplayer, someone else's object: its owner sends health and death.
@@ -89,6 +92,7 @@ public class Health : MonoBehaviour
     public void DieRemote()
     {
         enabled = false;
+        if (scenery) Sfx.At(Snd.WallBreak, transform.position);
         if (TryGetComponent(out Structure _)) { Juice.BuildingExplosion(gameObject); LastBuildingDeath = transform.position; LastBuildingDeathAt = Time.time; }
         if (TryGetComponent(out SelectableUnit unit)) { unit.HideRing(); if (unit.TryGetComponent(out UnitMarker marker)) marker.Remove(); Sfx.At(Snd.BoomSmall, transform.position, 0.7f); }
         if (TryGetComponent(out UnitDeath death)) PlayDeath(death); // just the look; the owner despawns it
@@ -107,6 +111,13 @@ public class Health : MonoBehaviour
         Minimap.Fight(transform.position, Net.Allied(team, 0)); // a flash on the minimap where the fighting is
         if (team == 0 && from != null && !Net.Allied(from.team, team)) Alerts.Attacked(this);
         if (IsDead) { Die(from); return; }
+        Sfx.At(Snd.Hit, transform.position, 0.22f); // the shot lands (the voice limit keeps a big fight from clattering)
+        if (scenery && Juice.Seen(transform.position)) // a map wall: sparks and grit fly off it
+        {
+            Vector3 at = transform.position + Vector3.up * Random.Range(1f, 4f) + transform.right * Random.Range(-2.5f, 2.5f);
+            Juice.Burst(at, Juice.Fire, 8, 5f, 0.12f, 0.4f, 1f, true);
+            Particles.Emit("Dust", at, Vector3.up * 0.8f, 1.2f, 1f, new Color(0.5f, 0.45f, 0.5f, 0.5f));
+        }
         if (hitFx != null) hitFx.Hurt(amount);
         if (from != null && TryGetComponent(out Attacker attacker)) attacker.Retaliate(from);
     }
@@ -128,8 +139,10 @@ public class Health : MonoBehaviour
         {
             if (killer.TryGetComponent(out NetEntity kn) && kn.IsRemote) kn.RPC_AddKill(); // another player's: its owner counts it
             else killer.CreditKill();
+            if (killer.team == 0 && team != Creep.Team && TryGetComponent(out Structure _)) Sfx.Say(Line.Destroyed, 12f); // we took out an enemy building
         }
         if (onDeath != null) { onDeath(); return; }
+        if (scenery) Sfx.At(Snd.WallBreak, transform.position); // a map wall coming down
         if (team == 0)
         {
             if (TryGetComponent(out Structure s)) Alerts.Show($"Building destroyed: {s.Name}", Alerts.Bad);

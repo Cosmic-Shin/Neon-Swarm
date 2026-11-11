@@ -145,6 +145,7 @@ public class GoodSelectionManager : MonoBehaviour
                 ClickSelect(mousePos);
             }
             isDragging = false;
+            if (selected.Exists(u => u != null) || selectedStructure != null) Sfx.Play(Snd.Select, 0.45f);
         }
 
         // Right-click: move. Right-drag: units line up along the dragged line, facing forward.

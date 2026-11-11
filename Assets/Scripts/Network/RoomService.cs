@@ -100,7 +100,7 @@ public class RoomService : MonoBehaviour
         r.Properties != null && r.Properties.TryGetValue("host", out var h) ? (string)h.PropertyValue : null;
 
     // PLAY AGAIN: the group's next room ("Name #2", "#3"...) and the settings to bring along.
-    public static (string room, bool visible, int credits, int minutes)? Again;
+    public static (string room, bool visible, int credits, int minutes, int map)? Again;
 
     public void SetUpPlayAgain()
     {
@@ -111,7 +111,7 @@ public class RoomService : MonoBehaviour
         int hash = name.LastIndexOf(" #");
         int round = hash > 0 && int.TryParse(name[(hash + 2)..], out int n) ? n + 1 : 2;
         if (hash > 0 && round > 2) name = name[..hash];
-        Again = (name + " #" + round, info.IsVisible, state ? state.Credits : 0, state ? state.Minutes : 0);
+        Again = (name + " #" + round, info.IsVisible, state ? state.Credits : 0, state ? state.Minutes : 0, state ? state.Map : 0);
     }
 
     public async Task Leave()
@@ -125,15 +125,15 @@ public class RoomService : MonoBehaviour
         await old.Shutdown();
     }
 
-    public const string MatchScene = "Assets/Scenes/RTSSelection.unity";
+
     public bool IsHost => Runner && Runner.IsRunning && Runner.IsSharedModeMasterClient;
 
     // Host only: lock the room and send everyone to the map (Fusion loads it on every client).
     public void StartMatch()
     {
-        if (!IsHost) return;
+        if (!IsHost || RoomState.Instance == null || RoomState.Instance.TooManyPlayers) return;
         Runner.SessionInfo.IsOpen = false;
-        int index = UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(MatchScene);
+        int index = UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(GameMaps.PathOf(RoomState.Instance.MapInfo));
         Runner.LoadScene(SceneRef.FromIndex(index));
     }
 
@@ -167,7 +167,7 @@ public class RoomService : MonoBehaviour
         if (Runner.IsSharedModeMasterClient && RoomState.Instance == null) // the room's creator
         {
             var state = Runner.Spawn(roomStatePrefab).GetComponent<RoomState>();
-            if (Again is var (againRoom, _, credits, minutes) && againRoom == room && credits > 0) { state.Credits = credits; state.Minutes = minutes; }
+            if (Again is var (againRoom, _, credits, minutes, map) && againRoom == room && credits > 0) { state.Credits = credits; state.Minutes = minutes; state.SetMap(map); }
         }
         Again = null;
         return null;

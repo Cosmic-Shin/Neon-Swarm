@@ -21,21 +21,21 @@ public class SkirmishPanel : MonoBehaviour
 
     // Seat 0 is you. Kept between visits (reset when play mode restarts).
     static Seat[] seats;
-    static int credits = 5000, minutes;
+    static int credits = 5000, minutes, map; // map: GameMaps.All index
+    static GameMap M => GameMaps.At(map);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void Reset() { seats = null; credits = 5000; minutes = 0; }
+    static void Reset() { seats = null; credits = 5000; minutes = 0; map = 0; }
 
-    static readonly Vector2[] BasePositions = // same as RoomScreen
-        { new(-90, -218), new(90, -218), new(218, -90), new(218, 90), new(90, 218), new(-90, 218), new(-218, 90), new(-218, -90) };
-    static readonly int[] BaseOrder = { 4, 2, 6, 1, 7, 3, 5, 0 }; // where new AIs go: across the map first
     static readonly Color Empty = new(0.45f, 0.5f, 0.6f, 0.7f), Picked = new(1f, 1f, 1f, 0.25f), OpenSeat = new(0f, 0f, 0f, 0.2f);
 
     GameObject caller;
     Text title, waiting, hint;
     Button start;
     InputField customCredits;
-    Button creditsButton, minutesButton, loadButton;
+    Button creditsButton, minutesButton, loadButton, mapButton;
+    RectTransform mapRect;
+    readonly System.Collections.Generic.List<(Button button, int players)> presets = new();
     readonly Button[] rows = new Button[Seats], diffs = new Button[Seats], bases = new Button[Seats];
     int picked = -1;
 
@@ -52,6 +52,9 @@ public class SkirmishPanel : MonoBehaviour
         copy.name = "SkirmishPanel";
         var invite = copy.transform.Find("FRIENDSButton");
         if (invite) DestroyImmediate(invite.gameObject); // online only
+        // What RoomScreen added at runtime (if the room was opened before): this panel makes its own.
+        foreach (var t in copy.GetComponentsInChildren<Transform>(true))
+            if (t != null && (t.name == "MapButton" || t.name.EndsWith("(Clone)"))) DestroyImmediate(t.gameObject);
         foreach (var mb in copy.GetComponents<MonoBehaviour>()) if (!(mb is TabNavigation)) DestroyImmediate(mb);
         var panel = copy.AddComponent<SkirmishPanel>();
         panel.caller = anyUI.gameObject;
@@ -117,18 +120,19 @@ public class SkirmishPanel : MonoBehaviour
         }
         template.gameObject.SetActive(false);
 
-        var map = (RectTransform)transform.Find("Map");
-        var baseTemplate = map.Find("Base").GetComponent<Button>();
+        mapRect = (RectTransform)transform.Find("Map");
+        var baseTemplate = mapRect.Find("Base").GetComponent<Button>();
         for (int b = 0; b < Seats; b++)
         {
             int index = b;
-            var btn = Instantiate(baseTemplate, map);
-            btn.gameObject.SetActive(true);
-            ((RectTransform)btn.transform).anchoredPosition = BasePositions[b] / 300f * (map.rect.width * 0.5f);
+            var btn = Instantiate(baseTemplate, mapRect);
             btn.onClick.AddListener(() => { if (picked >= 0) { MoveToBase(picked, index); picked = -1; } });
             bases[b] = btn;
         }
         baseTemplate.gameObject.SetActive(false);
+        mapButton = RoomScreen.MapButton(transform, minutesButton);
+        mapButton.onClick.AddListener(NextMap);
+        RoomScreen.ShowMap(mapRect, bases, M);
 
         // The chat column becomes quick setups; LOAD GAME takes the chat box's spot.
         Get<Text>("ChatHeader").text = "QUICK SETUP";
@@ -144,9 +148,10 @@ public class SkirmishPanel : MonoBehaviour
         var box = transform.Find("ChatLog");
         box.Find("Text").gameObject.SetActive(false);
         var style = minutesButton;
-        void Preset(string label, float y, System.Action setup)
+        void Preset(string label, float y, System.Action setup, int players)
         {
             var b = Instantiate(style, box);
+            presets.Add((b, players));
             b.onClick.RemoveAllListeners();
             b.onClick.AddListener(() => { setup(); picked = -1; });
             var rt = (RectTransform)b.transform;
@@ -158,12 +163,22 @@ public class SkirmishPanel : MonoBehaviour
             t.rectTransform.sizeDelta = rt.sizeDelta;
             HoloSkin.Button(b, label == "CLEAR ALL AI" ? HoloUI.ButtonStyle.Danger : HoloUI.ButtonStyle.Default); // full-width, not a small toggle
         }
-        Preset("1 VS 1", 180f, () => Setup(new[] { 0 }, 1));
-        Preset("1 VS 3  ·  FREE FOR ALL", 110f, () => Setup(new[] { 0, 0, 0 }, 0));
-        Preset("2 VS 2  ·  YOU + ALLY", 40f, () => Setup(new[] { 1, 2, 2 }, 1));
-        Preset("4 VS 4  ·  YOU + 3 ALLIES", -30f, () => Setup(new[] { 1, 1, 1, 2, 2, 2, 2 }, 1));
-        Preset("8 PLAYER FREE FOR ALL", -100f, () => Setup(new[] { 0, 0, 0, 0, 0, 0, 0 }, 0));
-        Preset("CLEAR ALL AI", -170f, () => Setup(new int[0], 0));
+        Preset("1 VS 1", 180f, () => Setup(new[] { 0 }, 1), 2);
+        Preset("1 VS 3  ·  FREE FOR ALL", 110f, () => Setup(new[] { 0, 0, 0 }, 0), 4);
+        Preset("2 VS 2  ·  YOU + ALLY", 40f, () => Setup(new[] { 1, 2, 2 }, 1), 4);
+        Preset("3 VS 3  ·  YOU + 2 ALLIES", -30f, () => Setup(new[] { 1, 1, 2, 2, 2 }, 1), 6);
+        Preset("4 VS 4  ·  YOU + 3 ALLIES", -30f, () => Setup(new[] { 1, 1, 1, 2, 2, 2, 2 }, 1), 8);
+        Preset("8 PLAYER FREE FOR ALL", -100f, () => Setup(new[] { 0, 0, 0, 0, 0, 0, 0 }, 0), 8);
+        Preset("CLEAR ALL AI", -170f, () => Setup(new int[0], 0), 1);
+    }
+
+    // Next map; the seats start over with the setup it is made for (GameMap.startAi).
+    void NextMap()
+    {
+        map = (map + 1) % GameMaps.All.Length;
+        picked = -1;
+        RoomScreen.ShowMap(mapRect, bases, M);
+        Setup(M.startAi, M.startYou);
     }
 
     void Update()
@@ -174,6 +189,7 @@ public class SkirmishPanel : MonoBehaviour
         {
             var s = seats[i];
             var row = rows[i];
+            row.gameObject.SetActive(i < M.Players); // a seat per base
             bool used = s.used;
             string name = i == 0 ? "You" : used ? "AI" : "<color=#7A8699>Open  ·  click to add AI</color>";
             var label = row.transform.Find("Name").GetComponent<Text>();
@@ -191,7 +207,15 @@ public class SkirmishPanel : MonoBehaviour
             row.GetComponent<Image>().color = picked == i ? Picked : used ? new Color(0f, 0f, 0f, 0.4f) : OpenSeat;
         }
 
-        for (int b = 0; b < Seats; b++)
+        mapButton.GetComponentInChildren<Text>().text = RoomScreen.MapLabel(M, true);
+        float y = 180f; // the setups that fit this map, stacked from the top
+        foreach (var (button, players) in presets)
+        {
+            bool fits = players <= M.Players;
+            button.gameObject.SetActive(fits);
+            if (fits) { ((RectTransform)button.transform).anchoredPosition = new Vector2(0f, y); y -= 65f; }
+        }
+        for (int b = 0; b < M.Players; b++)
         {
             int seat = SeatAt(b);
             bases[b].GetComponent<Image>().color = seat >= 0 ? TeamMember.TeamColors[seats[seat].color] : Empty;
@@ -230,7 +254,7 @@ public class SkirmishPanel : MonoBehaviour
 
     static void Add()
     {
-        for (int i = 1; i < Seats; i++) if (!seats[i].used) { Use(i); return; }
+        for (int i = 1; i < M.Players; i++) if (!seats[i].used) { Use(i); return; }
     }
 
     static void Use(int seat)
@@ -268,7 +292,8 @@ public class SkirmishPanel : MonoBehaviour
 
     static int FreeBase()
     {
-        foreach (int b in BaseOrder) if (SeatAt(b) < 0) return b;
+        if (SeatAt(0) < 0) return 0;
+        foreach (int b in M.fill) if (SeatAt(b) < 0) return b;
         return 0;
     }
 
@@ -293,9 +318,9 @@ public class SkirmishPanel : MonoBehaviour
         seats[0].side = you;
         seats[0].baseIndex = 0;
         // Allies sit next to you, enemies across the map.
-        int[] allyBases = { 1, 7, 2, 6 }, enemyBases = { 4, 3, 5, 2, 6, 1, 7 };
+        int[] allyBases = M.allies.Length > 0 ? M.allies : M.fill, enemyBases = M.enemies;
         int nextAlly = 0, nextEnemy = 0;
-        for (int k = 0; k < aiTeams.Length && k < Seats - 1; k++)
+        for (int k = 0; k < aiTeams.Length && k < M.Players - 1; k++)
         {
             int seat = k + 1;
             Use(seat);
@@ -346,6 +371,6 @@ public class SkirmishPanel : MonoBehaviour
         Skirmish.Minutes = minutes;
         Skirmish.ElapsedBefore = 0f; // a new match, not a loaded one
         Skirmish.Active = true;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(1); // the RTS map
+        UnityEngine.SceneManagement.SceneManager.LoadScene(M.scene);
     }
 }

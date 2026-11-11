@@ -276,13 +276,16 @@ public class ConstructionSite : MonoBehaviour
     // ---------------- helpers shared with BuildPlacer ----------------
     public static Bounds RendererBounds(GameObject go)
     {
-        // GD5 fix: meshes only, a turret's laser LineRenderer made the site 200m long
-        var rs = System.Array.FindAll(go.GetComponentsInChildren<Renderer>(), r => r is MeshRenderer || r is SkinnedMeshRenderer);
+        // GD5 fix: meshes only, a turret's laser LineRenderer made the site 200m long; and not range discs
+        // (Pylon_BuildRadius 40m, UplMk2_RevealRadius), which made the pylon's site the size of its range
+        var rs = System.Array.FindAll(go.GetComponentsInChildren<Renderer>(), r => (r is MeshRenderer || r is SkinnedMeshRenderer) && !IsRangeDisc(r.transform));
         if (rs.Length == 0) return new Bounds(go.transform.position, Vector3.one);
         Bounds b = rs[0].bounds;
         foreach (var r in rs) b.Encapsulate(r.bounds);
         return b;
     }
+
+    static bool IsRangeDisc(Transform t) => t.name.EndsWith("Radius");
 
     /// <summary>A see-through copy of a prefab with no scripts or colliders, tinted with 'tint'.</summary>
     public static GameObject MakeHologram(GameObject prefab, Vector3 pos, Quaternion rot, Color tint)
@@ -296,7 +299,7 @@ public class ConstructionSite : MonoBehaviour
         foreach (var c in g.GetComponentsInChildren<Animator>(true)) DestroyImmediate(c);
         foreach (var c in g.GetComponentsInChildren<Collider>(true)) DestroyImmediate(c);
         foreach (var t in g.GetComponentsInChildren<Transform>(true))
-            if (t.name.Contains("_Upgrade_Mk") || t.name == "Outpost_Ruined" || t.name == "HealthBar") t.gameObject.SetActive(false);
+            if (t.name.Contains("_Upgrade_Mk") || t.name == "Outpost_Ruined" || t.name == "HealthBar" || IsRangeDisc(t)) t.gameObject.SetActive(false);
         if (holoMat)
             foreach (var r in g.GetComponentsInChildren<Renderer>(true))
             {

@@ -20,7 +20,10 @@ public class CameraPan : MonoBehaviour
     void Awake()
     {
         instance = this;
+        float h = GameMaps.Of(gameObject.scene).Half; // the view can reach every edge (it looks north, so it sits a bit south)
+        minXZ = new Vector2(-h, -h - 35f); maxXZ = new Vector2(h, h - 30f);
         gameObject.AddComponent<Ambience>(); // rain, ore glints, city life around the view
+        gameObject.AddComponent<WorldFX>(); // lightning, engine hum / mining / footsteps, chasm flow, bridge lights
         gameObject.AddComponent<MapDressing>(); // ground detail, roads, traffic, holo ads, searchlights, ore glow, base pads
     }
 

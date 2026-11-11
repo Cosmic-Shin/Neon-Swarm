@@ -42,7 +42,7 @@ public class UpgradeEffects : MonoBehaviour
         Rebuild();
         Stats.Refresh();
         if (TryGetComponent(out Health h) && h.team == 0)
-            foreach (var l in levels) if (l.level == level) Alerts.Show($"Upgrade complete: {l.displayName}", Alerts.Good);
+            foreach (var l in levels) if (l.level == level) { Alerts.Show($"Upgrade complete: {l.displayName}", Alerts.Good); Sfx.Say(Line.Upgrade, 4f); }
     }
 
     void Rebuild()

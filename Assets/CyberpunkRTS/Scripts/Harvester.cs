@@ -134,6 +134,7 @@ public class Harvester : MonoBehaviour
                     {
                         MatchStats.Add(MatchStats.Kind.Earned, earned);
                         if (TryGetComponent(out HarvestFX fx)) fx.Delivered(earned); // GD5: "+$N" over the refinery
+                        Sfx.At(Snd.Deposit, transform.position, 0.5f); // GD5: a little "ka-ching"
                     }
                     cargo = 0f; cargoValue = 0f;
                     SetCargoVisual(0f);

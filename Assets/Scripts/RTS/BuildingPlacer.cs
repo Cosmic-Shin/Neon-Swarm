@@ -315,7 +315,7 @@ public class BuildingPlacer : MonoBehaviour
             Juice.PlacedRipple(b);
             built++;
         }
-        if (built > 0) Cancel();
+        if (built > 0) { Sfx.Play(Snd.Place, 0.7f); Cancel(); }
     }
 
     void Cancel()

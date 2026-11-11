@@ -31,6 +31,8 @@ public class FogOfWar : MonoBehaviour
     void Awake()
     {
         Instance = this;
+        mapSize = GameMaps.Of(gameObject.scene).size; // the plane covers the whole map
+        fogPlane.transform.localScale = new Vector3(mapSize, mapSize, fogPlane.transform.localScale.z);
         RevealAll = false;
         hidden = LayerMask.NameToLayer(hiddenLayer);
         int n = resolution * resolution;

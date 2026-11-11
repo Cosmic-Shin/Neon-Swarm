@@ -5,19 +5,30 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public enum Snd { Laser, Blaster, Cannon, Flame, Zap, BoomSmall, BoomBig, Click, Ack, Good, Bad, Warn, Info, Coin, Promote }
+public enum Snd
+{
+    Laser, Blaster, Cannon, Flame, Zap, BoomSmall, BoomBig, Click, Ack, Good, Bad, Warn, Info, Coin, Promote,
+    Select, Place, UnitReady, Deposit, WallBreak, Hover, Weld, Ability, Vent, Emp, Cloak, Load, Unload, PowerDown, Hit,
+    Footstep, Mining, Ping, Chat, OutpostWon, OutpostLost, // each = files (Sfx.Files)
+}
 
-// All game audio, synthesised in code at startup (no sound files): weapon shots, explosions, UI clicks,
-// order chirps, alert tones and a looping synthwave track. One object lives across scenes and carries
-// the only AudioListener. World sounds are 2D, quieter the further they are from the camera's view,
-// and silent under the fog of war.
+// Announcer lines (CosmicShin voice lines, "Hive AI" processed; old Kenney lines in CyberpunkRTS/Audio/KenneyVoice_Backup), Sfx.Say.
+public enum Line
+{
+    Ready, Built, UnderAttack, Destroyed, Research, Upgrade, Start, Hurry, TimeUp, Win, Lose,
+}
+
+// Game audio, all from files (nothing synthesised): CC0 sound effects in Resources/Sfx (Files: Kenney packs +
+// Freesound rain, see CREDITS.txt there), a random variant each time. Music is real tracks from Resources/Music
+// (see PickMusic); rain + distant thunder loop
+// during matches. One object lives across scenes and carries the only AudioListener. World sounds are 2D, quieter
+// the further they are from the camera's view, and silent under the fog of war.
 public class Sfx : MonoBehaviour
 {
-    const int Rate = 22050, Voices = 24, SameAtOnce = 3;
+    const int Voices = 24, SameAtOnce = 3;
     const float MinGap = 0.05f; // the same sound can't restart faster than this (20 Skitters = one rattle)
 
     static Sfx I;
-    AudioClip[] clips;
     readonly AudioSource[] voices = new AudioSource[Voices];
     readonly Snd[] voiceSnd = new Snd[Voices];
     float[] lastPlayed;
@@ -39,20 +50,198 @@ public class Sfx : MonoBehaviour
         gameObject.AddComponent<UIJuice>(); // button hover / flash, credits "can't afford" pulse
         SceneManager.sceneLoaded += (_, _) => { foreach (var l in FindObjectsByType<AudioListener>(FindObjectsSortMode.None)) if (l.gameObject != gameObject) Destroy(l); };
         for (int i = 0; i < Voices; i++) { voices[i] = gameObject.AddComponent<AudioSource>(); voices[i].playOnAwake = false; }
-        clips = Build();
-        lastPlayed = new float[clips.Length];
+        int count = System.Enum.GetValues(typeof(Snd)).Length;
+        variants = new AudioClip[count][];
+        foreach (var (snd, names) in Files)
+        {
+            variants[(int)snd] = System.Array.FindAll(System.Array.ConvertAll(names, n => Resources.Load<AudioClip>("Sfx/" + n)), c => c != null);
+            if (variants[(int)snd].Length == 0) Debug.LogWarning($"[Sfx] no files for {snd}");
+        }
+        lastPlayed = new float[count];
         for (int i = 0; i < lastPlayed.Length; i++) lastPlayed[i] = -1f;
         music = gameObject.AddComponent<AudioSource>();
-        music.clip = Music();
-        music.loop = true;
-        music.Play();
+        music.playOnAwake = false;
+        music.ignoreListenerPause = true; // keeps playing in the pause menu
+        rain = gameObject.AddComponent<AudioSource>();
+        rain.playOnAwake = false;
+        rain.loop = true;
+        rain.clip = Resources.Load<AudioClip>("Sfx/rain_loop");
+        thunder = Resources.Load<AudioClip>("Sfx/thunder_far");
+        engine = gameObject.AddComponent<AudioSource>();
+        engine.playOnAwake = false;
+        engine.loop = true;
+        engine.clip = Resources.Load<AudioClip>("Sfx/spaceEngineSmall_000");
+        announcer = gameObject.AddComponent<AudioSource>();
+        announcer.playOnAwake = false;
+        announcer.ignoreListenerPause = true;
+        lines = System.Array.ConvertAll(LineFiles, f => Resources.Load<AudioClip>("Sfx/Voice/" + f));
+        SceneManager.sceneLoaded += (s, _) => { PickMusic(s.buildIndex == 0); inMatch = s.buildIndex != 0; System.Array.Clear(lineReady, 0, lineReady.Length); }; // announcer lines fresh each match
         GameSettings.Changed += ApplyVolume;
         GameSettings.Apply();
     }
 
     void OnDestroy() => GameSettings.Changed -= ApplyVolume;
 
-    void ApplyVolume() => music.volume = 0.45f * GameSettings.Music;
+    void ApplyVolume() => music.volume = 0.45f * GameSettings.Music * fade * duck;
+
+    // ---- sound files (CC0, Resources/Sfx; CREDITS.txt there says where each came from) ----
+
+    static readonly (Snd, string[])[] Files =
+    {
+        (Snd.Laser, new[] { "laserSmall_000", "laserSmall_001", "laserSmall_002", "laserSmall_003", "laserSmall_004" }), // Kenney Sci-fi: weapons
+        (Snd.Blaster, new[] { "laserRetro_000", "laserRetro_001", "laserRetro_002", "laserRetro_003", "laserRetro_004" }),
+        (Snd.Cannon, new[] { "laserLarge_000", "laserLarge_001", "laserLarge_002", "laserLarge_003", "laserLarge_004" }),
+        (Snd.Flame, new[] { "thrusterFire_000", "thrusterFire_001", "thrusterFire_002", "thrusterFire_003", "thrusterFire_004" }),
+        (Snd.Zap, new[] { "glitch_001", "glitch_003", "glitch_004" }),                         // Kenney Interface: electric crackle
+        (Snd.BoomSmall, new[] { "explosionCrunch_003", "explosionCrunch_004" }),               // Kenney Sci-fi: explosions
+        (Snd.BoomBig, new[] { "lowFrequency_explosion_000", "lowFrequency_explosion_001" }),
+        (Snd.Click, new[] { "click_002", "click_003" }),                                       // Kenney Interface: UI + alerts
+        (Snd.Ack, new[] { "switch_002", "switch_003" }),
+        (Snd.Good, new[] { "confirmation_001", "confirmation_003" }),
+        (Snd.Bad, new[] { "error_004", "error_006" }),
+        (Snd.Warn, new[] { "question_001" }),
+        (Snd.Info, new[] { "bong_001" }),
+        (Snd.Promote, new[] { "maximize_008" }),
+        (Snd.Coin, new[] { "handleCoins" }),                                                    // Kenney RPG Audio
+        (Snd.Select, new[] { "select_002", "select_003" }),                                     // Kenney Interface
+        (Snd.Hover, new[] { "tick_001", "tick_002" }),
+        (Snd.Deposit, new[] { "confirmation_002" }),
+        (Snd.PowerDown, new[] { "minimize_009" }),
+        (Snd.Cloak, new[] { "glitch_002" }),
+        (Snd.Place, new[] { "impactMetal_heavy_000", "impactMetal_heavy_001", "impactMetal_heavy_002" }), // Kenney Impact
+        (Snd.Weld, new[] { "impactMetal_light_000", "impactMetal_light_001", "impactMetal_light_002", "impactMetal_light_003", "impactMetal_light_004" }),
+        (Snd.UnitReady, new[] { "forceField_000", "forceField_001" }),                          // Kenney Sci-fi
+        (Snd.Ability, new[] { "forceField_002" }),
+        (Snd.Vent, new[] { "computerNoise_000", "computerNoise_001" }),
+        (Snd.Emp, new[] { "forceField_003", "forceField_004" }), // an energy pulse (the low booms are for buildings)
+        (Snd.WallBreak, new[] { "explosionCrunch_000", "explosionCrunch_001", "explosionCrunch_002" }),
+        (Snd.Load, new[] { "doorClose_000", "doorClose_001" }),
+        (Snd.Unload, new[] { "doorOpen_000", "doorOpen_001" }),
+        (Snd.Hit, new[] { "impactMetal_000", "impactMetal_001", "impactMetal_002", "impactMetal_003", "impactMetal_004" }),
+        (Snd.Footstep, new[] { "footstep_concrete_000", "footstep_concrete_001", "footstep_concrete_002", "footstep_concrete_003", "footstep_concrete_004" }), // Kenney Impact
+        (Snd.Mining, new[] { "impactMining_000", "impactMining_001", "impactMining_002", "impactMining_003", "impactMining_004" }),
+        (Snd.Ping, new[] { "pluck_001" }),                                                      // Kenney Interface
+        (Snd.Chat, new[] { "drop_001" }),
+        (Snd.OutpostWon, new[] { "maximize_006" }),
+        (Snd.OutpostLost, new[] { "minimize_006" }),
+    };
+    AudioClip[][] variants; // per Snd: its file versions
+
+    // ---- rain (Freesound CC0) during matches, with a far thunder now and then ----
+
+    AudioSource rain;
+    AudioClip thunder;
+    bool inMatch;
+
+    void UpdateRain()
+    {
+        bool on = inMatch && GameSettings.Rain && rain.clip != null;
+        float target = on ? 0.22f * GameSettings.Effects : 0f;
+        rain.volume = Mathf.MoveTowards(rain.volume, target, Time.unscaledDeltaTime * 0.15f);
+        if (target > 0f && !rain.isPlaying) rain.Play();
+        else if (target <= 0f && rain.volume <= 0f && rain.isPlaying) rain.Stop();
+        if (thunderAt > 0f && Time.time >= thunderAt) { thunderAt = 0f; if (on && thunder != null) rain.PlayOneShot(thunder, thunderLoud); } // scaled by the rain's own volume: far off
+        engine.volume = Mathf.MoveTowards(engine.volume, inMatch ? EngineLevel * 0.3f * GameSettings.Effects : 0f, Time.unscaledDeltaTime * 0.5f);
+        if (engine.volume > 0f && !engine.isPlaying && engine.clip != null) engine.Play();
+        else if (engine.volume <= 0f && engine.isPlaying) engine.Stop();
+    }
+
+    float thunderAt, thunderLoud;
+
+    // Ambience flashes the lightning, then the thunder rolls in after `delay` (light first, sound after).
+    public static void Thunder(float delay, float loudness) { if (I != null) { I.thunderAt = Time.time + delay; I.thunderLoud = loudness; } }
+
+    // ---- air units' engine hum (0..1, set by WorldSounds from the flyers in view) ----
+
+    public static float EngineLevel;
+    AudioSource engine;
+
+    // ---- announcer (Kenney Voiceover Pack): one line at a time, each line at most every `cooldown` s ----
+
+    static readonly string[] LineFiles = { "ready", "objective_achieved", "war_call_for_backup", "war_target_destroyed", "level_up", "power_up", "war_go_go_go", "hurry_up", "time_over", "you_win", "you_lose" };
+    AudioSource announcer;
+    AudioClip[] lines;
+    readonly float[] lineReady = new float[LineFiles.Length];
+
+    public static void Say(Line line, float cooldown = 10f)
+    {
+        if (I == null) return;
+        int i = (int)line;
+        bool final = line == Line.Win || line == Line.Lose; // the match result talks over anything
+        if (I.lines[i] == null || Time.unscaledTime < I.lineReady[i] || (I.announcer.isPlaying && !final)) return;
+        I.lineReady[i] = Time.unscaledTime + cooldown;
+        I.announcer.Stop();
+        I.announcer.clip = I.lines[i];
+        I.announcer.volume = 0.9f * GameSettings.Effects;
+        I.announcer.Play();
+    }
+
+    // Victory / defeat: the music dips, a jingle (Kenney Music Jingles), then the announcer says it.
+    public static void Stinger(bool won) { if (I != null) I.StartCoroutine(I.PlayStinger(won)); }
+
+    System.Collections.IEnumerator PlayStinger(bool won)
+    {
+        duck = 0.25f;
+        var jingle = Resources.Load<AudioClip>(won ? "Sfx/jingles_STEEL15" : "Sfx/jingles_STEEL01");
+        if (jingle != null) { announcer.PlayOneShot(jingle, GameSettings.Effects); yield return new WaitForSecondsRealtime(jingle.length); }
+        lineReady[(int)(won ? Line.Win : Line.Lose)] = 0f;
+        Say(won ? Line.Win : Line.Lose);
+        yield return new WaitForSecondsRealtime(3f);
+        duck = 1f;
+    }
+
+    float duck = 1f; // music volume while a stinger plays
+
+    // ---- music: Kevin MacLeod tracks in Resources/Music (CC BY 4.0, credited in Settings > CREDITS) ----
+
+    const string MenuTrack = "MiningbyMoonlight";
+    static readonly string[] MatchTracks = { "CyborgNinja", "VoxelRevolution", "SpaceFighterLoop", "Ouroboros" };
+    public static readonly string[] Credits = { "Mining by Moonlight", "Cyborg Ninja", "Voxel Revolution", "Space Fighter Loop", "Ouroboros" };
+    const float FadeTime = 1.5f;
+
+    bool inMenu;
+    string want;      // the track that should be playing
+    float fade = 1f;  // 0..1 volume while switching tracks
+    int next;         // match playlist position (shuffled each lap)
+    readonly List<string> playlist = new();
+
+    // Menus: the calm track on a loop (not restarted between menu scenes). Matches: the playlist, shuffled.
+    void PickMusic(bool menu)
+    {
+        if (menu && inMenu && want == MenuTrack) return;
+        inMenu = menu;
+        want = menu ? MenuTrack : NextMatchTrack();
+    }
+
+    string NextMatchTrack()
+    {
+        if (next >= playlist.Count)
+        {
+            playlist.Clear();
+            playlist.AddRange(MatchTracks);
+            for (int i = playlist.Count - 1; i > 0; i--) { int j = Random.Range(0, i + 1); (playlist[i], playlist[j]) = (playlist[j], playlist[i]); }
+            next = 0;
+        }
+        return playlist[next++];
+    }
+
+    void UpdateMusic()
+    {
+        if (want == null) return;
+        bool switching = music.clip == null || music.clip.name != want;
+        // Fade the old track out, swap, fade the new one in.
+        fade = Mathf.MoveTowards(fade, switching && music.isPlaying ? 0f : 1f, Time.unscaledDeltaTime / FadeTime);
+        if (switching && (fade <= 0f || !music.isPlaying))
+        {
+            if (music.clip != null) Resources.UnloadAsset(music.clip);
+            music.clip = Resources.Load<AudioClip>("Music/" + want);
+            if (music.clip == null) { want = null; return; }
+            music.loop = inMenu;
+            music.Play();
+        }
+        else if (!inMenu && !music.isPlaying && music.clip != null && Application.isFocused) want = NextMatchTrack(); // track ended: the next one
+        ApplyVolume();
+    }
 
     // ---- playing ----
 
@@ -88,7 +277,9 @@ public class Sfx : MonoBehaviour
         lastPlayed[id] = now;
         var a = voices[free];
         voiceSnd[free] = s;
-        a.clip = clips[id];
+        var files = variants[id];
+        if (files == null || files.Length == 0) return;
+        a.clip = files[Random.Range(0, files.Length)];
         a.volume = Mathf.Clamp01(volume) * GameSettings.Effects;
         a.pitch = pitch;
         a.Play();
@@ -101,159 +292,13 @@ public class Sfx : MonoBehaviour
     // UI click: any button, toggle or slider pressed, in every scene, including buttons made at runtime.
     void Update()
     {
+        UpdateMusic();
+        UpdateRain();
         var mouse = Mouse.current;
         if (mouse == null || !mouse.leftButton.wasPressedThisFrame || EventSystem.current == null) return;
         uiHits.Clear();
         EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current) { position = mouse.position.ReadValue() }, uiHits);
         if (uiHits.Count > 0 && uiHits[0].gameObject.GetComponentInParent<Selectable>() is Selectable sel && sel.IsInteractable())
             Play(Snd.Click, 0.6f);
-    }
-
-    // ---- synthesis ----
-
-    static readonly System.Random rng = new(7);
-    static float Noise() => (float)rng.NextDouble() * 2f - 1f;
-    const float Tau = Mathf.PI * 2f;
-
-    delegate float Wave(float t, ref float phase, ref float low);
-
-    static AudioClip Make(string name, float seconds, Wave wave)
-    {
-        int n = (int)(seconds * Rate);
-        var data = new float[n];
-        float phase = 0f, low = 0f, peak = 0.0001f;
-        for (int i = 0; i < n; i++)
-        {
-            data[i] = wave(i / (float)Rate, ref phase, ref low);
-            peak = Mathf.Max(peak, Mathf.Abs(data[i]));
-        }
-        float fadeOut = Mathf.Min(n, Rate / 100); // last 10 ms to zero: no click
-        for (int i = 0; i < n; i++) data[i] *= 0.85f / peak * Mathf.Clamp01((n - i) / fadeOut);
-        var clip = AudioClip.Create(name, n, 1, Rate, false);
-        clip.SetData(data, 0);
-        return clip;
-    }
-
-    static float Tone(float f, float t) => Mathf.Sin(Tau * f * t);
-
-    // Short notes one after another (alert jingles); each note is a soft bell.
-    static AudioClip Notes(string name, float noteLength, float decay, bool square, params float[] freqs) =>
-        Make(name, noteLength * freqs.Length + 0.15f, (float t, ref float p, ref float l) =>
-        {
-            int i = Mathf.Min((int)(t / noteLength), freqs.Length - 1);
-            float tn = t - i * noteLength, f = freqs[i];
-            float s = square ? Mathf.Sign(Tone(f, t)) * 0.5f : Tone(f, t) + 0.3f * Tone(f * 2f, t);
-            l += 0.3f * (s - l); // soften the square's edges
-            return l * Mathf.Exp(-tn * decay) * Mathf.Clamp01(tn * 400f);
-        });
-
-    static AudioClip[] Build() => new[]
-    {
-        // Laser: a quick falling "pew"
-        Make("Laser", 0.15f, (float t, ref float p, ref float l) =>
-        {
-            p += Tau * (300f + 1600f * Mathf.Exp(-t * 18f)) / Rate;
-            return (Mathf.Sin(p) * 0.7f + Mathf.Sign(Mathf.Sin(p)) * 0.15f) * Mathf.Exp(-t * 22f);
-        }),
-        // Blaster: lower, buzzier bolt
-        Make("Blaster", 0.22f, (float t, ref float p, ref float l) =>
-        {
-            p += Tau * (150f + 700f * Mathf.Exp(-t * 12f)) / Rate;
-            float s = Mathf.Sign(Mathf.Sin(p)) * 0.5f + Mathf.Sin(p) * 0.4f + Noise() * 0.15f;
-            l += 0.35f * (s - l);
-            return l * Mathf.Exp(-t * 13f);
-        }),
-        // Cannon: noise crack over a low thump
-        Make("Cannon", 0.6f, (float t, ref float p, ref float l) =>
-        {
-            l += 0.15f * (Noise() - l);
-            p += Tau * (55f + 90f * Mathf.Exp(-t * 20f)) / Rate;
-            return l * 1.6f * Mathf.Exp(-t * 9f) + Mathf.Sin(p) * Mathf.Exp(-t * 9f);
-        }),
-        // Flame: a breathy roar with crackles
-        Make("Flame", 0.55f, (float t, ref float p, ref float l) =>
-        {
-            l += 0.25f * (Noise() - l);
-            float crackle = rng.NextDouble() < 0.002 ? Noise() * 3f : 0f;
-            return (l + crackle * 0.3f) * Mathf.Clamp01(t * 20f) * Mathf.Clamp01((0.55f - t) * 5f);
-        }),
-        // Zap: electric crackle
-        Make("Zap", 0.3f, (float t, ref float p, ref float l) =>
-        {
-            if (((int)(t * 120f) * 7919) % 3 == 0) l = Noise(); // gate jumps every ~8 ms
-            return (Tone(2400f + l * 600f, t) * 0.6f + Noise() * 0.4f) * Mathf.Abs(l) * Mathf.Exp(-t * 9f);
-        }),
-        // Small explosion: unit death, shell impact
-        Make("BoomSmall", 0.9f, (float t, ref float p, ref float l) =>
-        {
-            l += Mathf.Lerp(0.4f, 0.04f, t / 0.9f) * (Noise() - l);
-            p += Tau * (45f + 60f * Mathf.Exp(-t * 15f)) / Rate;
-            return l * 2f * Mathf.Exp(-t * 5f) + Mathf.Sin(p) * 0.8f * Mathf.Exp(-t * 8f);
-        }),
-        // Big explosion: building destroyed (long rumble)
-        Make("BoomBig", 2.2f, (float t, ref float p, ref float l) =>
-        {
-            l += Mathf.Lerp(0.3f, 0.015f, t / 2.2f) * (Noise() - l);
-            p += Tau * (30f + 50f * Mathf.Exp(-t * 8f)) / Rate;
-            return l * 2.5f * Mathf.Exp(-t * 2f) + Mathf.Sin(p) * Mathf.Exp(-t * 3f);
-        }),
-        Make("Click", 0.05f, (float t, ref float p, ref float l) => Tone(1100f, t) * Mathf.Exp(-t * 110f)),
-        Notes("Ack", 0.05f, 30f, false, 880f, 1320f),
-        Notes("Good", 0.09f, 12f, false, 523.3f, 659.3f, 784f),
-        Notes("Bad", 0.15f, 6f, true, 440f, 330f),
-        Notes("Warn", 0.1f, 18f, true, 620f, 620f),
-        Notes("Info", 0.12f, 20f, false, 990f),
-        Notes("Coin", 0.07f, 14f, false, 1318.5f, 1760f, 2093f),
-        // Promotion: rising shimmer
-        Make("Promote", 0.6f, (float t, ref float p, ref float l) =>
-        {
-            p += Tau * (400f + 1800f * t) / Rate;
-            return (Mathf.Sin(p) + 0.4f * Mathf.Sin(p * 1.5f)) * Mathf.Clamp01(t * 30f) * Mathf.Exp(-t * 3f);
-        }),
-    };
-
-    // 20 s synthwave loop in A minor, 96 BPM: pad chords, pulsing bass, plucked arpeggio, kick and hats.
-    static AudioClip Music()
-    {
-        const float beat = 60f / 96f, bar = beat * 4f;
-        float[][] chords = { new[] { 220f, 261.6f, 329.6f }, new[] { 174.6f, 220f, 261.6f }, new[] { 261.6f, 329.6f, 392f }, new[] { 196f, 246.9f, 293.7f } }; // Am F C G
-        float[] roots = { 55f, 43.65f, 65.41f, 49f };
-        int[] arp = { 0, 1, 2, 1, 2, 1, 0, 2 };
-        int n = (int)(bar * 8f * Rate);
-        var data = new float[n];
-        float low = 0f, hatLow = 0f, peak = 0.0001f;
-        for (int i = 0; i < n; i++)
-        {
-            float t = i / (float)Rate;
-            int b = (int)(t / bar), c = (b / 2) % 4;
-            float tb = t - (b / 2) * 2f * bar; // time in this chord (2 bars)
-            float padEnv = Mathf.Clamp01(tb / 0.4f) * Mathf.Clamp01((2f * bar - tb) / 0.4f);
-            float s = 0f;
-            foreach (float f in chords[c]) s += (Tone(f, t) + Tone(f * 1.004f, t) + 0.3f * Tone(f * 2f, t)) * 0.07f * padEnv;
-
-            float e8 = beat / 2f, tn = t % e8; // bass: eighth notes on the root
-            float rf = roots[c] * 2f, bassRaw = 0f;
-            for (int h = 1; h <= 5; h++) bassRaw += Tone(rf * h, t) / h; // saw-ish
-            low += 0.12f * (bassRaw - low);
-            s += low * 0.22f * Mathf.Exp(-tn * 5f) * Mathf.Clamp01(tn * 300f);
-
-            float e16 = beat / 4f, ta = t % e16; // arpeggio: sixteenths, chord tones an octave up
-            int step = (int)(t / e16);
-            s += Tone(chords[c][arp[step % arp.Length]] * 2f, t) * 0.09f * Mathf.Exp(-ta * 16f) * Mathf.Clamp01(ta * 400f);
-
-            float tk = t % beat; // kick on every beat
-            s += Mathf.Sin(Tau * (45f * tk + 40f * (1f - Mathf.Exp(-tk * 25f)) / 25f)) * 0.4f * Mathf.Exp(-tk * 10f);
-
-            float th = (t + e8) % beat; // hat on the off-beats
-            float nz = Noise(); hatLow += 0.5f * (nz - hatLow);
-            s += (nz - hatLow) * 0.08f * Mathf.Exp(-th * 50f);
-
-            data[i] = s;
-            peak = Mathf.Max(peak, Mathf.Abs(s));
-        }
-        for (int i = 0; i < n; i++) data[i] *= 0.8f / peak;
-        var clip = AudioClip.Create("Music", n, 1, Rate, false);
-        clip.SetData(data, 0);
-        return clip;
     }
 }

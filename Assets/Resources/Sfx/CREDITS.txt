@@ -1,0 +1,25 @@
+Sound effects (all CC0 / public domain: free to use, no credit required). Downloaded 2026-11-12.
+
+Kenney (www.kenney.nl), CC0 - http://creativecommons.org/publicdomain/zero/1.0/  (Kenney-SciFi-License.txt)
+  Sci-Fi Sounds 1.0: laserSmall_*, laserRetro_*, laserLarge_*, thrusterFire_*, forceField_*, doorOpen_*, doorClose_*,
+                     explosionCrunch_*, lowFrequency_explosion_*, spaceEngineSmall_*,
+                     impactMetal_000-004, computerNoise_*
+                     (copy from github.com/jnhyatt/space-shooter, kenney_sci-fi-sounds/, with Kenney's License.txt)
+  Interface Sounds 1.0: select_*, tick_*, click_*, switch_*, confirmation_*, error_*, question_001, bong_001,
+                     glitch_*, maximize_006, maximize_008, minimize_006, minimize_009, pluck_001, drop_001
+                     (original file names, from github.com/ShadowBlip/OpenGamepadUI assets/audio/interface)
+  Impact Sounds 1.0: impactMetal_heavy_*, impactMetal_light_*, footstep_concrete_*, impactMining_*
+                     (original file names, from github.com/drwhut/tabletop-club game/Sounds;
+                      footsteps + mining from github.com/iree-gd/iree.gd sample/assets/audio/impact)
+  RPG Audio: handleCoins (copy from github.com/godotengine/godot-benchmarks supplemental/audio)
+  Music Jingles: jingles_STEEL15 (victory), jingles_STEEL01 (defeat)  (Kenney-MusicJingles-License.txt;
+                     from github.com/MatteoMassaro/TrEat kenney_musicjingles/)
+  Voiceover Pack (female): Voice/*.ogg announcer lines (from github.com/pigdevstudio/godot-sandbox
+                     source/audio/voiceover_female/source); on 2026-11-12 those .ogg copies were swapped for
+                     .wav files of the same lines (the .ogg ones are kept in CyberpunkRTS/Audio/KenneyVoice_Backup)
+
+Freesound.org, CC0 1.0 (via the CC-Sounds pack, github.com/Fris0uman/CDDA-Soundpacks, weather/credits.md)
+  rain_loop.ogg   = "heavyrain" by Ali@k        https://freesound.org/people/Ali@k/sounds/128907/
+  thunder_far.ogg = by chromakei                 https://freesound.org/people/chromakei/sounds/398287/
+
+Used in Sfx.cs (Files table): every game sound comes from these files; nothing is synthesised.

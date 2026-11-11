@@ -19,10 +19,8 @@ public class RoomScreen : MonoBehaviour
     const int ChatLines = 14;
     readonly System.Collections.Generic.List<string> chat = new();
 
-    // Base_1..Base_8 on the RTS map (x, z); the map picture covers -300..300 both ways.
-    static readonly Vector2[] BasePositions =
-        { new(-90, -218), new(90, -218), new(218, -90), new(218, 90), new(90, 218), new(-90, 218), new(-218, 90), new(-218, -90) };
-    const float MapHalf = 300f;
+    Button mapButton;
+    GameMap shownMap;
     static readonly Color Empty = new(0.45f, 0.5f, 0.6f, 0.7f);
     static readonly Color Picked = new(1f, 1f, 1f, 0.25f);
 
@@ -62,8 +60,6 @@ public class RoomScreen : MonoBehaviour
         {
             int index = b;
             var btn = Instantiate(baseTemplate, map);
-            btn.gameObject.SetActive(true);
-            ((RectTransform)btn.transform).anchoredPosition = BasePositions[b] / MapHalf * (map.rect.width * 0.5f);
             btn.onClick.AddListener(() =>
             {
                 var room = RoomState.Instance;
@@ -81,7 +77,42 @@ public class RoomScreen : MonoBehaviour
         waiting.fontSize = Mathf.Min(waiting.fontSize, 20);
         playerTemplate.gameObject.SetActive(false);
         baseTemplate.gameObject.SetActive(false);
+        mapButton = MapButton(transform, minutes);
+        mapButton.onClick.AddListener(() => RoomState.Instance?.NextMap());
     }
+
+    // ---- shared with the skirmish screen (a copy of this panel) ----
+
+    // The MAP header becomes a button (styled like `style`) that names the map; clicking it picks the next one.
+    public static Button MapButton(Transform panel, Button style)
+    {
+        var header = panel.Find("MapHeader");
+        var b = Instantiate(style, panel);
+        b.name = "MapButton";
+        b.onClick = new Button.ButtonClickedEvent();
+        var rt = (RectTransform)b.transform;
+        var hr = (RectTransform)header;
+        rt.anchoredPosition = hr.anchoredPosition;
+        rt.sizeDelta = new Vector2(hr.sizeDelta.x, 40f);
+        b.GetComponentInChildren<Text>().rectTransform.sizeDelta = rt.sizeDelta;
+        header.gameObject.SetActive(false);
+        HoloSkin.Button(b);
+        return b;
+    }
+
+    // Picture and base circles for map m (circles past its base count hide).
+    public static void ShowMap(RectTransform map, Button[] bases, GameMap m)
+    {
+        if (map.TryGetComponent(out Image picture)) picture.sprite = GameMaps.Preview(m);
+        for (int b = 0; b < bases.Length; b++)
+        {
+            bool has = b < m.Players;
+            bases[b].gameObject.SetActive(has);
+            if (has) ((RectTransform)bases[b].transform).anchoredPosition = m.bases[b] / m.Half * (map.rect.width * 0.5f);
+        }
+    }
+
+    public static string MapLabel(GameMap m, bool canChange) => canChange ? $"MAP:  {m.name}   >>" : $"MAP:  {m.name}";
 
     void OnEnable()
     {
@@ -122,7 +153,11 @@ public class RoomScreen : MonoBehaviour
             rows[i].interactable = host;
         }
 
-        for (int b = 0; b < bases.Length; b++)
+        var m = room.MapInfo;
+        if (m != shownMap) { shownMap = m; ShowMap(map, bases, m); picked = -1; }
+        mapButton.GetComponentInChildren<Text>().text = MapLabel(m, host);
+        mapButton.interactable = host;
+        for (int b = 0; b < m.Players; b++)
         {
             int slot = room.SlotAtBase(b);
             bool taken = slot >= 0 && room.Slots[slot] != Fusion.PlayerRef.None;
@@ -145,8 +180,10 @@ public class RoomScreen : MonoBehaviour
         bool allReady = room.EveryoneReady();
         bool meReady = room.IsReady(room.SlotOf(runner.LocalPlayer));
         startGame.GetComponentInChildren<Text>().text = host ? "START GAME" : meReady ? "NOT READY" : "READY";
-        startGame.interactable = host ? allReady && !starting : true;
-        waiting.text = host ? (allReady ? "" : "Waiting for everyone to click READY.")
+        bool crowded = room.TooManyPlayers;
+        startGame.interactable = host ? allReady && !starting && !crowded : true;
+        waiting.text = crowded ? $"Too many players for {m.name.Split(' ')[0]}. The host picks a bigger map."
+                     : host ? (allReady ? "" : "Waiting for everyone to click READY.")
                      : meReady ? "Waiting for the host to start." : "Click READY when you are set.";
     }
 

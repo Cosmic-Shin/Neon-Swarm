@@ -19,7 +19,7 @@ public class CursorContext : MonoBehaviour
 
     void Awake() => manager = GetComponent<GoodSelectionManager>();
 
-    void OnDisable() => CursorManager.Set(CursorKind.Default); // menus, results screen, scene change
+    void OnDisable() { if (CursorManager.Instance) CursorManager.Set(CursorKind.Default); } // menus, results screen, scene change (not while quitting: that would make a new manager)
 
     void Update()
     {

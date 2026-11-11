@@ -33,7 +33,7 @@ public class Alerts : MonoBehaviour
     }
 
     // throttle: seconds before the same message can show again.
-    public static void Show(string message, Color color, float throttle = 0f)
+    public static void Show(string message, Color color, float throttle = 0f, bool silent = false) // silent: the caller plays its own sound
     {
         if (instance == null) return;
         if (throttle > 0f)
@@ -41,7 +41,7 @@ public class Alerts : MonoBehaviour
             if (quietUntil.TryGetValue(message, out float t) && Time.time < t) return;
             quietUntil[message] = Time.time + throttle;
         }
-        Sfx.Play(color == Good ? Snd.Good : color == Bad ? Snd.Bad : color == Warn ? Snd.Warn : Snd.Info, 0.7f);
+        if (!silent) Sfx.Play(color == Good ? Snd.Good : color == Bad ? Snd.Bad : color == Warn ? Snd.Warn : Snd.Info, 0.7f);
         instance.Add(message, color);
     }
 
@@ -62,7 +62,7 @@ public class Alerts : MonoBehaviour
     {
         Vector3 p = h.transform.position;
         if (h.TryGetComponent(out OutpostCapture _)) ShowAt("Outpost under attack", Warn, p, 15f);
-        else if (h.TryGetComponent(out Structure _)) ShowAt("Our base is under attack", Bad, p, 12f);
+        else if (h.TryGetComponent(out Structure _)) { ShowAt("Our base is under attack", Bad, p, 12f); Sfx.Say(Line.UnderAttack, 25f); }
         else if (h.TryGetComponent(out Harvester _)) ShowAt("Harvester under attack", Warn, p, 15f);
         else ShowAt("Unit under attack", Warn, p, 15f);
     }
@@ -107,7 +107,7 @@ public class Alerts : MonoBehaviour
         if (Structure.LowPower != lowPower)
         {
             lowPower = Structure.LowPower;
-            if (lowPower) Show("Low power: build a Power Pylon", Bad);
+            if (lowPower) { Show("Low power: build a Power Pylon", Bad); Sfx.Play(Snd.PowerDown, 0.8f); }
             else Show("Power restored", Good);
         }
 

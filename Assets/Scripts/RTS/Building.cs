@@ -167,7 +167,7 @@ public class Building : MonoBehaviour
         progress = 0f;
         bool ours = Team == 0;
         if (IsUnit(done)) { SummonUnit(done); if (ours) Alerts.Show($"Unit ready: {NameOf(done)}{(SquadOf(done) > 1 ? $" x{SquadOf(done)}" : "")}", Alerts.Info); }
-        else { ResearchManager.Complete(Upgrade(done), Team); if (ours) { MatchStats.Add(MatchStats.Kind.Research); Alerts.Show($"Research complete: {NameOf(done)}", Alerts.Good); } }
+        else { ResearchManager.Complete(Upgrade(done), Team); if (ours) { MatchStats.Add(MatchStats.Kind.Research); Alerts.Show($"Research complete: {NameOf(done)}", Alerts.Good) ; Sfx.Say(Line.Research, 4f); } }
     }
 
     // A hologram flag on the rally point while the building is selected: a pole, a waving pennant and a
@@ -251,6 +251,8 @@ public class Building : MonoBehaviour
 
         // Created at the exit (on the navmesh), then walks there from inside the building, then on to the rally point.
         var unit = Net.Spawn(unitPrefabs[index], exit, Quaternion.LookRotation(spawnPoint.position - transform.position));
+        Sfx.At(Snd.UnitReady, exit, 0.6f);
+        if (Team == 0) Sfx.Say(Line.Ready, 8f);
         if (Team != 0) Attacker.SetTeam(unit, Team); // an AI's factory (offline only; online everything spawned here is ours)
         else MatchStats.Add(MatchStats.Kind.UnitsBuilt);
         if (aerie != null && Flyer.IsAir(unit))
