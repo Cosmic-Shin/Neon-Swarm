@@ -13,7 +13,7 @@ public class BuildingPanel : MonoBehaviour
     Building watched; // production state from last frame, for the "done" flash
     int wasProducing = -1;
     float wasProgress;
-    readonly List<Image> sweeps = new(); // per button: dark clock overlay over the unit being built
+    readonly List<Image> sweeps = new(); // per button: Card_ProgressFill rising from the card's bottom while it's being built
     readonly List<Text> counts = new();  // per button: "x2" when queued
     readonly List<Button> buttons = new();
     readonly List<string> blockers = new(); // per button: why it can't be queued, as last shown in its tooltip
@@ -57,7 +57,7 @@ public class BuildingPanel : MonoBehaviour
             btn.transform.Find("Time").GetComponent<Text>().text = $"{building.TimeOf(i):0}s";
             btn.transform.Find("Cost").GetComponent<Text>().text = $"${building.CostOf(i)}";
             buttons.Add(btn);
-            if (building.IconOf(i) != null) btn.GetComponent<Image>().sprite = building.IconOf(i);
+            if (building.IconOf(i) != null) btn.transform.Find("Icon").GetComponent<Image>().sprite = building.IconOf(i);
             btn.onClick.AddListener(() => building.Enqueue(index)); // left-click (Button ignores right)
 
             // Not EventTrigger: it swallows scroll/drag, so the row couldn't scroll over the buttons.
@@ -84,12 +84,13 @@ public class BuildingPanel : MonoBehaviour
         for (int i = 0; i < sweeps.Count; i++)
         {
             bool active = building.Producing == i;
-            sweeps[i].enabled = active;
-            if (active) sweeps[i].fillAmount = 1f - building.Progress01; // dark part shrinks as it builds
+            HoloSkin.SetProgress(sweeps[i], active ? building.Progress01 : 0f);
             int n = building.QueuedCount(i);
+            string needs = building.Needs(i);
+            HoloSkin.SetCard(buttons[i], needs != null ? HoloUI.CardState.Locked : active || n > 0 ? HoloUI.CardState.Building : HoloUI.CardState.Normal);
             counts[i].text = building.IsResearched(i) ? "DONE" : n > 0 ? $"x{n}" : "";
             buttons[i].interactable = building.CanQueue(i); // red frame when short on credits (or already researched)
-            LockBadge.Set(buttons[i], building.Needs(i), building.IsResearched(i) || ResourceBank.GetOrCreate().Credits >= building.CostOf(i));
+            LockBadge.Set(buttons[i], needs, building.IsResearched(i) || ResourceBank.GetOrCreate().Credits >= building.CostOf(i));
             string why = building.Blocker(i);
             if (why != blockers[i]) { blockers[i] = why; buttons[i].GetComponent<Tooltip>().text = building.TooltipOf(i); } // red reason line
         }

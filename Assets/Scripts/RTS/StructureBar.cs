@@ -15,6 +15,7 @@ public class StructureBar : MonoBehaviour
 
     Text sellText, repairText, upgradeText;
     Image upgradeFill;
+    RectTransform hpFill; // green HP bar under the stats line
     Tooltip upgradeTip;
     RectTransform panelRect;
     float baseHeight;
@@ -31,7 +32,26 @@ public class StructureBar : MonoBehaviour
         sellButton.onClick.AddListener(() => manager.SelectedStructure?.Sell());
         repairButton.onClick.AddListener(() => manager.SelectedStructure?.ToggleRepair());
         upgradeButton.onClick.AddListener(() => Upgrades(manager.SelectedStructure)?.Upgrade.Upgrade()); // pays from the ResourceBank
+        hpFill = HpBar();
         panel.SetActive(false);
+    }
+
+    RectTransform HpBar()
+    {
+        var back = new GameObject("HpBar", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+        back.transform.SetParent(panel.transform, false);
+        back.raycastTarget = false;
+        var r = back.rectTransform;
+        r.anchorMin = r.anchorMax = r.pivot = new Vector2(0f, 1f); // from the top, so it stays put when the upgrade row grows the bar
+        r.anchoredPosition = new Vector2(14f, -60f);
+        r.sizeDelta = new Vector2(352f, 6f);
+        var fill = new GameObject("Fill", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+        fill.transform.SetParent(r, false);
+        fill.raycastTarget = false;
+        var f = fill.rectTransform;
+        f.anchorMin = Vector2.zero; f.anchorMax = Vector2.one; f.offsetMin = f.offsetMax = Vector2.zero;
+        HoloSkin.Bar(back, fill, HoloUI.Green);
+        return f;
     }
 
     static UpgradeEffects Upgrades(Structure s) => s != null && s.TryGetComponent(out UpgradeEffects fx) ? fx : null;
@@ -45,6 +65,9 @@ public class StructureBar : MonoBehaviour
         string power = s.power > 0 ? $"+{s.power}" : s.power.ToString();
         title.text = s.Name.ToUpper();
         stats.text = $"HP {s.Health.Current:0}/{s.Health.MaxHealth:0}    POWER {power}";
+        float hp = s.Health.MaxHealth > 0f ? s.Health.Current / s.Health.MaxHealth : 0f;
+        hpFill.anchorMax = new Vector2(Mathf.Clamp01(hp), 1f);
+        hpFill.GetComponent<Image>().color = hp < 0.3f ? HoloUI.Pink : HoloUI.Green;
         sellButton.interactable = s.CanSell;
         sellText.text = s.CanSell ? $"SELL ${s.SellValue}" : "SELL";
         repairButton.interactable = s.Health.IsDamaged;

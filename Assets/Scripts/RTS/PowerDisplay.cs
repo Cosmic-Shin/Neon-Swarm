@@ -2,14 +2,11 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // "POWER used/made" next to the credits, with a meter along the bottom of the box: how much of the power made
-// is used. Green with room to spare, yellow near the limit, flashing red when low (towers offline, production at half speed).
+// is used. Green with room to spare, yellow near the limit, flashing pink when low (towers offline, production at half speed).
 public class PowerDisplay : MonoBehaviour
 {
     [SerializeField] Text label;
-    [SerializeField] Color normal = new(0.55f, 1f, 0.2f);
-    [SerializeField] Color low = new(1f, 0.2f, 0.25f);
-
-    static readonly Color Tight = new(1f, 0.85f, 0.2f);
+    static readonly Color normal = HoloUI.Green, low = HoloUI.Pink, Tight = HoloUI.Yellow;
     RectTransform fill;
     Image fillImage;
 
@@ -27,6 +24,7 @@ public class PowerDisplay : MonoBehaviour
         fillImage.raycastTarget = false;
         fill = fillImage.rectTransform;
         fill.anchorMin = Vector2.zero; fill.anchorMax = Vector2.one; fill.offsetMin = fill.offsetMax = Vector2.zero;
+        HoloSkin.Bar(back, fillImage, normal);
     }
 
     void LateUpdate()

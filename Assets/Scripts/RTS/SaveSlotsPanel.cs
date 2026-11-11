@@ -36,29 +36,31 @@ public class SaveSlotsPanel : MonoBehaviour
         var box = new GameObject("Box", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
         box.SetParent(root, false);
         box.sizeDelta = new Vector2(980f, 660f);
-        box.GetComponent<Image>().color = new Color(0.02f, 0.03f, 0.07f, 1f);
+        HoloSkin.Modal(box);
 
-        SettingsPanel.Label(box, saving ? "SAVE GAME" : "LOAD GAME", new Vector2(0f, 280f), 34, TextAnchor.MiddleCenter, 900f);
+        HoloSkin.Title(SettingsPanel.Label(box, saving ? "SAVE GAME" : "LOAD GAME", new Vector2(0f, 280f), 34, TextAnchor.MiddleCenter, 900f), 900f);
         SettingsPanel.Label(box, saving ? "Pick a slot. F5 quick-saves to the last slot you used." : "Pick a save. F9 in a match loads the newest one.",
-            new Vector2(0f, 238f), 17, TextAnchor.MiddleCenter, 900f).color = new Color(0.6f, 0.7f, 0.85f);
+            new Vector2(0f, 238f), 17, TextAnchor.MiddleCenter, 900f).color = HoloUI.Muted;
 
         for (int s = 1; s <= SaveSystem.Slots; s++)
         {
             int slot = s;
             float y = 165f - (s - 1) * 88f;
-            var row = new GameObject($"Slot{s}", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+            var row = new GameObject($"Slot{s}", typeof(RectTransform), typeof(Image), typeof(Button)).GetComponent<RectTransform>();
             row.SetParent(box, false);
             row.anchoredPosition = new Vector2(0f, y);
             row.sizeDelta = new Vector2(920f, 78f);
-            row.GetComponent<Image>().color = new Color(0.06f, 0.08f, 0.15f, 1f);
+            HoloSkin.Row(row.GetComponent<Button>()); // Panel_Inset, Btn_Hover while the mouse is over the slot
             var number = SettingsPanel.Label(row, s.ToString(), new Vector2(-418f, 0f), 34, TextAnchor.MiddleCenter, 60f);
             number.color = new Color(1f, 0.1f, 0.9f);
             info[s] = SettingsPanel.Label(row, "", new Vector2(-120f, 0f), 18, TextAnchor.MiddleLeft, 520f);
             info[s].rectTransform.sizeDelta = new Vector2(520f, 72f);
             info[s].supportRichText = true;
             act[s] = SettingsPanel.Button(row, "", new Vector2(270f, 0f), new Vector2(190f, 52f));
+            if (!saving) HoloSkin.Button(act[s], HoloUI.ButtonStyle.Gold);
             act[s].onClick.AddListener(() => Act(slot));
             del[s] = SettingsPanel.Button(row, "DELETE", new Vector2(400f, 0f), new Vector2(100f, 52f));
+            HoloSkin.Button(del[s], HoloUI.ButtonStyle.Danger);
             del[s].onClick.AddListener(() => Delete(slot));
             del[s].GetComponentInChildren<Text>().fontSize = 16;
         }

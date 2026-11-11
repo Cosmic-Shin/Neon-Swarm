@@ -53,6 +53,12 @@ public class GoodSelectionManager : MonoBehaviour
     Vector2 rightStart;
     LineRenderer dragLine; // preview of a right-drag formation line
     public IReadOnlyList<SelectableUnit> SelectedUnits => selected;
+    // For CursorContext: the same camera, layers and reach the orders use.
+    public Camera Cam => cam;
+    public LayerMask SelectableLayer => selectableLayer;
+    public LayerMask GroundLayer => groundLayer;
+    public float MaxRayDistance => maxRayDistance;
+    public Building SelectedBuilding => selectedBuilding;
     Vector2 dragStart;
     bool isPressing;
     bool isDragging;
@@ -77,6 +83,7 @@ public class GoodSelectionManager : MonoBehaviour
         dragLine.widthMultiplier = 0.3f;
         dragLine.positionCount = 2;
         dragLine.enabled = false;
+        if (!TryGetComponent(out CursorContext _)) gameObject.AddComponent<CursorContext>(); // the mouse cursor follows what a click would do
     }
 
     // Disabled while a building is being placed.

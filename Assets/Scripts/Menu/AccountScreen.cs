@@ -12,7 +12,7 @@ public class AccountScreen : MonoBehaviour
     static readonly Color Cyan = new(0.3f, 1f, 1f), Pink = new(1f, 0.1f, 0.9f), Win = new(0.35f, 1f, 0.55f), Loss = new(1f, 0.32f, 0.38f),
         Card = new(0.02f, 0.03f, 0.08f, 1f), Dim = new(0.55f, 0.6f, 0.75f), BarBack = new(0.12f, 0.12f, 0.2f, 1f), Gold = new(1f, 0.8f, 0.25f);
 
-    Sprite frame, circle;
+    Sprite circle;
     Text avatarLetter, nameText, rankText, sinceText, idText, rankNext, note;
     Image avatar, rankFill, ring;
     Text ringText;
@@ -116,7 +116,6 @@ public class AccountScreen : MonoBehaviour
         var panel = (RectTransform)transform;
         panel.sizeDelta = new Vector2(1560f, 800f);
         panel.anchoredPosition = new Vector2(0f, -70f); // clear of the game title
-        frame = transform.Find("Frame").GetComponent<Image>().sprite;
         circle = MakeCircle();
         transform.Find("Header").gameObject.SetActive(false);
         transform.Find("Info").gameObject.SetActive(false);
@@ -137,6 +136,7 @@ public class AccountScreen : MonoBehaviour
         rankText = Txt(top, "", new Vector2(380f, 8f), 34, TextAnchor.MiddleLeft, 560f, Gold, FontStyle.Bold);
         var rankBar = Img(top, new Vector2(380f, -26f), new Vector2(560f, 12f), BarBack, null);
         rankFill = Fill(rankBar.rectTransform, Gold);
+        HoloSkin.Bar(rankBar, rankFill, Gold);
         rankNext = Txt(top, "", new Vector2(380f, -48f), 15, TextAnchor.MiddleLeft, 560f, Dim);
 
         // Cards.
@@ -169,6 +169,7 @@ public class AccountScreen : MonoBehaviour
             var back5 = Img(left, new Vector2(-18f, y), new Vector2(300f, 14f), BarBack, null);
             var v = Txt(left, "", new Vector2(250f, y), 15, TextAnchor.MiddleLeft, 200f, Color.white);
             bars[i] = (l, Fill(back5.rectTransform, Win), v);
+            HoloSkin.Bar(back5, bars[i].fill, Win);
         }
         Txt(left, "CAREER", new Vector2(-52f, -36f), 18, TextAnchor.MiddleLeft, 600f, Pink, FontStyle.Bold);
         string[] totalNames = { "KILLS", "UNITS BUILT", "UNITS LOST", "BUILDINGS BUILT", "BUILDINGS LOST", "RESEARCH", "CREDITS EARNED", "AVG MATCH", "KILLS / MATCH" };
@@ -198,14 +199,11 @@ public class AccountScreen : MonoBehaviour
         note = Txt(panel, "", new Vector2(0f, -310f), 14, TextAnchor.MiddleCenter, 1200f, new Color(0.45f, 0.5f, 0.65f));
     }
 
-    // A dark card with the neon frame.
+    // A stat box: Panel_Inset (Holo kit).
     RectTransform Box(Transform parent, Vector2 pos, Vector2 size, Color fill)
     {
         var img = Img(parent, pos, size, fill, null);
-        var f = Img(img.rectTransform, Vector2.zero, Vector2.zero, new Color(Cyan.r, Cyan.g, Cyan.b, 0.35f), frame);
-        f.type = Image.Type.Sliced;
-        f.rectTransform.anchorMin = Vector2.zero; f.rectTransform.anchorMax = Vector2.one;
-        f.rectTransform.offsetMin = f.rectTransform.offsetMax = Vector2.zero;
+        HoloSkin.Back(img.rectTransform, "Panel_Inset");
         return img.rectTransform;
     }
 

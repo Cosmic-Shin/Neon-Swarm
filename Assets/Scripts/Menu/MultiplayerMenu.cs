@@ -27,7 +27,7 @@ public class MultiplayerMenu : MonoBehaviour
         FriendsPanel.Hook(friends);
         var onlyText = friendsOnly.GetComponentInChildren<Text>();
         onlyText.text = "PUBLIC";
-        friendsOnly.onClick.AddListener(() => { hidden = !hidden; onlyText.text = hidden ? "FRIENDS ONLY" : "PUBLIC"; });
+        friendsOnly.onClick.AddListener(() => { hidden = !hidden; onlyText.text = hidden ? "FRIENDS ONLY" : "PUBLIC"; HoloSkin.SetOn(friendsOnly, hidden); });
         RoomService.RoomsChanged += Redraw;
         FriendsHub.Changed += Redraw; // friends moving between rooms
         RoomService.Disconnected += OnDisconnected;

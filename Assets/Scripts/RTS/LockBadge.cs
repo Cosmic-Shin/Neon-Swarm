@@ -1,8 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// On a shop button: what's still needed to buy it. Locked = darkened, with "LOCKED" and the missing
-// requirement written on it ("NEEDS Research Lab"). The price turns red while you can't afford it.
+// On a shop button: what's still needed to buy it. Locked = Card_Locked (set by the caller) with the kit's
+// stripes over it, "LOCKED" and the missing requirement written on top ("NEEDS Research Lab"). The price turns red while you can't afford it.
 // Used by the unit/research panel (BuildingPanel) and the build menu (BuildingPlacer).
 public static class LockBadge
 {
@@ -29,13 +29,14 @@ public static class LockBadge
     {
         var shade = new GameObject("LockBadge", typeof(RectTransform)).AddComponent<Image>();
         shade.transform.SetParent(button.transform, false);
-        shade.color = new Color(0.02f, 0f, 0.05f, 0.85f);
+        shade.color = new Color(0.02f, 0f, 0.05f, 0.6f); // keeps the text readable over the icon
         shade.raycastTarget = false; // hover still reaches the button (tooltip)
         var rt = shade.rectTransform;
         rt.anchorMin = Vector2.zero;
         rt.anchorMax = Vector2.one;
-        rt.offsetMin = new Vector2(3f, 3f);
-        rt.offsetMax = new Vector2(-3f, -3f);
+        rt.offsetMin = new Vector2(6f, 6f); // the card's visible edge (inside its glow)
+        rt.offsetMax = new Vector2(-6f, -6f);
+        HoloUI.AddLockedStripes(rt);
 
         var font = button.GetComponentInChildren<Text>(true);
         var text = new GameObject("Needs", typeof(RectTransform)).AddComponent<Text>();

@@ -70,7 +70,7 @@ public class SettingsPanel : MonoBehaviour
     // Shared with the Skirmish screen.
     public static readonly Color Back = new(0.01f, 0.01f, 0.03f, 0.92f), Box = new(0.02f, 0.03f, 0.07f, 0.95f), Cyan = new(0.44f, 1f, 1f);
     static Font cachedFont;
-    static Font font => cachedFont != null ? cachedFont : cachedFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+    static Font font => cachedFont != null ? cachedFont : cachedFont = HoloSkin.Font != null ? HoloSkin.Font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
     public static void Open(Component anyUI)
     {
@@ -97,14 +97,19 @@ public class SettingsPanel : MonoBehaviour
         var box = new GameObject("Box", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
         box.SetParent(root, false);
         box.sizeDelta = new Vector2(620f, 1000f);
-        box.GetComponent<Image>().color = Box;
+        HoloSkin.Modal(box);
 
-        Label(box, "SETTINGS", new Vector2(0f, 455f), 34, TextAnchor.MiddleCenter, 560f);
+        HoloSkin.Title(Label(box, "SETTINGS", new Vector2(0f, 455f), 34, TextAnchor.MiddleCenter, 560f), 540f);
         float y = 380f;
         Slider(box, "Master volume", ref y, 0f, 1f, GameSettings.Master, v => { GameSettings.Master = v; GameSettings.Apply(); }, v => $"{v:P0}");
         Slider(box, "Music", ref y, 0f, 1f, GameSettings.Music, v => { GameSettings.Music = v; GameSettings.Apply(); }, v => $"{v:P0}");
         Slider(box, "Effects", ref y, 0f, 1f, GameSettings.Effects, v => { GameSettings.Effects = v; Sfx.Play(Snd.Laser, 0.8f); }, v => $"{v:P0}");
         Slider(box, "Camera speed", ref y, 0.5f, 2f, GameSettings.CameraSpeed, v => GameSettings.CameraSpeed = v, v => $"{v:0.0}x");
+        int[] cursorPx = { 0, 32, 48, 64 };
+        string[] cursorNames = { "AUTO", "SMALL 32", "MEDIUM 48", "LARGE 64" };
+        int CursorIndex() => Mathf.Max(0, System.Array.IndexOf(cursorPx, PlayerPrefs.GetInt(CursorManager.PrefKey, 0)));
+        Cycle(box, "Cursor size", ref y, () => cursorNames[CursorIndex()],
+            () => CursorManager.SetSizePreference(cursorPx[(CursorIndex() + 1) % cursorPx.Length])); // saved by CursorManager
 
         string[] q = QualitySettings.names;
         Text postLabel = null;
@@ -114,6 +119,7 @@ public class SettingsPanel : MonoBehaviour
             GameSettings.PostFX = GameSettings.Quality > 1; // Very Low / Low: post effects off too (the toggle below can bring them back)
             GameSettings.Apply();
             postLabel.text = GameSettings.PostFX ? "ON" : "OFF";
+            HoloSkin.SetOn(postLabel.GetComponentInParent<Button>(), GameSettings.PostFX);
         });
         postLabel = Cycle(box, "Post effects", ref y, () => GameSettings.PostFX ? "ON" : "OFF", () => { GameSettings.PostFX = !GameSettings.PostFX; GameSettings.ApplyPostFX(); });
         Slider(box, "Bloom (neon glow)", ref y, 0f, 1.5f, GameSettings.BloomLevel, v => { GameSettings.BloomLevel = v; GameSettings.ApplyPostFX(); }, v => v < 0.01f ? "OFF" : $"{v:P0}");
@@ -136,7 +142,7 @@ public class SettingsPanel : MonoBehaviour
         t.transform.SetParent(parent, false);
         t.rectTransform.anchoredPosition = pos;
         t.rectTransform.sizeDelta = new Vector2(width, 44f);
-        t.font = font; t.fontSize = size; t.alignment = align; t.color = Cyan; t.text = text;
+        t.font = font; t.fontSize = size; t.alignment = align; t.color = HoloUI.Text; t.text = text;
         t.raycastTarget = false;
         return t;
     }
@@ -150,21 +156,31 @@ public class SettingsPanel : MonoBehaviour
         var rt = (RectTransform)s.transform;
         rt.anchoredPosition = new Vector2(95f, y);
         rt.sizeDelta = new Vector2(220f, 20f);
-        foreach (var img in s.GetComponentsInChildren<Image>()) img.color = new Color(0.1f, 0.15f, 0.25f);
-        s.fillRect.GetComponent<Image>().color = Cyan * 0.8f;
-        s.handleRect.GetComponent<Image>().color = Cyan;
+        HoloUI.StyleSlider(s);
+        foreach (var part in new[] { "Background", "Fill Area" }) // a 6px track
+        {
+            var pr = (RectTransform)s.transform.Find(part);
+            pr.anchorMin = new Vector2(0f, 0.5f); pr.anchorMax = new Vector2(1f, 0.5f);
+            pr.sizeDelta = new Vector2(pr.sizeDelta.x, 6f);
+        }
+        s.fillRect.offsetMin = new Vector2(s.fillRect.offsetMin.x, 0f); s.fillRect.offsetMax = new Vector2(s.fillRect.offsetMax.x, 0f);
+        s.handleRect.sizeDelta = new Vector2(20f, 0f); // the handle area is 20px tall: a 20x20 diamond
         s.minValue = min; s.maxValue = max; s.value = value;
         s.onValueChanged.AddListener(v => { set(v); readout.text = show(v); });
-        y -= 62f;
+        y -= RowStep;
     }
+
+    const float RowStep = 58f; // 14 rows fit the window
 
     public static Text Cycle(Transform box, string name, ref float y, System.Func<string> show, System.Action next)
     {
         Label(box, name, new Vector2(-145f, y), 22, TextAnchor.MiddleLeft, 260f);
         var b = Button(box, show(), new Vector2(140f, y), new Vector2(230f, 44f));
+        HoloSkin.Button(b, HoloUI.ButtonStyle.Small);
         var text = b.GetComponentInChildren<Text>();
-        b.onClick.AddListener(() => { next(); text.text = show(); });
-        y -= 62f;
+        HoloSkin.SetOn(b, text.text == "ON");
+        b.onClick.AddListener(() => { next(); text.text = show(); HoloSkin.SetOn(b, text.text == "ON"); });
+        y -= RowStep;
         return text;
     }
 
@@ -174,10 +190,11 @@ public class SettingsPanel : MonoBehaviour
         go.transform.SetParent(parent, false);
         var rt = (RectTransform)go.transform;
         rt.anchoredPosition = pos; rt.sizeDelta = size;
-        go.GetComponent<Image>().color = new Color(0.06f, 0.1f, 0.18f, 1f);
         var t = Label(go.transform, text, Vector2.zero, 22, TextAnchor.MiddleCenter, size.x);
         t.rectTransform.sizeDelta = size;
-        return go.GetComponent<Button>();
+        var b = go.GetComponent<Button>();
+        HoloSkin.Button(b); // callers restyle as Small / Gold / Danger where needed
+        return b;
     }
 
     public static void Stretch(RectTransform r) { r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = r.offsetMax = Vector2.zero; }

@@ -6,6 +6,7 @@ public class CameraPan : MonoBehaviour
 {
     [SerializeField] float speed = 60f;
     [SerializeField] float edgeSize = 12f;   // px from the screen edge that scrolls
+    public static Vector2 EdgeDir { get; private set; } // the mouse's edge-scroll direction this frame (zero = none), for the cursor
     [SerializeField] float zoomStep = 4f;
     [SerializeField] float minHeight = 25f;
     [SerializeField] float maxHeight = 70f;
@@ -68,13 +69,16 @@ public class CameraPan : MonoBehaviour
             if (mouse.delta.ReadValue() != Vector2.zero) mouseMoved = true;
             Vector2 m = mouse.position.ReadValue();
             bool inside = mouseMoved && Application.isFocused && m.x >= 0 && m.y >= 0 && m.x <= Screen.width && m.y <= Screen.height;
+            Vector2 edge = Vector2.zero;
             if (inside)
             {
-                if (m.x < edgeSize) dir.x -= 1f;
-                if (m.x > Screen.width - edgeSize) dir.x += 1f;
-                if (m.y < edgeSize) dir.y -= 1f;
-                if (m.y > Screen.height - edgeSize) dir.y += 1f;
+                if (m.x < edgeSize) edge.x -= 1f;
+                if (m.x > Screen.width - edgeSize) edge.x += 1f;
+                if (m.y < edgeSize) edge.y -= 1f;
+                if (m.y > Screen.height - edgeSize) edge.y += 1f;
             }
+            EdgeDir = edge;
+            dir += edge;
             float scroll = mouse.scroll.ReadValue().y;
             bool overUI = UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
             // Wheel over a panel scrolls the panel instead of zooming.

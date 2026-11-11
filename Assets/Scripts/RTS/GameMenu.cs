@@ -63,6 +63,7 @@ public class GameMenu : MonoBehaviour
         Add("Settings", () => SettingsPanel.Open(panel.transform));
         saveButton = Add("Save game", () => { if (!Offline()) return; SaveSlotsPanel.Open(panel.transform, saving: true, onSaved: () => Show(false)); });
         loadButton = Add("Load game", () => { if (!Offline()) return; SaveSlotsPanel.Open(panel.transform, saving: false); });
+        HoloSkin.Button(loadButton, HoloUI.ButtonStyle.Gold);
         float down = at.y - ((RectTransform)leave.transform).anchoredPosition.y;
         foreach (var other in new[] { leave, surrender }) ((RectTransform)other.transform).anchoredPosition += new Vector2(0f, down);    }
 

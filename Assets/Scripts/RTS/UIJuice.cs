@@ -26,6 +26,7 @@ public class UIJuice : MonoBehaviour
         I.Get(button.transform).now = 1.18f;
         var glow = new GameObject("Flash", typeof(RectTransform)).AddComponent<Image>();
         glow.transform.SetParent(button.transform, false);
+        HoloUI.SetSliced(glow, "Fill_White"); // the kit's chamfered shape, tinted below
         glow.raycastTarget = false;
         var rt = glow.rectTransform;
         rt.anchorMin = Vector2.zero;

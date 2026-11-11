@@ -78,6 +78,7 @@ public class SkirmishPanel : MonoBehaviour
         start.onClick.AddListener(StartMatch);
         var back = Get<Button>("LEAVEROOMButton");
         back.GetComponentInChildren<Text>().text = "BACK";
+        HoloSkin.Button(back); // the lobby's LEAVE ROOM is Danger; Back is Default
         back.onClick.AddListener(Close);
         // Same spot as the room's status line: just above START.
         var status = (RectTransform)waiting.transform;
@@ -155,6 +156,7 @@ public class SkirmishPanel : MonoBehaviour
             var t = b.GetComponentInChildren<Text>();
             t.text = label;
             t.rectTransform.sizeDelta = rt.sizeDelta;
+            HoloSkin.Button(b, label == "CLEAR ALL AI" ? HoloUI.ButtonStyle.Danger : HoloUI.ButtonStyle.Default); // full-width, not a small toggle
         }
         Preset("1 VS 1", 180f, () => Setup(new[] { 0 }, 1));
         Preset("1 VS 3  ·  FREE FOR ALL", 110f, () => Setup(new[] { 0, 0, 0 }, 0));

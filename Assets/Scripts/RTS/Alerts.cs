@@ -3,7 +3,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // Top-centre message feed ("Low power", "Our base is under attack", "Unit ready"...). Newest at the top,
-// each line fades out after a few seconds. Noisy events (attacks, losses) are throttled.
+// each line fades out after a few seconds, on a Holo toast (green good, pink attack/error, cyan info). Noisy
+// events (attacks, losses) are throttled.
 public class Alerts : MonoBehaviour
 {
     public static readonly Color Info = new(0.45f, 1f, 1f), Good = new(0.55f, 1f, 0.3f), Warn = new(1f, 0.85f, 0.2f), Bad = new(1f, 0.3f, 0.35f);
@@ -19,7 +20,8 @@ public class Alerts : MonoBehaviour
 
     static Alerts instance;
     static readonly Dictionary<string, float> quietUntil = new(); // throttle per message
-    readonly List<(Text text, float born, Color color)> lines = new();
+    readonly List<(Text text, Image toast, float born, Color color)> lines = new();
+    const float ToastHeight = 48f; // the toast sprites stretch sideways only
     bool lowPower;
 
     void Awake()
@@ -76,13 +78,28 @@ public class Alerts : MonoBehaviour
 
     void Add(string message, Color color)
     {
-        var line = Instantiate(lineTemplate, lineTemplate.transform.parent);
+        var box = new GameObject("Toast", typeof(RectTransform), typeof(LayoutElement)).GetComponent<RectTransform>();
+        box.SetParent(lineTemplate.transform.parent, false);
+        box.SetSiblingIndex(1); // just under the hidden template: newest on top
+        box.sizeDelta = new Vector2(((RectTransform)lineTemplate.transform).sizeDelta.x, ToastHeight);
+        var layout = box.GetComponent<LayoutElement>();
+        layout.minHeight = layout.preferredHeight = ToastHeight;
+
+        var toast = new GameObject("Back", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+        toast.transform.SetParent(box, false);
+        toast.raycastTarget = false;
+        HoloUI.SetSliced(toast, color == Good ? "Toast_Green" : color == Bad || color == Warn ? "Toast_Pink" : "Toast_Cyan");
+
+        var line = Instantiate(lineTemplate, box);
         line.gameObject.SetActive(true);
         line.text = message;
         line.color = color;
-        line.transform.SetSiblingIndex(1); // just under the hidden template: newest on top
-        lines.Add((line, Time.time, color));
-        if (lines.Count > maxLines) { Destroy(lines[0].text.gameObject); lines.RemoveAt(0); }
+        var lr = line.rectTransform;
+        lr.anchorMin = Vector2.zero; lr.anchorMax = Vector2.one; lr.offsetMin = lr.offsetMax = Vector2.zero;
+        toast.rectTransform.sizeDelta = new Vector2(Mathf.Min(line.preferredWidth + 96f, box.sizeDelta.x), ToastHeight); // hugs the words
+
+        lines.Add((line, toast, Time.time, color));
+        if (lines.Count > maxLines) { Destroy(lines[0].text.transform.parent.gameObject); lines.RemoveAt(0); }
     }
 
     void Update()
@@ -101,9 +118,10 @@ public class Alerts : MonoBehaviour
             var c = Color.Lerp(Color.white, lines[i].color, pop);
             c.a = Mathf.Clamp01((showTime - age) / 1f); // fade over the last second
             lines[i].text.color = c;
-            lines[i].text.rectTransform.localScale = new Vector3(Mathf.Lerp(1.4f, 1f, pop), Mathf.Lerp(0.15f, 1f, pop), 1f);
+            lines[i].toast.color = new Color(1f, 1f, 1f, c.a);
+            lines[i].text.transform.parent.localScale = new Vector3(Mathf.Lerp(1.4f, 1f, pop), Mathf.Lerp(0.15f, 1f, pop), 1f);
             if (age < showTime) continue;
-            Destroy(lines[i].text.gameObject);
+            Destroy(lines[i].text.transform.parent.gameObject);
             lines.RemoveAt(i);
         }
     }

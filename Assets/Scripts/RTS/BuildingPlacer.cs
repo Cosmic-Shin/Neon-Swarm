@@ -31,6 +31,7 @@ public class BuildingPlacer : MonoBehaviour
 
     public static bool MenuOpen { get; private set; } // number keys pick buildings while it's open
     public static bool Placing { get; private set; }  // a ghost follows the mouse (Esc cancels it)
+    public static bool PlacementOk { get; private set; } // while placing: releasing here would build (the cursor shows it)
     public BuildingData[] Buildings => buildings;              // saves: prefab lookup
     public RectTransform ProgressBarTemplate => progressBarTemplate;
 
@@ -78,7 +79,7 @@ public class BuildingPlacer : MonoBehaviour
             btn.transform.Find("Text").GetComponent<Text>().text = buildings[i].displayName;
             btn.transform.Find("Time").GetComponent<Text>().text = $"{buildings[i].buildTime:0}s";
             btn.transform.Find("Cost").GetComponent<Text>().text = $"${buildings[i].cost}";
-            if (buildings[i].icon != null) btn.GetComponent<Image>().sprite = buildings[i].icon;
+            if (buildings[i].icon != null) btn.transform.Find("Icon").GetComponent<Image>().sprite = buildings[i].icon;
             btn.onClick.AddListener(() => StartPlacing(index));
             btn.gameObject.AddComponent<Tooltip>().text = Tooltip.For(buildings[i]);
             optionButtons[i] = btn;
@@ -209,6 +210,7 @@ public class BuildingPlacer : MonoBehaviour
                 bool locked = !buildings[i].Unlocked();
                 optionButtons[i].interactable = !locked && CanAfford(i); // red when short or not unlocked yet
                 LockBadge.Set(optionButtons[i], locked ? buildings[i].Missing() : null, CanAfford(i));
+                HoloSkin.SetCard(optionButtons[i], locked ? HoloUI.CardState.Locked : Placing && chosen == i ? HoloUI.CardState.Selected : HoloUI.CardState.Normal);
                 if (locked == lockedShown[i]) continue;
                 lockedShown[i] = locked;
                 optionButtons[i].GetComponent<Tooltip>().text = Tip(i, locked);
@@ -267,6 +269,7 @@ public class BuildingPlacer : MonoBehaviour
         string price = good > 1 ? $"BUILD {good}  ${cost * good}" : $"${cost}";
         hintText.text = (problem ?? price) + "      " + (buildings[chosen].dragLine ? WallHint : PlaceHint);
         hintText.color = problem == null ? hintColor : blockedColor * 3f;
+        PlacementOk = problem == null;
 
         if (anchored && mouse.leftButton.wasReleasedThisFrame)
         {

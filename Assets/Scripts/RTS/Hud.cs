@@ -21,14 +21,12 @@ public class Hud : MonoBehaviour
     GoodSelectionManager manager;
     Button template;
     Font font;
-    Sprite frame;
 
     void Start()
     {
         manager = FindFirstObjectByType<GoodSelectionManager>();
         template = transform.Find("BuildingsButton").GetComponent<Button>();
         font = template.GetComponentInChildren<Text>().font;
-        frame = template.transform.Find("Frame") is Transform f && f.TryGetComponent(out Image fi) ? fi.sprite : null;
         if (transform.Find("SelectedUnits") is Transform old) old.gameObject.SetActive(false); // replaced by the bottom panel
 
         BuildUnitPanel();
@@ -114,6 +112,13 @@ public class Hud : MonoBehaviour
         Tip(unloadBtn, "Wasp Transport: drop off everyone aboard.");
     }
 
+    // An order waiting for its click shows as a toggle that is ON.
+    static void Armed(Button b, bool on)
+    {
+        HoloSkin.SetOn(b, on);
+        Text(b).color = on ? HoloUI.TextOnBright : HoloUI.Text;
+    }
+
     readonly List<SelectableUnit> alive = new();
 
     void UpdateUnitPanel()
@@ -129,8 +134,8 @@ public class Hud : MonoBehaviour
         grid.gameObject.SetActive(alive.Count > 1);
         if (alive.Count == 1) Card(alive[0]); else Grid();
 
-        Text(attackBtn).color = manager.AttackMoveArmed ? Gold : Cyan;
-        Text(patrolBtn).color = manager.PatrolArmed ? Gold : Cyan;
+        Armed(attackBtn, manager.AttackMoveArmed);
+        Armed(patrolBtn, manager.PatrolArmed);
         Text(formBtn).text = $"{manager.CurrentFormation.ToString().ToUpper()}\n<size=14>[F]</size>";
         bool wasp = false, cargo = false;
         foreach (var t in Selected<Transport>()) { wasp = true; cargo |= t.Carried > 0; }
@@ -200,7 +205,10 @@ public class Hud : MonoBehaviour
     {
         var go = new GameObject("Cell", typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(grid, false);
-        go.GetComponent<Image>().color = new Color(0.06f, 0.08f, 0.14f, 1f);
+        var cellButton = go.GetComponent<Button>();
+        cellButton.targetGraphic = HoloSkin.Back((RectTransform)go.transform, "Card_Normal");
+        cellButton.transition = Selectable.Transition.SpriteSwap;
+        HoloSkin.SetCard(cellButton, HoloUI.CardState.Normal, true);
         var icon = new GameObject("Icon", typeof(RectTransform)).AddComponent<Image>();
         icon.transform.SetParent(go.transform, false);
         Place(icon.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 4f), new Vector2(60f, 60f));
@@ -311,8 +319,7 @@ public class Hud : MonoBehaviour
         var go = new GameObject("Job", typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(transform, false);
         Place((RectTransform)go.transform, new Vector2(0f, 1f), Vector2.zero, new Vector2(56f, 56f), new Vector2(0f, 1f));
-        go.GetComponent<Image>().color = Panel;
-        AddFrame(go.transform, Cyan * 0.8f);
+        HoloSkin.Back((RectTransform)go.transform, "Card_Building"); // a job in progress
         var icon = new GameObject("Icon", typeof(RectTransform)).AddComponent<Image>();
         icon.transform.SetParent(go.transform, false);
         Place(icon.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 3f), new Vector2(44f, 44f));
@@ -401,22 +408,14 @@ public class Hud : MonoBehaviour
         var rt = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
         rt.SetParent(parent, false);
         Place(rt, anchor, pos, size, pivot ?? anchor);
-        if (fill is Color c) rt.gameObject.AddComponent<Image>().color = c;
-        if (framed) AddFrame(rt, Cyan);
+        if (fill is Color c) rt.gameObject.AddComponent<Image>().color = c; // stays as an invisible click blocker once framed
+        if (framed)
+        {
+            bool sheet = name == "Hotkeys"; // the F1 sheet is an info popup
+            HoloSkin.Back(rt, sheet ? "Tooltip" : "Panel_Frame");
+            HoloSkin.FX(rt, sheet ? HoloUI.Yellow : HoloUI.Cyan, intro: sheet, strength: sheet ? 0.8f : 0.5f, aura: sheet);
+        }
         return rt;
-    }
-
-    void AddFrame(Transform parent, Color c)
-    {
-        if (frame == null) return;
-        var img = new GameObject("Frame", typeof(RectTransform)).AddComponent<Image>();
-        img.transform.SetParent(parent, false);
-        img.sprite = frame;
-        img.type = Image.Type.Sliced;
-        img.color = c;
-        img.raycastTarget = false;
-        var r = img.rectTransform;
-        r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = r.offsetMax = Vector2.zero;
     }
 
     static void Place(RectTransform r, Vector2 anchor, Vector2 pos, Vector2 size, Vector2? pivot = null)
@@ -454,6 +453,7 @@ public class Hud : MonoBehaviour
         fill.raycastTarget = false;
         var r = fill.rectTransform;
         r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = r.offsetMax = Vector2.zero;
+        HoloSkin.Bar(back, fill, Color.white); // SetBar tints it
         return r;
     }
 
