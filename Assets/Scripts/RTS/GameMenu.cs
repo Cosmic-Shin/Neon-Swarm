@@ -89,6 +89,6 @@ public class GameMenu : MonoBehaviour
     {
         Show(false);
         if (Net.Online) match.BackToMenu();
-        else { Skirmish.Active = false; Skirmish.ElapsedBefore = 0f; SceneManager.LoadScene(0); }
+        else { Skirmish.Active = Tutorial.Active = false; Skirmish.ElapsedBefore = 0f; SceneManager.LoadScene(0); }
     }
 }

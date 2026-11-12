@@ -51,6 +51,25 @@ public static class ProfileService
         }
     }
 
+    public static async void SetAvatar(string avatar)
+    {
+        Current ??= new PlayerProfile();
+        Current.avatar = avatar;
+        if (!AccountService.SignedIn) return;
+        KeepLocal();
+        try
+        {
+            publicGames = -1;
+            await Push();
+            LastError = null;
+        }
+        catch (System.Exception e)
+        {
+            LastError = "Couldn't reach Cloud Save; your avatar is kept on this PC.";
+            Debug.LogWarning(e);
+        }
+    }
+
     static async Task Push()
     {
         await CloudSaveService.Instance.Data.Player.SaveAsync(new Dictionary<string, object> { { Key, JsonUtility.ToJson(Current) } });

@@ -40,6 +40,8 @@ public class Building : MonoBehaviour
         rallyLine.enabled = false;
     }
 
+    public SelectableUnit CheapestFighter() => unitPrefabs.FirstOrDefault(u => u.TryGetComponent(out Attacker _) && !u.TryGetComponent(out Harvester _) && !u.TryGetComponent(out Repairer _));
+
     public int OptionCount => unitPrefabs.Length + upgrades.Length;
     bool IsUnit(int i) => i < unitPrefabs.Length;
     ResearchData Upgrade(int i) => upgrades[i - unitPrefabs.Length];

@@ -6,9 +6,9 @@ public class AccountScreen : MonoBehaviour
     static readonly Color Cyan = new(0.3f, 1f, 1f), Pink = new(1f, 0.1f, 0.9f), Win = new(0.35f, 1f, 0.55f), Loss = new(1f, 0.32f, 0.38f),
         Card = new(0.02f, 0.03f, 0.08f, 1f), Dim = new(0.55f, 0.6f, 0.75f), BarBack = new(0.12f, 0.12f, 0.2f, 1f), Gold = new(1f, 0.8f, 0.25f);
 
-    Sprite circle;
-    Text avatarLetter, nameText, rankText, sinceText, idText, rankNext, note;
-    Image avatar, rankFill, ring;
+    AvatarList.View avatarView;
+    Text nameText, rankText, sinceText, idText, rankNext, note;
+    Image rankFill, ring;
     Text ringText;
     readonly Text[] cardValues = new Text[5], cardSubs = new Text[5];
     readonly (Text label, Image fill, Text value)[] bars = new (Text, Image, Text)[5];
@@ -21,8 +21,6 @@ public class AccountScreen : MonoBehaviour
     {
         if (!built) Build();
         nameText.text = AccountService.Username?.ToUpper() ?? "GUEST";
-        avatarLetter.text = string.IsNullOrEmpty(AccountService.Username) ? "?" : AccountService.Username.Substring(0, 1).ToUpper();
-        avatar.color = Color.HSVToRGB(Mathf.Abs((AccountService.Username ?? "").GetHashCode() % 360) / 360f, 0.75f, 1f);
         idText.text = "PLAYER ID  " + (AccountService.SignedIn ? AccountService.PlayerId : "-");
         sinceText.text = "Member since ...";
         note.text = "Loading stats...";
@@ -42,6 +40,7 @@ public class AccountScreen : MonoBehaviour
 
     void Fill(PlayerProfile p)
     {
+        avatarView.Show(p.avatar, AccountService.Username);
         int r = p.RankIndex;
         rankText.text = PlayerProfile.Ranks[r].name;
         rankFill.rectTransform.anchorMax = new Vector2(p.RankProgress, 1f);
@@ -108,8 +107,9 @@ public class AccountScreen : MonoBehaviour
         built = true;
         var panel = (RectTransform)transform;
         panel.sizeDelta = new Vector2(1560f, 800f);
-        panel.anchoredPosition = new Vector2(0f, -70f);
-        circle = MakeCircle();
+        panel.anchoredPosition = new Vector2(0f, -112f);
+        panel.localScale = Vector3.one * 0.92f;
+        var circle = AvatarList.Circle;
         transform.Find("Header").gameObject.SetActive(false);
         transform.Find("Info").gameObject.SetActive(false);
         var signOut = (RectTransform)transform.Find("SIGNOUTButton");
@@ -117,19 +117,27 @@ public class AccountScreen : MonoBehaviour
         signOut.anchoredPosition = new Vector2(-210f, -350f);
         back.anchoredPosition = new Vector2(210f, -350f);
 
-        var top = Box(panel, new Vector2(0f, 300f), new Vector2(1480f, 130f), Card);
-        var ringBack = Img(top, new Vector2(-660f, 0f), new Vector2(100f, 100f), Pink, circle);
-        avatar = Img(ringBack.rectTransform, Vector2.zero, new Vector2(88f, 88f), Cyan, circle);
-        avatarLetter = Txt(avatar.rectTransform, "?", Vector2.zero, 52, TextAnchor.MiddleCenter, 88f, Color.black, FontStyle.Bold);
-        nameText = Txt(top, "", new Vector2(-370f, 26f), 40, TextAnchor.MiddleLeft, 480f, Color.white, FontStyle.Bold);
-        sinceText = Txt(top, "", new Vector2(-370f, -16f), 18, TextAnchor.MiddleLeft, 480f, Dim);
-        idText = Txt(top, "", new Vector2(-370f, -42f), 13, TextAnchor.MiddleLeft, 480f, new Color(0.4f, 0.45f, 0.6f));
-        Txt(top, "RANK", new Vector2(380f, 38f), 16, TextAnchor.MiddleLeft, 560f, Dim);
-        rankText = Txt(top, "", new Vector2(380f, 8f), 34, TextAnchor.MiddleLeft, 560f, Gold, FontStyle.Bold);
-        var rankBar = Img(top, new Vector2(380f, -26f), new Vector2(560f, 12f), BarBack, null);
+        var top = Box(panel, new Vector2(0f, 296f), new Vector2(1480f, 140f), Card);
+        avatarView = AvatarList.Make(top, new Vector2(-655f, 0f), 116f, Pink);
+        var avatarButton = avatarView.ring.gameObject.AddComponent<Button>();
+        avatarView.ring.raycastTarget = true;
+        avatarButton.transition = Selectable.Transition.None;
+        avatarButton.onClick.AddListener(OpenPicker);
+        var edit = Img(avatarView.ring.rectTransform, new Vector2(40f, -40f), new Vector2(34f, 34f), Cyan, circle);
+        Txt(edit.rectTransform, "EDIT", Vector2.zero, 11, TextAnchor.MiddleCenter, 34f, Color.black, FontStyle.Bold);
+        nameText = Txt(top, "", new Vector2(-330f, 30f), 40, TextAnchor.MiddleLeft, 480f, Color.white, FontStyle.Bold);
+        sinceText = Txt(top, "", new Vector2(-330f, -10f), 18, TextAnchor.MiddleLeft, 480f, Dim);
+        idText = Txt(top, "", new Vector2(-330f, -38f), 13, TextAnchor.MiddleLeft, 480f, new Color(0.4f, 0.45f, 0.6f));
+        var change = SettingsPanel.Button(top, "CHANGE AVATAR", new Vector2(40f, 0f), new Vector2(250f, 54f));
+        HoloSkin.Button(change, HoloUI.ButtonStyle.Small);
+        change.onClick.AddListener(OpenPicker);
+        Img(top, new Vector2(180f, 0f), new Vector2(2f, 100f), new Color(1f, 1f, 1f, 0.08f), null);
+        Txt(top, "RANK", new Vector2(450f, 40f), 16, TextAnchor.MiddleLeft, 500f, Dim);
+        rankText = Txt(top, "", new Vector2(450f, 10f), 34, TextAnchor.MiddleLeft, 500f, Gold, FontStyle.Bold);
+        var rankBar = Img(top, new Vector2(450f, -24f), new Vector2(500f, 12f), BarBack, null);
         rankFill = Fill(rankBar.rectTransform, Gold);
         HoloSkin.Bar(rankBar, rankFill, Gold);
-        rankNext = Txt(top, "", new Vector2(380f, -48f), 15, TextAnchor.MiddleLeft, 560f, Dim);
+        rankNext = Txt(top, "", new Vector2(450f, -46f), 15, TextAnchor.MiddleLeft, 500f, Dim);
 
         string[] titles = { "MATCHES", "WINS", "LOSSES", "", "STREAK" };
         Color[] tints = { Cyan, Win, Loss, Cyan, Color.white };
@@ -165,9 +173,9 @@ public class AccountScreen : MonoBehaviour
         string[] totalNames = { "KILLS", "UNITS BUILT", "UNITS LOST", "BUILDINGS BUILT", "BUILDINGS LOST", "RESEARCH", "CREDITS EARNED", "AVG MATCH", "KILLS / MATCH" };
         for (int i = 0; i < totalValues.Length; i++)
         {
-            var pos = new Vector2(-240f + (i % 3) * 240f, -72f - (i / 3) * 40f);
-            totalValues[i] = Txt(left, "0", pos + new Vector2(0f, 8f), 22, TextAnchor.MiddleCenter, 220f, Color.white, FontStyle.Bold);
-            Txt(left, totalNames[i], pos + new Vector2(0f, -14f), 12, TextAnchor.MiddleCenter, 220f, Dim);
+            var pos = new Vector2(-240f + (i % 3) * 240f, -66f - (i / 3) * 48f);
+            totalValues[i] = Txt(left, "0", pos + new Vector2(0f, 7f), 20, TextAnchor.MiddleCenter, 220f, Color.white, FontStyle.Bold);
+            Txt(left, totalNames[i], pos + new Vector2(0f, -13f), 12, TextAnchor.MiddleCenter, 220f, Dim);
         }
 
         var right = Box(panel, new Vector2(372f, -112f), new Vector2(736f, 360f), Card);
@@ -226,20 +234,69 @@ public class AccountScreen : MonoBehaviour
         return t;
     }
 
-    static Sprite MakeCircle()
+    GameObject picker;
+    Text pickedName;
+    readonly System.Collections.Generic.List<(string name, Image glow)> cells = new();
+
+    void OpenPicker()
     {
-        const int n = 128;
-        var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
-        var px = new Color32[n * n];
-        for (int y = 0; y < n; y++)
-            for (int x = 0; x < n; x++)
-            {
-                float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(n / 2f, n / 2f));
-                px[y * n + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(n / 2f - d) * 255));
-            }
-        tex.SetPixels32(px);
-        tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f);
+        if (picker == null) BuildPicker();
+        picker.SetActive(true);
+        picker.transform.SetAsLastSibling();
+        MarkPicked();
+    }
+
+    void BuildPicker()
+    {
+        var shade = Img(transform.parent, Vector2.zero, Vector2.zero, new Color(0f, 0.01f, 0.04f, 0.85f), null);
+        SettingsPanel.Stretch(shade.rectTransform);
+        shade.raycastTarget = true;
+        picker = shade.gameObject;
+        picker.name = "AvatarPicker";
+        var win = Img(shade.transform, new Vector2(0f, -30f), new Vector2(1080f, 720f), Card, null);
+        HoloSkin.Modal(win.rectTransform);
+        Txt(win.transform, "CHOOSE YOUR AVATAR", new Vector2(0f, 312f), 34, TextAnchor.MiddleCenter, 900f, Cyan, FontStyle.Bold);
+        Txt(win.transform, "Shown on your account and to your friends.", new Vector2(0f, 274f), 17, TextAnchor.MiddleCenter, 900f, Dim);
+
+        var options = new System.Collections.Generic.List<string> { "" };
+        foreach (var s in AvatarList.All) if (s != null) options.Add(s.name);
+        const int cols = 8;
+        const float cell = 104f, gap = 14f;
+        for (int i = 0; i < options.Count; i++)
+        {
+            string name = options[i];
+            var pos = new Vector2((i % cols - (cols - 1) / 2f) * (cell + gap), 196f - i / cols * (cell + gap));
+            var glow = Img(win.transform, pos, Vector2.one * (cell + 10f), Cyan, null);
+            var bg = Box(win.transform, pos, Vector2.one * cell, new Color(0.05f, 0.07f, 0.15f, 1f));
+            var bgImg = bg.GetComponent<Image>();
+            bgImg.raycastTarget = true;
+            var b = bg.gameObject.AddComponent<Button>();
+            b.targetGraphic = bgImg;
+            var colors = b.colors;
+            colors.highlightedColor = new Color(1.6f, 1.6f, 1.6f);
+            b.colors = colors;
+            b.onClick.AddListener(() => Pick(name));
+            if (name == "") AvatarList.Make(bg, Vector2.zero, 76f, Dim).Show("", AccountService.Username);
+            else Img(bg, Vector2.zero, Vector2.one * 92f, Color.white, AvatarList.Find(name)).preserveAspect = true;
+            cells.Add((name, glow));
+        }
+
+        pickedName = Txt(win.transform, "", new Vector2(0f, -232f), 24, TextAnchor.MiddleCenter, 900f, Gold, FontStyle.Bold);
+        SettingsPanel.Button(win.transform, "DONE", new Vector2(0f, -296f), new Vector2(280f, 60f)).onClick.AddListener(() => picker.SetActive(false));
+    }
+
+    void Pick(string name)
+    {
+        ProfileService.SetAvatar(name);
+        avatarView.Show(name, AccountService.Username);
+        MarkPicked();
+    }
+
+    void MarkPicked()
+    {
+        string current = ProfileService.Current?.avatar ?? "";
+        foreach (var (name, glow) in cells) glow.enabled = name == current;
+        pickedName.text = AvatarList.Title(current);
     }
 
 

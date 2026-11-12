@@ -24,6 +24,7 @@ public class PlayerProfile
         public float Rate => games > 0 ? (float)wins / games : 0f;
     }
 
+    public string avatar = "";
     public Tally all = new(), skirmish = new(), online = new();
     public Tally[] vsAI = { new(), new(), new() };
     public int streak, bestStreak;

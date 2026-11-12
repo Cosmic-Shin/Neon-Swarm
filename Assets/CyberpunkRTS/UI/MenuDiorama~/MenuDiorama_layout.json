@@ -1,0 +1,2119 @@
+{
+ "note": "Blender is Z-up right-handed. Unity position ~ (x, z, y); Unity yaw ~ -blender_rotZ. Compare with MenuDiorama_preview.png and mirror X if the layout comes out flipped.",
+ "camera": {
+  "blender_pos": [
+   14.0,
+   -18.5,
+   4.6
+  ],
+  "look_at_blender": [
+   -2.5,
+   1.0,
+   1.6
+  ],
+  "lens_mm": 35.0,
+  "unity_vertical_fov": 32.3
+ },
+ "fog": {
+  "color": [
+   0.6,
+   0.7,
+   1.0
+  ],
+  "density_hint": "thin exponential fog, far objects fade to dark navy #04050E"
+ },
+ "objects": [
+  {
+   "prefab": "CoreNexus",
+   "name": "D_CoreNexus",
+   "blender_pos": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "AssemblyHive",
+   "name": "D_AssemblyHive",
+   "blender_pos": [
+    5.5,
+    -0.5,
+    0.0
+   ],
+   "blender_rotZ_deg": -90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "DataRefinery",
+   "name": "D_DataRefinery",
+   "blender_pos": [
+    -6.5,
+    0.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "ResearchLab",
+   "name": "D_ResearchLab",
+   "blender_pos": [
+    5.5,
+    4.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 180.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "PowerPylon",
+   "name": "D_PowerPylon",
+   "blender_pos": [
+    -3.5,
+    5.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "PowerPylon",
+   "name": "D_PowerPylon2",
+   "blender_pos": [
+    1.5,
+    6.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 30.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "HiveAerie",
+   "name": "D_HiveAerie",
+   "blender_pos": [
+    -1.0,
+    11.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "NeonTurret",
+   "name": "D_NeonTurret",
+   "blender_pos": [
+    -5.0,
+    -5.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "NeonTurret",
+   "name": "D_NeonTurret2",
+   "blender_pos": [
+    4.5,
+    -6.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "FlakLantern",
+   "name": "D_FlakLantern",
+   "blender_pos": [
+    -9.0,
+    -2.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "RailspikeTower",
+   "name": "D_RailspikeTower",
+   "blender_pos": [
+    9.0,
+    -2.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Ore_DataCrystal",
+   "name": "D_Ore0",
+   "blender_pos": [
+    -12.0,
+    -7.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 85.0,
+   "scale": 1.4
+  },
+  {
+   "prefab": "Ore_DataCrystal",
+   "name": "D_Ore1",
+   "blender_pos": [
+    -13.5,
+    -5.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 37.1,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Ore_DataCrystal",
+   "name": "D_Ore2",
+   "blender_pos": [
+    -11.0,
+    -9.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 142.6,
+   "scale": 1.1
+  },
+  {
+   "prefab": "Ore_DataCrystal",
+   "name": "D_Ore3",
+   "blender_pos": [
+    -14.0,
+    -8.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 55.8,
+   "scale": 1.6
+  },
+  {
+   "prefab": "Ore_DataCrystal",
+   "name": "D_Ore4",
+   "blender_pos": [
+    -12.5,
+    -10.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 23.9,
+   "scale": 0.9
+  },
+  {
+   "prefab": "Ore_DataCrystal",
+   "name": "D_Ore5",
+   "blender_pos": [
+    -15.5,
+    -6.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 144.6,
+   "scale": 1.2
+  },
+  {
+   "prefab": "DataHarvester",
+   "name": "D_DataHarvester",
+   "blender_pos": [
+    -9.5,
+    -4.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 55.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Skitter",
+   "name": "D_Skitter0",
+   "blender_pos": [
+    0.5,
+    -7.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 190.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Skitter",
+   "name": "D_Skitter1",
+   "blender_pos": [
+    1.6,
+    -8.3,
+    0.0
+   ],
+   "blender_rotZ_deg": 165.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Skitter",
+   "name": "D_Skitter2",
+   "blender_pos": [
+    -0.7,
+    -8.6,
+    0.0
+   ],
+   "blender_rotZ_deg": 205.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Skitter",
+   "name": "D_Skitter3",
+   "blender_pos": [
+    2.4,
+    -7.1,
+    0.0
+   ],
+   "blender_rotZ_deg": 180.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Skitter",
+   "name": "D_Skitter4",
+   "blender_pos": [
+    0.2,
+    -9.6,
+    0.0
+   ],
+   "blender_rotZ_deg": 185.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Skitter",
+   "name": "D_Skitter5",
+   "blender_pos": [
+    -1.6,
+    -7.4,
+    0.0
+   ],
+   "blender_rotZ_deg": 210.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Skitter",
+   "name": "D_Skitter6",
+   "blender_pos": [
+    1.3,
+    -10.2,
+    0.0
+   ],
+   "blender_rotZ_deg": 160.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Chromejaw",
+   "name": "D_Chromejaw",
+   "blender_pos": [
+    -3.0,
+    -9.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 200.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Strider",
+   "name": "D_Strider",
+   "blender_pos": [
+    3.8,
+    -9.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 170.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "CrusherTarantula",
+   "name": "D_CrusherTarantula",
+   "blender_pos": [
+    -2.5,
+    -6.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 190.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "QueenArachne",
+   "name": "D_QueenArachne",
+   "blender_pos": [
+    6.8,
+    -7.6,
+    0.0
+   ],
+   "blender_rotZ_deg": 160.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Prop_RuinTower",
+   "name": "D_RuinT0",
+   "blender_pos": [
+    -17.5,
+    18.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 3.25
+  },
+  {
+   "prefab": "Prop_RuinTower",
+   "name": "D_RuinT1",
+   "blender_pos": [
+    -10.0,
+    27.25,
+    0.0
+   ],
+   "blender_rotZ_deg": 40.0,
+   "scale": 4.0
+  },
+  {
+   "prefab": "Prop_RuinTower",
+   "name": "D_RuinT2",
+   "blender_pos": [
+    5.0,
+    28.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 10.0,
+   "scale": 3.5
+  },
+  {
+   "prefab": "Prop_RuinTower",
+   "name": "D_RuinT3",
+   "blender_pos": [
+    15.0,
+    21.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 70.0,
+   "scale": 3.75
+  },
+  {
+   "prefab": "Prop_RuinTower",
+   "name": "D_RuinT4",
+   "blender_pos": [
+    20.0,
+    11.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 20.0,
+   "scale": 2.75
+  },
+  {
+   "prefab": "Prop_RuinTower",
+   "name": "D_RuinT5",
+   "blender_pos": [
+    -22.5,
+    8.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 80.0,
+   "scale": 3.0
+  },
+  {
+   "prefab": "Prop_RuinTower",
+   "name": "D_RuinT6",
+   "blender_pos": [
+    12.5,
+    33.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 4.5
+  },
+  {
+   "prefab": "Prop_RuinTower",
+   "name": "D_RuinT7",
+   "blender_pos": [
+    -2.5,
+    36.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 30.0,
+   "scale": 4.25
+  },
+  {
+   "prefab": "Prop_RuinSmall",
+   "name": "D_RuinS0",
+   "blender_pos": [
+    -11.0,
+    6.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.3
+  },
+  {
+   "prefab": "Prop_RuinSmall",
+   "name": "D_RuinS1",
+   "blender_pos": [
+    9.0,
+    8.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.3
+  },
+  {
+   "prefab": "Prop_RuinSmall",
+   "name": "D_RuinS2",
+   "blender_pos": [
+    13.0,
+    -6.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 30.0,
+   "scale": 1.3
+  },
+  {
+   "prefab": "Prop_RuinSmall",
+   "name": "D_RuinS3",
+   "blender_pos": [
+    -16.0,
+    -12.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 60.0,
+   "scale": 1.3
+  },
+  {
+   "prefab": "Prop_Billboard",
+   "name": "D_Prop_Billboard",
+   "blender_pos": [
+    -8.0,
+    12.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 20.0,
+   "scale": 2.0
+  },
+  {
+   "prefab": "Prop_Crates",
+   "name": "D_Crates0",
+   "blender_pos": [
+    10.5,
+    -8.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 20.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Prop_Crates",
+   "name": "D_Crates1",
+   "blender_pos": [
+    -6.0,
+    -11.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Prop_Crates",
+   "name": "D_Crates2",
+   "blender_pos": [
+    7.0,
+    1.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Prop_Barrier",
+   "name": "D_Prop_Barrier",
+   "blender_pos": [
+    -3.0,
+    -12.0,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-5_-4",
+   "blender_pos": [
+    -9.5,
+    -6.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-5_-3",
+   "blender_pos": [
+    -9.5,
+    -4.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-5_-2",
+   "blender_pos": [
+    -9.5,
+    -2.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-5_-1",
+   "blender_pos": [
+    -9.5,
+    -0.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-5_0",
+   "blender_pos": [
+    -9.5,
+    1.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-5_1",
+   "blender_pos": [
+    -9.5,
+    3.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-5_2",
+   "blender_pos": [
+    -9.5,
+    5.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-5_3",
+   "blender_pos": [
+    -9.5,
+    7.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-5_4",
+   "blender_pos": [
+    -9.5,
+    9.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-4_-4",
+   "blender_pos": [
+    -7.5,
+    -6.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-4_-3",
+   "blender_pos": [
+    -7.5,
+    -4.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-4_-2",
+   "blender_pos": [
+    -7.5,
+    -2.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-4_-1",
+   "blender_pos": [
+    -7.5,
+    -0.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-4_0",
+   "blender_pos": [
+    -7.5,
+    1.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-4_1",
+   "blender_pos": [
+    -7.5,
+    3.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-4_2",
+   "blender_pos": [
+    -7.5,
+    5.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-4_3",
+   "blender_pos": [
+    -7.5,
+    7.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-4_4",
+   "blender_pos": [
+    -7.5,
+    9.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-3_-4",
+   "blender_pos": [
+    -5.5,
+    -6.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-3_-3",
+   "blender_pos": [
+    -5.5,
+    -4.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-3_-2",
+   "blender_pos": [
+    -5.5,
+    -2.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-3_-1",
+   "blender_pos": [
+    -5.5,
+    -0.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-3_0",
+   "blender_pos": [
+    -5.5,
+    1.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-3_1",
+   "blender_pos": [
+    -5.5,
+    3.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-3_2",
+   "blender_pos": [
+    -5.5,
+    5.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-3_3",
+   "blender_pos": [
+    -5.5,
+    7.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-3_4",
+   "blender_pos": [
+    -5.5,
+    9.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-2_-4",
+   "blender_pos": [
+    -3.5,
+    -6.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-2_-3",
+   "blender_pos": [
+    -3.5,
+    -4.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-2_-2",
+   "blender_pos": [
+    -3.5,
+    -2.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-2_-1",
+   "blender_pos": [
+    -3.5,
+    -0.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-2_0",
+   "blender_pos": [
+    -3.5,
+    1.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-2_1",
+   "blender_pos": [
+    -3.5,
+    3.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-2_2",
+   "blender_pos": [
+    -3.5,
+    5.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-2_3",
+   "blender_pos": [
+    -3.5,
+    7.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-2_4",
+   "blender_pos": [
+    -3.5,
+    9.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-1_-4",
+   "blender_pos": [
+    -1.5,
+    -6.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-1_-3",
+   "blender_pos": [
+    -1.5,
+    -4.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-1_-2",
+   "blender_pos": [
+    -1.5,
+    -2.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-1_-1",
+   "blender_pos": [
+    -1.5,
+    -0.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-1_0",
+   "blender_pos": [
+    -1.5,
+    1.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-1_1",
+   "blender_pos": [
+    -1.5,
+    3.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-1_2",
+   "blender_pos": [
+    -1.5,
+    5.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-1_3",
+   "blender_pos": [
+    -1.5,
+    7.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza-1_4",
+   "blender_pos": [
+    -1.5,
+    9.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza0_-4",
+   "blender_pos": [
+    0.5,
+    -6.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza0_-3",
+   "blender_pos": [
+    0.5,
+    -4.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza0_-2",
+   "blender_pos": [
+    0.5,
+    -2.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza0_-1",
+   "blender_pos": [
+    0.5,
+    -0.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza0_0",
+   "blender_pos": [
+    0.5,
+    1.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza0_1",
+   "blender_pos": [
+    0.5,
+    3.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza0_2",
+   "blender_pos": [
+    0.5,
+    5.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza0_3",
+   "blender_pos": [
+    0.5,
+    7.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza0_4",
+   "blender_pos": [
+    0.5,
+    9.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza1_-4",
+   "blender_pos": [
+    2.5,
+    -6.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza1_-3",
+   "blender_pos": [
+    2.5,
+    -4.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza1_-2",
+   "blender_pos": [
+    2.5,
+    -2.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza1_-1",
+   "blender_pos": [
+    2.5,
+    -0.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza1_0",
+   "blender_pos": [
+    2.5,
+    1.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza1_1",
+   "blender_pos": [
+    2.5,
+    3.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza1_2",
+   "blender_pos": [
+    2.5,
+    5.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza1_3",
+   "blender_pos": [
+    2.5,
+    7.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza1_4",
+   "blender_pos": [
+    2.5,
+    9.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza2_-4",
+   "blender_pos": [
+    4.5,
+    -6.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza2_-3",
+   "blender_pos": [
+    4.5,
+    -4.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza2_-2",
+   "blender_pos": [
+    4.5,
+    -2.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza2_-1",
+   "blender_pos": [
+    4.5,
+    -0.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza2_0",
+   "blender_pos": [
+    4.5,
+    1.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza2_1",
+   "blender_pos": [
+    4.5,
+    3.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza2_2",
+   "blender_pos": [
+    4.5,
+    5.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza2_3",
+   "blender_pos": [
+    4.5,
+    7.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza2_4",
+   "blender_pos": [
+    4.5,
+    9.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza3_-4",
+   "blender_pos": [
+    6.5,
+    -6.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza3_-3",
+   "blender_pos": [
+    6.5,
+    -4.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza3_-2",
+   "blender_pos": [
+    6.5,
+    -2.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza3_-1",
+   "blender_pos": [
+    6.5,
+    -0.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza3_0",
+   "blender_pos": [
+    6.5,
+    1.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza3_1",
+   "blender_pos": [
+    6.5,
+    3.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza3_2",
+   "blender_pos": [
+    6.5,
+    5.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza3_3",
+   "blender_pos": [
+    6.5,
+    7.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza3_4",
+   "blender_pos": [
+    6.5,
+    9.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza4_-4",
+   "blender_pos": [
+    8.5,
+    -6.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza4_-3",
+   "blender_pos": [
+    8.5,
+    -4.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza4_-2",
+   "blender_pos": [
+    8.5,
+    -2.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza4_-1",
+   "blender_pos": [
+    8.5,
+    -0.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza4_0",
+   "blender_pos": [
+    8.5,
+    1.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza4_1",
+   "blender_pos": [
+    8.5,
+    3.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza4_2",
+   "blender_pos": [
+    8.5,
+    5.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza4_3",
+   "blender_pos": [
+    8.5,
+    7.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza4_4",
+   "blender_pos": [
+    8.5,
+    9.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza5_-4",
+   "blender_pos": [
+    10.5,
+    -6.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza5_-3",
+   "blender_pos": [
+    10.5,
+    -4.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza5_-2",
+   "blender_pos": [
+    10.5,
+    -2.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza5_-1",
+   "blender_pos": [
+    10.5,
+    -0.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza5_0",
+   "blender_pos": [
+    10.5,
+    1.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza5_1",
+   "blender_pos": [
+    10.5,
+    3.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza5_2",
+   "blender_pos": [
+    10.5,
+    5.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza5_3",
+   "blender_pos": [
+    10.5,
+    7.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_Plaza",
+   "name": "D_Plaza5_4",
+   "blender_pos": [
+    10.5,
+    9.5,
+    -0.02
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road-12",
+   "blender_pos": [
+    -24.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road-11",
+   "blender_pos": [
+    -22.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road-10",
+   "blender_pos": [
+    -20.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road-9",
+   "blender_pos": [
+    -18.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road-8",
+   "blender_pos": [
+    -16.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road-7",
+   "blender_pos": [
+    -14.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road-6",
+   "blender_pos": [
+    -12.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road-5",
+   "blender_pos": [
+    -10.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road-4",
+   "blender_pos": [
+    -8.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road-3",
+   "blender_pos": [
+    -6.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road-2",
+   "blender_pos": [
+    -4.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road-1",
+   "blender_pos": [
+    -2.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road0",
+   "blender_pos": [
+    0.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road1",
+   "blender_pos": [
+    2.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road2",
+   "blender_pos": [
+    4.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road3",
+   "blender_pos": [
+    6.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road4",
+   "blender_pos": [
+    8.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road5",
+   "blender_pos": [
+    10.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road6",
+   "blender_pos": [
+    12.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road7",
+   "blender_pos": [
+    14.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road8",
+   "blender_pos": [
+    16.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road9",
+   "blender_pos": [
+    18.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road10",
+   "blender_pos": [
+    20.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road11",
+   "blender_pos": [
+    22.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Tile_RoadStraight",
+   "name": "D_Road12",
+   "blender_pos": [
+    24.0,
+    13.5,
+    0.0
+   ],
+   "blender_rotZ_deg": 90.0,
+   "scale": 1.0
+  },
+  {
+   "prefab": "Prop_StreetlightA",
+   "name": "D_Lamp0",
+   "blender_pos": [
+    -12.0,
+    11.8,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.3
+  },
+  {
+   "prefab": "Prop_StreetlightA",
+   "name": "D_Lamp1",
+   "blender_pos": [
+    -4.0,
+    11.8,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.3
+  },
+  {
+   "prefab": "Prop_StreetlightA",
+   "name": "D_Lamp2",
+   "blender_pos": [
+    4.0,
+    11.8,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.3
+  },
+  {
+   "prefab": "Prop_StreetlightA",
+   "name": "D_Lamp3",
+   "blender_pos": [
+    12.0,
+    11.8,
+    0.0
+   ],
+   "blender_rotZ_deg": 0.0,
+   "scale": 1.3
+  }
+ ],
+ "lights": [
+  {
+   "name": "D_Moon",
+   "type": "SUN",
+   "blender_pos": [
+    0.0,
+    0.0,
+    30.0
+   ],
+   "color": [
+    0.7,
+    0.78,
+    1.0
+   ],
+   "blender_watts": 3.0,
+   "radius": 0.0
+  },
+  {
+   "name": "D_L_Nexus",
+   "type": "POINT",
+   "blender_pos": [
+    0.0,
+    0.0,
+    7.0
+   ],
+   "color": [
+    1.0,
+    0.25,
+    0.7
+   ],
+   "blender_watts": 900.0,
+   "radius": 4.0
+  },
+  {
+   "name": "D_L_Hive",
+   "type": "POINT",
+   "blender_pos": [
+    6.0,
+    -1.0,
+    6.0
+   ],
+   "color": [
+    0.1,
+    0.9,
+    1.0
+   ],
+   "blender_watts": 350.0,
+   "radius": 3.0
+  },
+  {
+   "name": "D_L_Ref",
+   "type": "POINT",
+   "blender_pos": [
+    -7.0,
+    1.0,
+    6.0
+   ],
+   "color": [
+    0.1,
+    0.9,
+    1.0
+   ],
+   "blender_watts": 300.0,
+   "radius": 3.0
+  },
+  {
+   "name": "D_L_Ore",
+   "type": "POINT",
+   "blender_pos": [
+    -13.0,
+    -7.5,
+    3.0
+   ],
+   "color": [
+    0.5,
+    1.0,
+    0.15
+   ],
+   "blender_watts": 150.0,
+   "radius": 3.0
+  },
+  {
+   "name": "D_L_Army",
+   "type": "POINT",
+   "blender_pos": [
+    1.0,
+    -9.0,
+    6.0
+   ],
+   "color": [
+    0.2,
+    0.9,
+    1.0
+   ],
+   "blender_watts": 250.0,
+   "radius": 3.0
+  },
+  {
+   "name": "D_L_Queen",
+   "type": "POINT",
+   "blender_pos": [
+    7.0,
+    -8.0,
+    4.0
+   ],
+   "color": [
+    1.0,
+    0.2,
+    0.6
+   ],
+   "blender_watts": 300.0,
+   "radius": 2.0
+  },
+  {
+   "name": "D_L_City1",
+   "type": "POINT",
+   "blender_pos": [
+    -10.0,
+    20.0,
+    8.0
+   ],
+   "color": [
+    1.0,
+    0.2,
+    0.7
+   ],
+   "blender_watts": 2500.0,
+   "radius": 5.0
+  },
+  {
+   "name": "D_L_City2",
+   "type": "POINT",
+   "blender_pos": [
+    10.0,
+    24.0,
+    9.0
+   ],
+   "color": [
+    0.1,
+    0.8,
+    1.0
+   ],
+   "blender_watts": 3000.0,
+   "radius": 5.0
+  },
+  {
+   "name": "D_L_Rim",
+   "type": "AREA",
+   "blender_pos": [
+    -6.0,
+    20.0,
+    10.0
+   ],
+   "color": [
+    1.0,
+    0.3,
+    0.8
+   ],
+   "blender_watts": 3000.0,
+   "radius": 0.0
+  },
+  {
+   "name": "D_L_Fill",
+   "type": "AREA",
+   "blender_pos": [
+    16.0,
+    -20.0,
+    12.0
+   ],
+   "color": [
+    0.75,
+    0.85,
+    1.0
+   ],
+   "blender_watts": 4500.0,
+   "radius": 0.0
+  }
+ ]
+}

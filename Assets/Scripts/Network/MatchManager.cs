@@ -40,6 +40,12 @@ public class MatchManager : MonoBehaviour
         if (room == null || runner == null || !runner.IsRunning)
         {
             if (Skirmish.Active) StartSkirmish();
+            if (Tutorial.Active)
+            {
+                var tut = gameObject.AddComponent<Tutorial>();
+                tut.match = this;
+                tut.hive = layoutHive != null ? layoutHive.GetComponent<Building>() : null;
+            }
             if (!SaveSystem.Loaded)
             {
                 if (layoutNexus != null) introNexus.Add(layoutNexus.gameObject);
@@ -97,9 +103,9 @@ public class MatchManager : MonoBehaviour
 
     void StartSkirmish()
     {
-        Sfx.Say(Line.Start, 30f);
+        if (!Tutorial.Active) Sfx.Say(Line.Start, 30f);
         MatchStats.Reset();
-        endButton.onClick.AddListener(() => { Skirmish.Active = false; Skirmish.ElapsedBefore = 0f; UnityEngine.SceneManagement.SceneManager.LoadScene(0); });
+        endButton.onClick.AddListener(() => { Skirmish.Active = Tutorial.Active = false; Skirmish.ElapsedBefore = 0f; UnityEngine.SceneManagement.SceneManager.LoadScene(0); });
         BuildEndScreen();
         if (GameObject.Find("Enemies") is GameObject squad) Destroy(squad);
         TeamEconomy.Set(0, Skirmish.StartCredits);
@@ -144,10 +150,10 @@ public class MatchManager : MonoBehaviour
         }
 
         skirmishStarted = Time.time;
-        Alerts.Show("Skirmish: destroy every enemy building!", Alerts.Info, 6f);
+        if (!Tutorial.Active) Alerts.Show("Skirmish: destroy every enemy building!", Alerts.Info, 6f);
     }
 
-    static GameObject SpawnFor(int team, GameObject prefab, Vector3 pos, Quaternion rot)
+    public static GameObject SpawnFor(int team, GameObject prefab, Vector3 pos, Quaternion rot)
     {
         var go = Instantiate(prefab, pos, rot);
         var h = go.GetComponent<Health>();
@@ -188,7 +194,7 @@ public class MatchManager : MonoBehaviour
 
     void UpdateSkirmish()
     {
-        if (over || Time.time - skirmishStarted < 5f || Time.time < nextCheck) return;
+        if (Tutorial.Active || over || Time.time - skirmishStarted < 5f || Time.time < nextCheck) return;
         nextCheck = Time.time + 0.5f;
         var sides = new HashSet<int>();
         bool mine = false;
@@ -346,6 +352,8 @@ public class MatchManager : MonoBehaviour
         ProfileService.Record(m, MatchStats.Values);
     }
 
+    public void Finish(string title, string detail) => End(title, detail);
+
     void End(string title, string detail, bool canSpectate = false)
     {
         Debug.Log($"[GD5] end {title}: {detail}");
@@ -354,7 +362,7 @@ public class MatchManager : MonoBehaviour
         spectating = false;
         spectateBanner.gameObject.SetActive(false);
         endTitle.text = title;
-        endTitle.color = title == "VICTORY" ? new Color(0.3f, 1f, 0.6f) : title == "MATCH OVER" ? Alerts.Info : new Color(1f, 0.3f, 0.35f);
+        endTitle.color = title == "VICTORY" || title == "TUTORIAL COMPLETE" ? new Color(0.3f, 1f, 0.6f) : title == "MATCH OVER" ? Alerts.Info : new Color(1f, 0.3f, 0.35f);
         endDetail.text = detail;
         FillStats(1f);
         spectateButton.gameObject.SetActive(canSpectate);

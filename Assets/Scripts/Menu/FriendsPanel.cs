@@ -269,6 +269,7 @@ public class FriendsPanel : MonoBehaviour
         var p = await ProfileService.LoadPublic(id);
         if (!stats) return;
         stats.text = p == null ? "No stats yet." : StatsText(p);
+        AvatarList.Make(card, new Vector2(Width / 2f - 60f, 300f), 76f, HoloUI.Cyan).Show(p?.avatar, name);
     }
 
     static string StatsText(PlayerProfile p)

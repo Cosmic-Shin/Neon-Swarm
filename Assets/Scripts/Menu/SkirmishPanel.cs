@@ -31,7 +31,7 @@ public class SkirmishPanel : MonoBehaviour
     Button creditsButton, minutesButton, loadButton, mapButton;
     RectTransform mapRect;
     readonly System.Collections.Generic.List<(Button button, int players)> presets = new();
-    readonly Button[] rows = new Button[Seats], diffs = new Button[Seats], bases = new Button[Seats];
+    readonly Button[] rows = new Button[Seats], diffs = new Button[Seats], removes = new Button[Seats], bases = new Button[Seats];
     int picked = -1;
 
     public static void Open(Component anyUI)
@@ -105,6 +105,15 @@ public class SkirmishPanel : MonoBehaviour
             diff.name = "Difficulty";
             ((RectTransform)diff.transform).anchoredPosition += Vector2.left * 120f;
             diff.onClick.AddListener(() => NextDifficulty(seat));
+            var remove = Instantiate(team, row.transform);
+            remove.name = "Remove";
+            var removeRt = (RectTransform)remove.transform;
+            removeRt.anchoredPosition = new Vector2(-405f, 0f);
+            removeRt.sizeDelta = new Vector2(30f, 28f);
+            remove.GetComponentInChildren<Text>().text = "X";
+            HoloSkin.Button(remove, HoloUI.ButtonStyle.Danger);
+            remove.onClick.AddListener(() => { seats[seat].used = false; if (picked == seat) picked = -1; });
+            removes[i] = remove;
             ((RectTransform)row.transform.Find("Name")).sizeDelta = new Vector2(170f, 36f);
             rows[i] = row;
             diffs[i] = diff;
@@ -192,6 +201,7 @@ public class SkirmishPanel : MonoBehaviour
             team.gameObject.SetActive(used);
             team.GetComponentInChildren<Text>().text = s.side == 0 ? "NO TEAM" : $"TEAM {s.side}";
             diffs[i].gameObject.SetActive(used && i > 0);
+            removes[i].gameObject.SetActive(used && i > 0);
             diffs[i].GetComponentInChildren<Text>().text = s.difficulty.ToString().ToUpper();
             row.GetComponent<Image>().color = picked == i ? Picked : used ? new Color(0f, 0f, 0f, 0.4f) : OpenSeat;
         }
@@ -215,7 +225,7 @@ public class SkirmishPanel : MonoBehaviour
         creditsButton.GetComponentInChildren<Text>().text = $"${credits:N0}";
         minutesButton.GetComponentInChildren<Text>().text = minutes > 0 ? $"{minutes} MIN" : "NO LIMIT";
         hint.text = picked >= 0 ? $"Now click a base for player {picked + 1}."
-                  : "Click a colour, team or difficulty to change it. Click a player, then a base to move them.";
+                  : "Click a colour, team or difficulty to change it. X removes an AI. Click a player, then a base to move them.";
 
         string problem = Problem();
         waiting.text = problem ?? "";
@@ -257,8 +267,7 @@ public class SkirmishPanel : MonoBehaviour
     static void NextDifficulty(int seat)
     {
         var s = seats[seat];
-        if (s.difficulty == Skirmish.Difficulty.Hard) s.used = false;
-        else s.difficulty++;
+        s.difficulty = (Skirmish.Difficulty)(((int)s.difficulty + 1) % 3);
     }
 
     static void NextColor(int seat) => seats[seat].color = FreeColor(seat, seats[seat].color + 1);
