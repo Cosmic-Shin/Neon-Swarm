@@ -1,7 +1,6 @@
 using UnityEditor;
 using UnityEngine;
 
-// Music in Resources/Music streams from disk (minutes-long tracks would otherwise sit decoded in memory).
 public class MusicImporter : AssetPostprocessor
 {
     void OnPreprocessAudio()

@@ -1,8 +1,6 @@
 using System;
 using UnityEngine;
 
-// A visible shot. Flies to its target (homing while the target lives) or along an arc (artillery, aimed at
-// where the target stood), then calls onHit with the landing point, where the damage is dealt.
 public class Projectile : MonoBehaviour
 {
     Health target;
@@ -24,10 +22,9 @@ public class Projectile : MonoBehaviour
         p.length = Vector3.Distance(from, to);
         p.onHit = onHit;
         if (!go.TryGetComponent(out TrailRenderer trail)) trail = AddTrail(go, arc);
-        trail.Clear(); // pooled: no streak from where it last landed
+        trail.Clear();
     }
 
-    // Glowing streak in the shot's own colour; lobbed shells leave a longer one.
     static TrailRenderer AddTrail(GameObject go, float arc)
     {
         Color c = Color.white;
@@ -59,7 +56,6 @@ public class Projectile : MonoBehaviour
         Vector3 before = transform.position;
         if (arc > 0f)
         {
-            // Lobbed: fixed landing spot, height peaks halfway.
             travelled += speed * Time.deltaTime;
             float k = Mathf.Clamp01(travelled / Mathf.Max(length, 0.01f));
             transform.position = Vector3.Lerp(start, end, k) + Vector3.up * (arc * 4f * k * (1f - k));
@@ -67,7 +63,7 @@ public class Projectile : MonoBehaviour
         }
         else
         {
-            if (target != null && target.isActiveAndEnabled) end = Flyer.Center(target) + Vector3.up; // home in
+            if (target != null && target.isActiveAndEnabled) end = Flyer.Center(target) + Vector3.up;
             transform.position = Vector3.MoveTowards(transform.position, end, speed * Time.deltaTime);
             if ((transform.position - end).sqrMagnitude < 0.04f) { Land(end); return; }
         }

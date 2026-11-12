@@ -2,10 +2,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// A holo burst under the mouse on every click, in menus and in matches: a ring that expands and fades, a bright
-// centre flash and four short sparks. Coloured by the cursor showing at the time (CursorManager.Current):
-// cyan move/select, pink attack/invalid, gold build, green harvest... An invalid click also gives a small shake.
-// Lives on its own overlay canvas above everything; pooled, so clicking costs nothing. Creates itself.
 public class ClickFX : MonoBehaviour
 {
     const int Pool = 10;
@@ -26,9 +22,9 @@ public class ClickFX : MonoBehaviour
         DontDestroyOnLoad(go);
         var canvas = go.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 32000; // above every menu and the HUD
+        canvas.sortingOrder = 32000;
         var scaler = go.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize; // bursts are sized in screen pixels
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
     }
 
     void Awake()
@@ -90,10 +86,10 @@ public class ClickFX : MonoBehaviour
             {
                 var sr = b.sparks[i].rectTransform;
                 sr.sizeDelta = new Vector2(2f, Mathf.Lerp(4f, 12f, ease));
-                sr.anchoredPosition = SparkDirs[i] * Mathf.Lerp(6f, size * 0.62f, ease); // flying outwards
+                sr.anchoredPosition = SparkDirs[i] * Mathf.Lerp(6f, size * 0.62f, ease);
                 b.sparks[i].color = new Color(b.c.r, b.c.g, b.c.b, fade);
             }
-            b.root.localPosition = b.at + (b.shake ? new Vector3(Mathf.Sin(now * 90f) * 3f * fade, 0f, 0f) : Vector3.zero); // invalid: a quick "no" shake
+            b.root.localPosition = b.at + (b.shake ? new Vector3(Mathf.Sin(now * 90f) * 3f * fade, 0f, 0f) : Vector3.zero);
         }
     }
 
@@ -129,9 +125,9 @@ public class ClickFX : MonoBehaviour
         for (int y = 0; y < n; y++)
             for (int x = 0; x < n; x++)
             {
-                float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(n / 2f, n / 2f)) / (n / 2f); // 0 centre .. 1 edge
-                float ring = Mathf.Clamp01(1f - Mathf.Abs(d - 0.86f) / 0.1f);   // thin bright line
-                float halo = Mathf.Clamp01(1f - Mathf.Abs(d - 0.8f) / 0.25f) * 0.35f; // soft glow around it
+                float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(n / 2f, n / 2f)) / (n / 2f);
+                float ring = Mathf.Clamp01(1f - Mathf.Abs(d - 0.86f) / 0.1f);
+                float halo = Mathf.Clamp01(1f - Mathf.Abs(d - 0.8f) / 0.25f) * 0.35f;
                 ringTex.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Max(ring, halo)));
                 dotTex.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Pow(Mathf.Clamp01(1f - d), 2f)));
             }

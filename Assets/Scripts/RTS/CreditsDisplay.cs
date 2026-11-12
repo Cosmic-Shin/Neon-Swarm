@@ -1,13 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// Neon credits counter (replaces ResourceBank's built-in OnGUI label). The number rolls up or down to the
-// new amount, flashing green and popping on income, red on spending; "+N" fades out next to it.
 public class CreditsDisplay : MonoBehaviour
 {
     [SerializeField] Text label;
-    [SerializeField] Text gain; // "+200", fades out
-    [SerializeField] IntEventChannel creditsChanged; // same asset as ResourceBank's
+    [SerializeField] Text gain;
+    [SerializeField] IntEventChannel creditsChanged;
 
     static readonly Color Earn = new(0.4f, 1f, 0.45f), Spend = new(1f, 0.35f, 0.35f);
     const float FlashTime = 0.5f, PopTime = 0.25f;
@@ -21,7 +19,6 @@ public class CreditsDisplay : MonoBehaviour
     static CreditsDisplay instance;
     float denyTime = -10f;
 
-    // Tried to buy something too expensive: the counter throbs red twice.
     public static void Deny()
     {
         if (instance == null || !instance.isActiveAndEnabled) return;
@@ -47,7 +44,6 @@ public class CreditsDisplay : MonoBehaviour
 
     void Update()
     {
-        // Roll towards the real amount: quick for big changes, at least 400 a second for small ones.
         float target = ResourceBank.Instance != null ? ResourceBank.Instance.Credits : shown;
         if (shown != target)
         {

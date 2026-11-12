@@ -8,23 +8,19 @@ using Unity.Services.Friends.Options;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// The only class that talks to Unity Friends. Friends are added by tag ("name#1234", Unity's player
-// name). Your presence says what you're doing and which room you're in, so friends can JOIN it;
-// invites are Friends messages that pop up an InviteToast.
 public static class FriendsHub
 {
-    [Serializable] public class Activity { public string status = "In menus"; public string room; public long at; } // at: unix seconds, refreshed each minute
-    [Serializable] public class Note { public string room; public string text; } // an invite (room) or a chat message (text)
+    [Serializable] public class Activity { public string status = "In menus"; public string room; public long at; }
+    [Serializable] public class Note { public string room; public string text; }
 
     public static bool Ready { get; private set; }
     public static string MyTag { get; private set; }
     public static string LastError { get; private set; }
     public static string CurrentRoom => me.room;
     public static event Action Changed;
-    public static event Action<string, string> Invited; // friend name, room
-    public static event Action<string, string> Messaged; // friend name, text
+    public static event Action<string, string> Invited;
+    public static event Action<string, string> Messaged;
 
-    // Chat with each friend (by player ID) for this session; nothing is stored.
     public static readonly Dictionary<string, List<(bool mine, string text)>> Chats = new();
     static readonly Dictionary<string, int> unread = new();
     public static int Unread(string id) => unread.TryGetValue(id, out int n) ? n : 0;
@@ -40,9 +36,8 @@ public static class FriendsHub
     public static IReadOnlyList<Relationship> Incoming => Ready ? Service.IncomingFriendRequests : Array.Empty<Relationship>();
     public static IReadOnlyList<Relationship> Outgoing => Ready ? Service.OutgoingFriendRequests : Array.Empty<Relationship>();
     public static IReadOnlyList<Relationship> Blocked => Ready ? Service.Blocks : Array.Empty<Relationship>();
-    static int lastIncoming; // a new request plays a sound
+    static int lastIncoming;
 
-    // After sign-in. Makes the Unity player name match the username so the tag is recognisable.
     public static async Task Init()
     {
         if (Ready || !AccountService.SignedIn) return;
@@ -60,9 +55,6 @@ public static class FriendsHub
                 try { await Service.InitializeAsync(options); break; }
                 catch (Exception e) when (attempt < 3 && AccountService.SignedIn)
                 {
-                    // ponytail: Friends 1.4 bug: after a sign-out its cleanup times out on the closed socket, and that
-                    // failed task blocks every later InitializeAsync (or the socket is still reconnecting). Clear it
-                    // and retry; drop this when the SDK fixes it.
                     Debug.Log("Friends init retry: " + e.Message);
                     Service.GetType().GetField("m_CleanupTask", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                         ?.SetValue(Service, Task.CompletedTask);
@@ -80,7 +72,7 @@ public static class FriendsHub
             }
             Ready = true;
             lastIncoming = Incoming.Count;
-            _ = ProfileService.Load(); // makes sure friends can see this player's public stats
+            _ = ProfileService.Load();
             LastError = null;
             await Push();
         }
@@ -95,7 +87,7 @@ public static class FriendsHub
         ChatWith(e.UserId).Add((false, note.text));
         Debug.Log("[GD5] message from " + NameOf(e.UserId) + ": " + note.text);
 #if DEVELOPMENT_BUILD
-        if (DevArg("-echomessages")) _ = SendText(e.UserId, "echo: " + note.text); // test builds answer back
+        if (DevArg("-echomessages")) _ = SendText(e.UserId, "echo: " + note.text);
 #endif
         unread[e.UserId] = Unread(e.UserId) + 1;
         Messaged?.Invoke(NameOf(e.UserId), note.text);
@@ -106,15 +98,12 @@ public static class FriendsHub
     {
         if (Incoming.Count > lastIncoming) Sfx.Play(Snd.Info);
 #if DEVELOPMENT_BUILD
-        if (DevArg("-acceptfriends")) foreach (var r in Incoming) _ = Accept(r.Member.Id); // test builds say yes
+        if (DevArg("-acceptfriends")) foreach (var r in Incoming) _ = Accept(r.Member.Id);
 #endif
         lastIncoming = Incoming.Count;
         Changed?.Invoke();
     }
 
-    // Presence stays "online" after a crash (its LastSeen is only filled in on going offline), so each game
-    // stamps its activity every minute and anyone not stamped within Stale counts as offline. Stale is
-    // generous so a few minutes of clock difference between PCs don't matter.
     const long Stale = 200;
     static async void Heartbeat()
     {
@@ -122,11 +111,10 @@ public static class FriendsHub
         {
             await Task.Delay(60000);
             if (Ready) await Push();
-            Changed?.Invoke(); // friends who went quiet turn offline
+            Changed?.Invoke();
         }
     }
 
-    // Signing out: the next player starts fresh (events are re-hooked by the next Init).
     public static void SignedOut()
     {
         if (!Ready) return;
@@ -139,7 +127,6 @@ public static class FriendsHub
         Changed?.Invoke();
     }
 
-    // ---- what I'm doing (shown to friends) ----
 
     [RuntimeInitializeOnLoadMethod]
     static void Hook()
@@ -147,7 +134,7 @@ public static class FriendsHub
         SceneManager.activeSceneChanged += (old, scene) =>
         {
             me.status = scene.buildIndex == 0 ? "In menus" : RoomService.Instance && RoomService.Instance.Runner ? "In an online match" : "Playing skirmish";
-            if (scene.buildIndex != 0) me.room = null; // the room closes when the match starts
+            if (scene.buildIndex != 0) me.room = null;
             _ = Push();
         };
         Application.quitting += () => { if (Ready) _ = Service.SetPresenceAvailabilityAsync(Availability.Offline); };
@@ -158,7 +145,7 @@ public static class FriendsHub
         me.room = room;
         me.status = room != null ? "In a lobby" : "In menus";
         _ = Push();
-        Changed?.Invoke(); // INVITE buttons appear/disappear
+        Changed?.Invoke();
     }
 
     static async Task Push()
@@ -169,10 +156,9 @@ public static class FriendsHub
         catch (Exception e) { Debug.LogWarning(e); }
     }
 
-    // ---- actions; each returns an error message or null ----
 
     public static Task<string> Add(string tag) => Run(() => Service.AddFriendByNameAsync(tag.Trim()));
-    public static Task<string> AddById(string id) => Run(() => Service.AddFriendAsync(id)); // someone from your room / match
+    public static Task<string> AddById(string id) => Run(() => Service.AddFriendAsync(id));
     public static Task<string> Block(string id) => Run(() => Service.AddBlockAsync(id));
     public static Task<string> Unblock(string id) => Run(() => Service.DeleteBlockAsync(id));
     public static Task<string> Accept(string id) => Run(() => Service.AddFriendAsync(id));
@@ -213,7 +199,6 @@ public static class FriendsHub
     public static bool DevArg(string flag) => Array.IndexOf(Environment.GetCommandLineArgs(), flag) >= 0;
 #endif
 
-    // ---- reading a friend ----
 
     public static string NameOf(Member m) => Short(m.Profile?.Name ?? m.Id);
     static string NameOf(string id)
@@ -226,7 +211,6 @@ public static class FriendsHub
     public static bool IsOnline(Member m) => m.Presence != null && m.Presence.Availability is Availability.Online or Availability.Busy or Availability.Away
         && Math.Abs(DateTimeOffset.UtcNow.ToUnixTimeSeconds() - (m.Presence.GetActivity<Activity>()?.at ?? 0)) < Stale;
 
-    // Already a friend, asked, asking or blocked: no ADD button for them.
     public static bool IsKnown(string id)
     {
         if (!Ready || id == AccountService.PlayerId) return true;

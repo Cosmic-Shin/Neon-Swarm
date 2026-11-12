@@ -1,16 +1,12 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// Life for a Holo panel (added by HoloSkin): faint scanlines, a light band sweeping down every few seconds, a
-// slowly breathing outer glow, pulsing corner brackets and (menus) a quick fade/scale-in when it opens.
-// Everything is built at runtime from two tiny generated textures, so nothing extra is saved in the scenes.
-// Decoration only: no raycasts, ignored by layout groups, drawn between the panel sprite and the content.
 public class HoloFX : MonoBehaviour
 {
     public Color tint = new Color32(0, 229, 212, 255);
     public bool intro = true, aura = true;
-    [Range(0f, 1f)] public float strength = 1f; // HUD panels run quieter than menus
-    public string code, caption; // menus: a panel code top-left, a status caption with a blinking light bottom-right
+    [Range(0f, 1f)] public float strength = 1f;
+    public string code, caption;
 
     const float IntroTime = 0.22f, SweepEvery = 6f, SweepTime = 1.8f, BandHeight = 140f;
     static Texture2D scanTex, bandTex;
@@ -28,7 +24,7 @@ public class HoloFX : MonoBehaviour
     {
         if (!Application.isPlaying) return;
         rt = (RectTransform)transform;
-        phase = Random.value * SweepEvery; // panels don't all sweep together
+        phase = Random.value * SweepEvery;
         Build();
     }
 
@@ -62,7 +58,7 @@ public class HoloFX : MonoBehaviour
 
         if (aura)
         {
-            glow = Child<Image>("HoloAura", 0); // behind the panel sprite
+            glow = Child<Image>("HoloAura", 0);
             HoloUI.SetSliced(glow, "Outline_White", new Color(tint.r, tint.g, tint.b, 0f));
             glow.raycastTarget = false;
             Stretch(glow.rectTransform, -16f);
@@ -72,7 +68,7 @@ public class HoloFX : MonoBehaviour
         foreach (Transform c in transform) if (c.name == "Bracket" && c.TryGetComponent(out Image b)) found.Add(b);
         brackets = found.ToArray();
 
-        if (!string.IsNullOrEmpty(code)) Caption("HoloCode", code, new Vector2(0f, 1f), new Vector2(40f, -16f), TextAnchor.UpperLeft); // clear of the chamfered corner
+        if (!string.IsNullOrEmpty(code)) Caption("HoloCode", code, new Vector2(0f, 1f), new Vector2(40f, -16f), TextAnchor.UpperLeft);
         if (!string.IsNullOrEmpty(caption))
         {
             Caption("HoloCaption", caption, new Vector2(1f, 0f), new Vector2(-48f, 14f), TextAnchor.LowerRight);
@@ -101,7 +97,6 @@ public class HoloFX : MonoBehaviour
             if (k >= 1f) { settled = true; rt.localScale = Vector3.one; }
         }
 
-        // The sweep: a soft band runs from the top to the bottom edge, then rests.
         float s = (t + phase) % SweepEvery / SweepTime;
         float h = rt.rect.height;
         if (s < 1f)
@@ -117,7 +112,6 @@ public class HoloFX : MonoBehaviour
         if (led != null) led.color = new Color(HoloUI.Green.r, HoloUI.Green.g, HoloUI.Green.b, (t + phase) % 1.4f < 1.1f ? 1f : 0.2f);
     }
 
-    // Reuses a child left by a copy of this panel (the skirmish screen is a runtime copy of the lobby).
     T Child<T>(string name, int index) where T : Graphic
     {
         if (transform.Find(name) is Transform have && have.TryGetComponent(out T existing)) return existing;
@@ -153,7 +147,6 @@ public class HoloFX : MonoBehaviour
 
     void LateUpdate()
     {
-        // Scanlines: one bright row in three, kept 1:1 with screen pixels whatever the panel size.
         if (scan != null) scan.uvRect = new Rect(0f, 0f, 1f, scan.rectTransform.rect.height / 3f);
     }
 
@@ -168,7 +161,7 @@ public class HoloFX : MonoBehaviour
         for (int i = 0; i < n; i++)
         {
             float y = i / (n - 1f);
-            float a = Mathf.Pow(Mathf.Sin(y * Mathf.PI), 2f) * (1f - 0.6f * y); // brighter leading (lower) edge
+            float a = Mathf.Pow(Mathf.Sin(y * Mathf.PI), 2f) * (1f - 0.6f * y);
             bandTex.SetPixel(0, i, new Color(1f, 1f, 1f, a));
         }
         bandTex.Apply();

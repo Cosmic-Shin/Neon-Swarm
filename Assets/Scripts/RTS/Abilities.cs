@@ -2,13 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-// Unit abilities, picked by UnitData.ability and added by Attacker.Awake. Research tunes them through Stats:
-//  Brood    (Queen Arachne)  X1 Brood Chamber: AbilityCooldown -30%, BroodSize +2
-//  Overheat (Overclock)      X2 Liquid Cooling: OverheatRate -40%, BurstTime +2 s
-//  Charge   (Chromejaw)      H2 Extended Drum: AbilityCooldown -30%
-// Other players' copies (multiplayer) only show the look; their owner runs the ability.
 
-// Hatches a Skitter every so often while under the brood limit; hatchlings join the Queen's fight.
 public class Brood : MonoBehaviour
 {
     const float Interval = 15f;
@@ -44,7 +38,7 @@ public class Brood : MonoBehaviour
         if (NavMesh.SamplePosition(to, out NavMeshHit hit, 6f, NavMesh.AllAreas)) to = hit.position;
         var hatchling = Net.Spawn(unit.Data.extra, from, transform.rotation).GetComponent<SelectableUnit>();
         Attacker.SetTeam(hatchling, health.team);
-        hatchling.GetComponent<Health>().onDeath = () => // no "unit lost" alert for brood
+        hatchling.GetComponent<Health>().onDeath = () =>
         {
             if (hatchling == null) return;
             hatchling.HideRing();
@@ -57,18 +51,17 @@ public class Brood : MonoBehaviour
             Color c = ProductionFX.HoloColor(gameObject);
             Juice.Burst(from + Vector3.up, c, 14, 3f, 0.15f, 0.5f, 1f);
             Juice.Ring(from + Vector3.up * 0.1f, c, 0.3f, 2.5f, 0.4f, 0.15f);
-            Sfx.At(Snd.Ability, from, 0.5f); // a hatchling
+            Sfx.At(Snd.Ability, from, 0.5f);
         }
     }
 }
 
-// Rapid fire builds heat; at full heat the guns lock up and vent steam until cool.
 public class Overheat : MonoBehaviour
 {
     const float BaseBurst = 4f, VentTime = 3f;
 
     UnitData data;
-    float heat;           // 0..1
+    float heat;
     float ventingUntil;
     float nextPuff;
 
@@ -79,7 +72,6 @@ public class Overheat : MonoBehaviour
 
     void Awake() => data = GetComponent<SelectableUnit>().Data;
 
-    // One shot fired: heat so a full burst lasts BurstTime seconds of non-stop fire.
     public void Shot()
     {
         float burst = Stats.Value(Stat.BurstTime, BaseBurst, this);
@@ -88,19 +80,18 @@ public class Overheat : MonoBehaviour
         heat = 0f;
         ventingUntil = Time.time + VentTime;
         if (Juice.Seen(transform.position)) Juice.Burst(transform.position + Vector3.up * 1.5f, Juice.Fire, 12, 4f, 0.15f, 0.4f, 1f, true);
-        Sfx.At(Snd.Vent, transform.position, 0.45f); // overheated: venting steam
+        Sfx.At(Snd.Vent, transform.position, 0.45f);
     }
 
     void Update()
     {
-        if (Ready) { heat = Mathf.Max(0f, heat - Time.deltaTime * 0.25f); return; } // cools off between fights
+        if (Ready) { heat = Mathf.Max(0f, heat - Time.deltaTime * 0.25f); return; }
         if (Time.time < nextPuff || !Juice.Seen(transform.position)) return;
         nextPuff = Time.time + 0.08f;
         Particles.Emit("Steam", transform.position + Vector3.up * 1.6f + Random.insideUnitSphere * 0.4f, Vector3.up * 2.5f + Random.insideUnitSphere, 0.9f, 1.2f, new Color(0.85f, 0.88f, 0.95f, 0.45f));
     }
 }
 
-// Spots a target out of reach: a burst of speed straight at it, then a long cooldown.
 public class Charge : MonoBehaviour
 {
     const float Cooldown = 10f, Duration = 1.2f, Boost = 2.6f;
@@ -145,7 +136,7 @@ public class Charge : MonoBehaviour
         if (Juice.Seen(transform.position))
         {
             Juice.Ring(transform.position + Vector3.up * 0.1f, Juice.Danger, 0.5f, 4f, 0.35f, 0.25f);
-            Sfx.At(Snd.Ability, transform.position, 0.6f); // charge!
+            Sfx.At(Snd.Ability, transform.position, 0.6f);
         }
     }
 

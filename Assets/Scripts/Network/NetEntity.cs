@@ -4,44 +4,39 @@ using Fusion;
 using UnityEngine;
 using UnityEngine.AI;
 
-// Network glue for one unit or building (multiplayer only; it sits on the network variant of the prefab).
-// The owner (state authority) runs the game scripts as usual and publishes health, death, construction,
-// upgrade level and veterancy rank. Every other PC gets a "remote" copy: game logic off, moved by
-// NetworkTransform, mirroring that state. Damage, stuns and kill credit go to the owner by RPC.
 [RequireComponent(typeof(Health))]
 public class NetEntity : NetworkBehaviour
 {
     public static readonly List<NetEntity> All = new();
 
     [Networked] public int OwnerSlot { get; set; }
-    [Networked] Vector3 SpawnPos { get; set; }      // buildings have no NetworkTransform: this places them
+    [Networked] Vector3 SpawnPos { get; set; }
     [Networked] Quaternion SpawnRot { get; set; }
     [Networked] float Hp { get; set; }
     [Networked] float MaxHp { get; set; }
     [Networked] NetworkBool Dead { get; set; }
-    [Networked] float Build { get; set; }     // construction 0..1; -1 = not under construction
-    [Networked] int Level { get; set; }       // building upgrade Mk level
-    [Networked] float Upgrading { get; set; } // upgrade progress + 1 (0 = not upgrading)
-    [Networked] NetworkBool Stunned { get; set; }   // units: EMP, for the crackle
-    [Networked] NetworkBool Repairing { get; set; } // buildings: being repaired, for the repair drone
-    [Networked] int Rank { get; set; }        // veterancy rank (the glow)
-    [Networked] int HarvestAnim { get; set; } // harvesters: Idle / Harvest / Unload
-    [Networked] float Cargo { get; set; }     // harvesters: how full, 0..1
-    [Networked] int Producing { get; set; }   // factories: option (unit or research) in production + 1 (0 = none)
-    [Networked] float Produced { get; set; }  // factories: its progress 0..1
+    [Networked] float Build { get; set; }
+    [Networked] int Level { get; set; }
+    [Networked] float Upgrading { get; set; }
+    [Networked] NetworkBool Stunned { get; set; }
+    [Networked] NetworkBool Repairing { get; set; }
+    [Networked] int Rank { get; set; }
+    [Networked] int HarvestAnim { get; set; }
+    [Networked] float Cargo { get; set; }
+    [Networked] int Producing { get; set; }
+    [Networked] float Produced { get; set; }
 
-    // Scripts that only the owner runs (they move, shoot, spend or earn).
     static readonly System.Type[] OwnerOnly =
     {
         typeof(Attacker), typeof(Building), typeof(Harvester), typeof(Turret),
         typeof(Siphon), typeof(Repairer), typeof(FreeHarvester), typeof(EmpMine), typeof(Refinery),
     };
-    const float DespawnDelay = 3f; // after death, so every PC sees it die (and wrecks get spawned) first
+    const float DespawnDelay = 3f;
 
     Health health;
     Construction construction;
-    bool built;     // remote: construction seen finished
-    bool diedHere;  // remote: death already played
+    bool built;
+    bool diedHere;
 
     public bool Online => Object != null && Object.IsValid;
     public bool IsRemote => Online && !HasStateAuthority;
@@ -52,11 +47,9 @@ public class NetEntity : NetworkBehaviour
     static void Hook()
     {
         All.Clear();
-        // The pack's death effect ends by destroying the object; a networked one must be despawned by its owner.
         UnitDeath.RemoveHook = go => go.TryGetComponent(out NetEntity e) && e.Online && e.Removed();
     }
 
-    // Net.Spawn, before anyone sees it.
     public void Init(int slot, Vector3 pos, Quaternion rot)
     {
         OwnerSlot = slot;
@@ -74,9 +67,8 @@ public class NetEntity : NetworkBehaviour
         if (TryGetComponent(out SelectableUnit unit)) unit.ApplyTeamLook();
         if (!HasStateAuthority) MakeRemote();
         else if (TryGetComponent(out NavMeshAgent agent) && agent.enabled)
-            agent.Warp(SpawnPos); // it was created at the map origin first and its agent snapped there
+            agent.Warp(SpawnPos);
 
-        // Neutral creeps: owned and run by the host; nobody can capture outposts with them.
         if (Health.team == Creep.Team)
         {
             if (TryGetComponent(out TeamMember t)) Destroy(t);
@@ -87,20 +79,18 @@ public class NetEntity : NetworkBehaviour
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
         All.Remove(this);
-        // Another player's building removed without dying = sold (or they left): it sinks away as a hologram.
         if (hasState && !HasStateAuthority && !Dead && Net.InMatch && TryGetComponent(out Structure _)) Juice.Sell(gameObject, 0);
     }
 
     void MakeRemote()
     {
-        transform.SetPositionAndRotation(SpawnPos, SpawnRot); // units: NetworkTransform takes over from here
+        transform.SetPositionAndRotation(SpawnPos, SpawnRot);
         foreach (var type in OwnerOnly)
             if (TryGetComponent(type, out var c)) ((UnityEngine.Behaviour)c).enabled = false;
-        if (TryGetComponent(out NavMeshAgent agent)) agent.enabled = false; // NetworkTransform moves it
+        if (TryGetComponent(out NavMeshAgent agent)) agent.enabled = false;
         if (TryGetComponent(out SelectableUnit unit)) unit.IsRemote = true;
     }
 
-    // ---- owner: publish ----
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority) return;
@@ -116,7 +106,6 @@ public class NetEntity : NetworkBehaviour
         if (TryGetComponent(out Structure st)) Repairing = st.Repairing;
     }
 
-    // ---- everyone else: mirror ----
     public override void Render()
     {
         if (!IsRemote || diedHere) return;
@@ -155,13 +144,12 @@ public class NetEntity : NetworkBehaviour
         if (Dead) { diedHere = true; Health.DieRemote(); }
     }
 
-    // ---- owner side of a death / removal ----
     public void MarkDead() { if (HasStateAuthority) Dead = true; }
 
     bool Removed()
     {
         if (HasStateAuthority) Despawn(DespawnDelay);
-        return true; // remote: wait for the owner's despawn
+        return true;
     }
 
     public void Despawn(float delay)
@@ -177,7 +165,6 @@ public class NetEntity : NetworkBehaviour
         if (Online) Runner.Despawn(Object);
     }
 
-    // ---- RPCs ----
     public static NetworkId IdOf(Component c) =>
         c != null && c.TryGetComponent(out NetEntity e) && e.Online ? e.Object.Id : default;
 
@@ -200,11 +187,9 @@ public class NetEntity : NetworkBehaviour
         Health.CreditKill();
     }
 
-    // Owner's factory let a unit out: everyone else opens the door too.
     [Rpc(RpcSources.StateAuthority, RpcTargets.Proxies)]
     public void RPC_OpenGate(float seconds) { if (TryGetComponent(out Building b)) b.OpenGate(seconds); }
 
-    // Owner fired: everyone else replays the shot's look (no damage; that went by RPC_Damage).
     [Rpc(RpcSources.StateAuthority, RpcTargets.Proxies)]
     public void RPC_Shot(NetworkId a, NetworkId b, NetworkId c)
     {

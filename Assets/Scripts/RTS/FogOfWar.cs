@@ -1,37 +1,35 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Fog of war: the map starts black, turns dim once seen, and is clear only near your units and buildings.
-// Enemies outside your sight are moved to a layer the camera doesn't draw (which also stops clicks on them).
 public class FogOfWar : MonoBehaviour
 {
     public static FogOfWar Instance { get; private set; }
-    public static bool RevealAll; // spectating after defeat: the whole map, every unit
+    public static bool RevealAll;
 
-    [SerializeField] Renderer fogPlane;      // map-sized quad with the RTS/FogOfWar shader
-    [SerializeField] float mapSize = 600f;   // centred on 0
-    [SerializeField] int resolution = 150;   // cells per side (4 m each)
-    [SerializeField] float interval = 0.1f;  // seconds between updates
+    [SerializeField] Renderer fogPlane;
+    [SerializeField] float mapSize = 600f;
+    [SerializeField] int resolution = 150;
+    [SerializeField] float interval = 0.1f;
     [SerializeField] string hiddenLayer = "FogHidden";
 
     [Header("Sight (m)")]
-    [SerializeField] float unitSight = 20f;      // at least; long-range units see range + 8
-    [SerializeField] float buildingSight = 22f;  // past the building's edge
+    [SerializeField] float unitSight = 20f;
+    [SerializeField] float buildingSight = 22f;
 
-    public Texture2D MinimapTexture { get; private set; } // fog colour with alpha, for the minimap overlay
+    public Texture2D MinimapTexture { get; private set; }
 
     Texture2D tex;
     Color32[] px, miniPx;
     bool[] visible, explored;
     int hidden;
     float next;
-    readonly Dictionary<Health, List<(Transform t, int layer)>> hiddenNow = new(); // hidden enemy -> layers to restore
+    readonly Dictionary<Health, List<(Transform t, int layer)>> hiddenNow = new();
     readonly List<Health> stale = new();
 
     void Awake()
     {
         Instance = this;
-        mapSize = GameMaps.Of(gameObject.scene).size; // the plane covers the whole map
+        mapSize = GameMaps.Of(gameObject.scene).size;
         fogPlane.transform.localScale = new Vector3(mapSize, mapSize, fogPlane.transform.localScale.z);
         RevealAll = false;
         hidden = LayerMask.NameToLayer(hiddenLayer);
@@ -76,12 +74,9 @@ public class FogOfWar : MonoBehaviour
                 if (Net.Allied(h.team, 0)) Stamp(h.transform.position, Sight(h));
         }
 
-        // The screen gets a softened copy: on/off cells blurred so the edge is a smooth curve, not 4 m stair
-        // steps, and eased towards the new sight so it glides instead of jumping a cell at a time.
-        // (IsVisible and enemy hiding still use the sharp cells.)
         Blur(visible, softVisible, ease: 0.55f);
         Blur(explored, softExplored, ease: 1f);
-        Color32 clear = new(0, 0, 0, 0), dim = new(5, 3, 12, 120), dark = new(5, 3, 12, 190); // minimap: the map picture shows faintly through
+        Color32 clear = new(0, 0, 0, 0), dim = new(5, 3, 12, 120), dark = new(5, 3, 12, 190);
         for (int i = 0; i < px.Length; i++)
         {
             px[i] = new Color32((byte)(softVisible[i] * 255f), (byte)(softExplored[i] * 255f), 0, 255);
@@ -92,11 +87,9 @@ public class FogOfWar : MonoBehaviour
         MinimapTexture.SetPixels32(miniPx);
         MinimapTexture.Apply(false);
 
-        // Hide enemies we can't see. Outposts are landmarks: always drawn (the fog dims them).
         foreach (var h in Health.All)
             if (!Net.Allied(h.team, 0) && !h.TryGetComponent(out OutpostCapture _)) SetHidden(h, !IsVisible(h.transform.position));
 
-        // Last-seen buildings: gone once we look at the spot again (whether the building is still there or not).
         for (int i = ghosts.Count - 1; i >= 0; i--)
             if (ghosts[i].go == null || IsVisible(ghosts[i].go.transform.position))
             {
@@ -104,16 +97,14 @@ public class FogOfWar : MonoBehaviour
                 ghosts.RemoveAt(i);
             }
 
-        // Forget ones that died or left (they leave Health.All).
         stale.Clear();
         foreach (var h in hiddenNow.Keys) if (h == null || !h.isActiveAndEnabled) stale.Add(h);
         foreach (var h in stale) { hiddenNow.Remove(h); seen.Remove(h); }
     }
 
     float[] softVisible, softExplored, blurTmp, blurOut;
-    const int BlurRadius = 2; // cells (8 m of soft edge)
+    const int BlurRadius = 2;
 
-    // Box blur (rows then columns) of the on/off cells into `soft`, eased by `ease` (1 = jump straight there).
     void Blur(bool[] cells, float[] soft, float ease)
     {
         int r = resolution, w = BlurRadius * 2 + 1;
@@ -145,8 +136,8 @@ public class FogOfWar : MonoBehaviour
         if (h.TryGetComponent(out SelectableUnit u)) return Stats.Value(Stat.Sight, Mathf.Max(unitSight, u.Data.range + 8f, u.Data.sight), u);
         float reach = buildingSight;
         if (h.TryGetComponent(out Turret t)) reach = Mathf.Max(reach, t.Range + 6f);
-        if (h.TryGetComponent(out Structure s) && s.sight > 0f && !Structure.LowPower) reach = Mathf.Max(reach, s.sight); // Overwatch Spire
-        reach = Stats.Value(Stat.Sight, reach, h); // Uplink Mk II, Hive Mind Uplink
+        if (h.TryGetComponent(out Structure s) && s.sight > 0f && !Structure.LowPower) reach = Mathf.Max(reach, s.sight);
+        reach = Stats.Value(Stat.Sight, reach, h);
         if (h.TryGetComponent(out Collider c)) reach += Mathf.Max(c.bounds.extents.x, c.bounds.extents.z);
         return reach;
     }
@@ -167,12 +158,10 @@ public class FogOfWar : MonoBehaviour
             }
     }
 
-    // ---- enemy buildings remembered under the fog (C&C shroud memory) ----
-    readonly HashSet<Health> seen = new();                        // enemies we've had in sight at least once
-    readonly List<(GameObject go, int team)> ghosts = new();       // frozen copies where they were last seen
-    public IReadOnlyList<(GameObject go, int team)> Ghosts => ghosts; // the minimap draws these
+    readonly HashSet<Health> seen = new();
+    readonly List<(GameObject go, int team)> ghosts = new();
+    public IReadOnlyList<(GameObject go, int team)> Ghosts => ghosts;
 
-    // A copy of the building's meshes as they look right now: no scripts, no colliders, can't be clicked.
     void MakeGhost(Health h)
     {
         var root = new GameObject("LastSeen_" + h.name);
@@ -199,7 +188,7 @@ public class FogOfWar : MonoBehaviour
         if (hide == isHidden) return;
         if (hide)
         {
-            if (seen.Contains(h) && h.TryGetComponent(out Structure _)) MakeGhost(h); // walked out of sight of it
+            if (seen.Contains(h) && h.TryGetComponent(out Structure _)) MakeGhost(h);
             saved = new List<(Transform, int)>();
             foreach (var t in h.GetComponentsInChildren<Transform>(true)) { saved.Add((t, t.gameObject.layer)); t.gameObject.layer = hidden; }
             hiddenNow[h] = saved;

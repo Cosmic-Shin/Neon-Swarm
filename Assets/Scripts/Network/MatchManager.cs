@@ -2,17 +2,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Multiplayer match on the RTS map (loaded from a room). Single player: does nothing.
-// Clears the single-player setup, gives everyone their starting credits and base (a copy of the
-// single-player Base_1 layout, turned to face the centre from their own base spot), runs the time
-// limit and decides who won. Lose = all your buildings gone; last player with buildings wins;
-// time up = the biggest army + base (by cost) wins.
 public class MatchManager : MonoBehaviour
 {
     [Header("Single-player content, removed online")]
-    [SerializeField] GameObject[] singlePlayerOnly; // starting base, harvesters, enemy squad, creeps, outposts
-    [SerializeField] Transform baseSpots;           // Base_1..Base_8
-    [SerializeField] Transform layoutNexus, layoutHive; // the single-player base: copied for every player
+    [SerializeField] GameObject[] singlePlayerOnly;
+    [SerializeField] Transform baseSpots;
+    [SerializeField] Transform layoutNexus, layoutHive;
     [SerializeField] Transform[] layoutHarvesters;
     [SerializeField] GameObject nexusPrefab, hivePrefab, harvesterPrefab;
 
@@ -26,25 +21,33 @@ public class MatchManager : MonoBehaviour
     [SerializeField] Text endTitle, endDetail;
     [SerializeField] Button endButton;
 
-    const float Grace = 15f; // seconds before anyone can lose (bases are still spawning)
+    const float Grace = 15f;
     float started = -1f, nextCheck;
     bool hadOpponent, over;
-    bool spectating; // lost, still watching (fog lifted) until the match is decided
+    bool spectating;
     Button spectateButton, playAgainButton;
     Text spectateBanner, statsNames;
     readonly Text[] statsColumns = new Text[MatchStats.Headers.Length];
 
     System.Collections.IEnumerator Start()
     {
-        ResearchManager.Clear(); // research belongs to one match
+        ResearchManager.Clear();
         Health.LastBuildingDeath = null;
         endPanel.SetActive(false);
         timerText.transform.parent.gameObject.SetActive(false);
         var room = RoomState.Instance;
         var runner = Net.Runner;
-        if (room == null || runner == null || !runner.IsRunning) // single player
+        if (room == null || runner == null || !runner.IsRunning)
         {
             if (Skirmish.Active) StartSkirmish();
+            if (!SaveSystem.Loaded)
+            {
+                if (layoutNexus != null) introNexus.Add(layoutNexus.gameObject);
+                if (layoutHive != null) introHives.Add((layoutHive.GetComponent<Building>(), layoutHarvesters.Length));
+                foreach (var h in layoutHarvesters) if (h != null) Destroy(h.gameObject);
+                StartCoroutine(Intro());
+            }
+            else foreach (var b in introBrains) if (b != null) b.enabled = true;
             yield break;
         }
 
@@ -54,12 +57,10 @@ public class MatchManager : MonoBehaviour
         BuildEndScreen();
         RoomService.Disconnected += OnDisconnected;
 
-        // Starting credits.
         var bank = ResourceBank.GetOrCreate();
         int diff = room.Credits - bank.Credits;
         if (diff > 0) bank.Add(diff); else if (diff < 0) bank.Spend(-diff);
 
-        // Our base: the single-player layout around Base_1, turned to our base spot.
         Transform home = baseSpots.GetChild(0), mine = baseSpots.GetChild(room.Bases[Net.LocalSlot]);
         Quaternion turn = Quaternion.Euler(0f, Vector3.SignedAngle(Flat(home.position), Flat(mine.position), Vector3.up), 0f);
         Vector3 Place(Transform t) => mine.position + turn * (t.position - home.position);
@@ -71,15 +72,17 @@ public class MatchManager : MonoBehaviour
             (nexusPrefab, Place(layoutNexus), turn * layoutNexus.rotation),
             (hivePrefab, Place(layoutHive), turn * layoutHive.rotation),
         };
-        foreach (var h in layoutHarvesters) spawns.Add((harvesterPrefab, Place(h), turn * h.rotation));
         foreach (var go in singlePlayerOnly) if (go != null) Destroy(go);
-        cam.position = mine.position + camOffset; // CameraPan keeps its angle
+        cam.position = mine.position + camOffset;
 
-        // Fusion can't spawn while it is still loading this scene (Start runs in the middle of that).
         while (runner.IsRunning && runner.SceneManager != null && runner.SceneManager.IsBusy) yield return null;
         yield return null;
         if (!runner.IsRunning) yield break;
-        foreach (var s in spawns) Net.Spawn(s.prefab, s.pos, s.rot);
+        var nexus = Net.Spawn(spawns[0].prefab, spawns[0].pos, spawns[0].rot);
+        var hive = Net.Spawn(spawns[1].prefab, spawns[1].pos, spawns[1].rot);
+        introNexus.Add(nexus);
+        introHives.Add((hive.GetComponent<Building>(), layoutHarvesters.Length));
+        StartCoroutine(Intro());
         if (room.HasStateAuthority && room.MatchStart <= 0f)
         {
             room.MatchStart = runner.SimulationTime;
@@ -91,10 +94,7 @@ public class MatchManager : MonoBehaviour
 
     void OnDestroy() => RoomService.Disconnected -= OnDisconnected;
 
-    // ================= skirmish (single player vs AI) =================
 
-    // The scene's enemy squad goes; creeps and outposts stay. Your base (the scene's, at Base_1) moves to the
-    // base you picked in the lobby; each AI gets a copy of the Base_1 layout on its own base spot.
     void StartSkirmish()
     {
         Sfx.Say(Line.Start, 30f);
@@ -112,24 +112,26 @@ public class MatchManager : MonoBehaviour
             Transform spot = baseSpots.GetChild(ai.baseIndex);
             Quaternion turn = TurnTo(spot);
             Vector3 Place(Transform t) => spot.position + turn * (t.position - homeSpot.position);
-            SpawnFor(ai.team, nexusPrefab, Place(layoutNexus), turn * layoutNexus.rotation);
-            SpawnFor(ai.team, hivePrefab, Place(layoutHive), turn * layoutHive.rotation);
-            foreach (var h in layoutHarvesters) SpawnFor(ai.team, harvesterPrefab, Place(h), turn * h.rotation);
+            var aiNexus = SpawnFor(ai.team, nexusPrefab, Place(layoutNexus), turn * layoutNexus.rotation);
+            var aiHive = SpawnFor(ai.team, hivePrefab, Place(layoutHive), turn * layoutHive.rotation);
+            if (SaveSystem.Loaded) foreach (var h in layoutHarvesters) SpawnFor(ai.team, harvesterPrefab, Place(h), turn * h.rotation);
+            else { introNexus.Add(aiNexus); introHives.Add((aiHive.GetComponent<Building>(), layoutHarvesters.Length)); }
             TeamEconomy.Set(ai.team, Skirmish.StartCredits);
 
             var brain = new GameObject($"AI {ai.team}").AddComponent<AIPlayer>();
+            brain.enabled = false;
+            introBrains.Add(brain);
             brain.team = ai.team;
             brain.profile = Resources.Load<AIProfile>($"AI/{ai.difficulty}");
             brain.home = Flat(spot.position);
             brain.front = (Flat(centre) - Flat(spot.position)).normalized;
         }
-        // Yours last: the AIs copy the layout from where it stood.
         if (Skirmish.PlayerBase != 0)
         {
             Transform mine = baseSpots.GetChild(Skirmish.PlayerBase);
             Quaternion turn = TurnTo(mine);
             var cam = Camera.main.transform;
-            cam.position = mine.position + (cam.position - homeSpot.position); // CameraPan keeps its angle
+            cam.position = mine.position + (cam.position - homeSpot.position);
             var moving = new List<Transform> { layoutNexus, layoutHive };
             moving.AddRange(layoutHarvesters);
             foreach (var t in moving)
@@ -145,18 +147,45 @@ public class MatchManager : MonoBehaviour
         Alerts.Show("Skirmish: destroy every enemy building!", Alerts.Info, 6f);
     }
 
-    static void SpawnFor(int team, GameObject prefab, Vector3 pos, Quaternion rot)
+    static GameObject SpawnFor(int team, GameObject prefab, Vector3 pos, Quaternion rot)
     {
         var go = Instantiate(prefab, pos, rot);
         var h = go.GetComponent<Health>();
-        h.team = team; // before Start: colours and power follow the team
+        h.team = team;
         if (go.TryGetComponent(out TeamMember tm)) tm.team = team;
         if (go.TryGetComponent(out SelectableUnit u)) u.ApplyTeamLook();
+        return go;
+    }
+
+
+    const float IntroBuild = 3f, IntroGap = 0.7f;
+    readonly List<GameObject> introNexus = new();
+    readonly List<(Building hive, int count)> introHives = new();
+    readonly List<AIPlayer> introBrains = new();
+
+    System.Collections.IEnumerator Intro()
+    {
+        foreach (var n in introNexus)
+        {
+            if (n == null) continue;
+            var site = n.AddComponent<Construction>();
+            site.duration = IntroBuild;
+            site.intro = true;
+        }
+        yield return new WaitForSeconds(IntroBuild + 0.4f);
+        var harvester = harvesterPrefab.GetComponent<SelectableUnit>();
+        int most = 0;
+        foreach (var (_, count) in introHives) most = Mathf.Max(most, count);
+        for (int i = 0; i < most; i++)
+        {
+            foreach (var (hive, count) in introHives) if (hive != null && i < count) hive.Release(harvester);
+            yield return new WaitForSeconds(IntroGap);
+        }
+        foreach (var b in introBrains) if (b != null) b.enabled = true;
     }
 
     float skirmishStarted = -1f;
 
-    // Same rules as online: lose when all your buildings are gone, win when your side is the only one left.
     void UpdateSkirmish()
     {
         if (over || Time.time - skirmishStarted < 5f || Time.time < nextCheck) return;
@@ -170,10 +199,8 @@ public class MatchManager : MonoBehaviour
         else if (Skirmish.Minutes > 0 && SkirmishTimeLeft <= 0f) SkirmishTimeUp();
     }
 
-    // Seconds left of the lobby's time limit (Hud shows it as a countdown).
     public static float SkirmishTimeLeft => Skirmish.Minutes * 60f - Skirmish.Elapsed;
 
-    // Like online: the side whose army and base are worth the most (by cost) wins.
     void SkirmishTimeUp()
     {
         Sfx.Say(Line.TimeUp, 3600f);
@@ -200,7 +227,7 @@ public class MatchManager : MonoBehaviour
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
     float nextLog;
     bool chatSent, pingSent;
-    void LogState() // test builds: what this PC sees, to compare players in Player.log
+    void LogState()
     {
         if (Time.time < nextLog) return;
         nextLog = Time.time + 5f;
@@ -233,7 +260,7 @@ public class MatchManager : MonoBehaviour
         if (!Net.InMatch || (over && !spectating)) return;
         var room = RoomState.Instance;
         if (room == null || !Net.Online) { End("DISCONNECTED", "Lost the connection to the match."); return; }
-        if (room.MatchStart <= 0f) return; // the host hasn't stamped the start yet
+        if (room.MatchStart <= 0f) return;
         if (started < 0f) started = Time.time;
 
         float elapsed = Net.Runner.SimulationTime - room.MatchStart;
@@ -243,7 +270,7 @@ public class MatchManager : MonoBehaviour
             float left = Mathf.Max(0f, room.Minutes * 60f - elapsed);
             timerText.text = $"{(int)left / 60:00}:{(int)left % 60:00}";
             timerText.color = left < 60f ? new Color(1f, 0.3f, 0.3f) : Color.white;
-            if (left < 60f && left > 0f) Sfx.Say(Line.Hurry, 3600f); // the last minute
+            if (left < 60f && left > 0f) Sfx.Say(Line.Hurry, 3600f);
             if (left <= 0f) { TimeUp(); return; }
         }
         else timerText.text = $"{(int)elapsed / 60:00}:{(int)elapsed % 60:00}";
@@ -259,14 +286,12 @@ public class MatchManager : MonoBehaviour
         else if (hadOpponent) End("VICTORY", "Every enemy base is destroyed.");
     }
 
-    // Allies share a side (their lobby team); without a team every player is their own side.
     static int Side(int team)
     {
         int t = RoomState.Instance != null ? RoomState.Instance.TeamOf(Net.ToSlot(team)) : 0;
         return t != 0 ? 100 + t : team;
     }
 
-    // Teams (0 = us) with at least one building standing or being built.
     static HashSet<int> TeamsWithBuildings()
     {
         var teams = new HashSet<int>();
@@ -298,10 +323,9 @@ public class MatchManager : MonoBehaviour
             $"Time's up. {who} army and base are worth the most (${bestWorth}; yours ${mine}).");
     }
 
-    bool friendButtons; // "+ ADD name" for the other players, once
-    bool recorded; // the result went into the player's profile (a defeat followed by spectating counts once)
+    bool friendButtons;
+    bool recorded;
 
-    // Into the signed-in player's career stats (Account screen).
     void RecordResult(bool won)
     {
         var m = new PlayerProfile.MatchRecord { won = won, online = Net.InMatch, difficulty = -1, when = System.DateTime.UtcNow.Ticks,
@@ -322,7 +346,6 @@ public class MatchManager : MonoBehaviour
         ProfileService.Record(m, MatchStats.Values);
     }
 
-    // canSpectate: we lost but the others play on, so we may stay and watch.
     void End(string title, string detail, bool canSpectate = false)
     {
         Debug.Log($"[GD5] end {title}: {detail}");
@@ -337,7 +360,6 @@ public class MatchManager : MonoBehaviour
         spectateButton.gameObject.SetActive(canSpectate);
         bool again = Net.InMatch && title != "DISCONNECTED";
         playAgainButton.gameObject.SetActive(again);
-        // Left to right: SPECTATE, PLAY AGAIN, BACK TO MENU (whichever show), 420 apart.
         var row = new System.Collections.Generic.List<Button>();
         if (canSpectate) row.Add(spectateButton);
         if (again) row.Add(playAgainButton);
@@ -345,12 +367,12 @@ public class MatchManager : MonoBehaviour
         for (int i = 0; i < row.Count; i++)
             ((RectTransform)row[i].transform).anchoredPosition = new Vector2((i - (row.Count - 1) / 2f) * 420f, -330f);
         if (Net.InMatch && !friendButtons) { friendButtons = true; FriendsPanel.AddButtons(endButton.transform.parent, new Vector2(0f, -262f)); }
-        if (title == "DEFEAT" || title == "MATCH OVER") FogOfWar.RevealAll = true; // nothing of yours left to see with: show the whole map behind the results
+        if (title == "DEFEAT" || title == "MATCH OVER") FogOfWar.RevealAll = true;
         StopAllCoroutines();
         if (title == "VICTORY" || title == "DEFEAT") Sfx.Stinger(title == "VICTORY");
         StartCoroutine(Finale(title == "VICTORY" || title == "DEFEAT"));
 #if DEVELOPMENT_BUILD
-        if (again && FriendsHub.DevArg("-playagain")) Invoke(nameof(DevPlayAgain), 4f); // test builds click PLAY AGAIN
+        if (again && FriendsHub.DevArg("-playagain")) Invoke(nameof(DevPlayAgain), 4f);
 #endif
     }
 
@@ -358,8 +380,6 @@ public class MatchManager : MonoBehaviour
     void DevPlayAgain() { Debug.Log("[GD5] play again"); playAgainButton.onClick.Invoke(); }
 #endif
 
-    // The match was just decided by a building going up: the camera flies to it in slow motion (offline;
-    // online the clock can't slow down) for a moment before the results.
     System.Collections.IEnumerator Finale(bool decided)
     {
         if (decided && Health.LastBuildingDeath is Vector3 boom && Time.time - Health.LastBuildingDeathAt < 3f)
@@ -379,7 +399,6 @@ public class MatchManager : MonoBehaviour
         yield return RevealEnd();
     }
 
-    // The title slams in, then everyone's stats count up.
     System.Collections.IEnumerator RevealEnd()
     {
         Color title = endTitle.color, detail = endDetail.color;
@@ -401,14 +420,12 @@ public class MatchManager : MonoBehaviour
         for (float t = 0f; t < count; t += Time.unscaledDeltaTime)
         {
             float k = t / count;
-            FillStats(1f - (1f - k) * (1f - k)); // fast, then settling
+            FillStats(1f - (1f - k) * (1f - k));
             yield return null;
         }
         FillStats(1f);
     }
 
-    // Lost: our leftover units go too (as on surrender), then the defeat screen, with SPECTATE
-    // if two or more other sides still fight it out.
     void Defeat(string why)
     {
         foreach (var e in NetEntity.All.ToArray())
@@ -434,14 +451,12 @@ public class MatchManager : MonoBehaviour
 
     public bool IsOver => over && !spectating;
 
-    // Esc menu: remove all our units and buildings (everyone else sees us lose) and show the defeat screen.
     public void Surrender()
     {
         if (!Net.Online || over) return;
         Defeat("You surrendered.");
     }
 
-    // ---- end screen: title, detail, everyone's stats, SPECTATE / BACK TO MENU ----
     void BuildEndScreen()
     {
         ((RectTransform)endTitle.transform).anchoredPosition = new Vector2(0f, 330f);
@@ -453,7 +468,6 @@ public class MatchManager : MonoBehaviour
         spectateButton.onClick.AddListener(Spectate);
         spectateButton.GetComponentInChildren<Text>().text = "SPECTATE";
 
-        // Online: everyone who clicks it meets in the room's next round ("Name #2").
         playAgainButton = Instantiate(endButton, endButton.transform.parent);
         playAgainButton.name = "PlayAgainButton";
         playAgainButton.onClick = new Button.ButtonClickedEvent();
@@ -461,7 +475,6 @@ public class MatchManager : MonoBehaviour
         playAgainButton.GetComponentInChildren<Text>().text = "PLAY AGAIN";
         playAgainButton.gameObject.SetActive(false);
 
-        // Columns: player names, then one per stat; a header on top, one line per player below.
         const float nameWidth = 340f, statWidth = 170f;
         float left = -(nameWidth + statWidth * statsColumns.Length) / 2f;
         statsNames = Column(left + nameWidth / 2f, nameWidth, "PLAYER", TextAnchor.UpperLeft);
@@ -503,7 +516,6 @@ public class MatchManager : MonoBehaviour
         return t;
     }
 
-    // amount: 0..1 of each number, for the count-up.
     void FillStats(float amount)
     {
         var room = RoomState.Instance;
@@ -530,7 +542,6 @@ public class MatchManager : MonoBehaviour
         for (int k = 0; k < cols.Length; k++) statsColumns[k].text = cols[k].ToString();
     }
 
-    // Skirmish: your numbers; AIs are listed with whether they still stand (they don't keep stats).
     void FillSkirmishStats(float amount)
     {
         if (statsNames == null) return;
@@ -544,7 +555,6 @@ public class MatchManager : MonoBehaviour
         foreach (var ai in Skirmish.Opponents)
         {
             bool alive = Structure.All.Exists(s => s != null && s.Health.team == ai.team);
-            // AIs keep no stats: their status goes after the name, the columns show a dash.
             names.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(ai.team))}>{ai.Name}</color>  <color=#{(alive ? "60FF90" : "FF6070")}>{(alive ? "standing" : "destroyed")}</color>");
             for (int k = 0; k < cols.Length; k++) cols[k].AppendLine("<color=#6A7690>-</color>");
         }

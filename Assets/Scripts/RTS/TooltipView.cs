@@ -1,12 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// The one tooltip box on screen. Shop buttons (Tooltip) ask it to show their text just above them.
 public class TooltipView : MonoBehaviour
 {
     public static TooltipView Instance { get; private set; }
 
-    [SerializeField] RectTransform box; // pivot bottom-centre, sizes itself to the text
+    [SerializeField] RectTransform box;
     [SerializeField] Text label;
 
     void Awake()
@@ -20,11 +19,11 @@ public class TooltipView : MonoBehaviour
         label.text = text;
         box.gameObject.SetActive(true);
         Vector3[] corners = new Vector3[4];
-        over.GetWorldCorners(corners); // overlay canvas: world = screen pixels
+        over.GetWorldCorners(corners);
         Vector3 top = (corners[1] + corners[2]) * 0.5f + Vector3.up * 8f;
         LayoutRebuilder.ForceRebuildLayoutImmediate(box);
         float half = box.rect.width * box.lossyScale.x * 0.5f;
-        top.x = Mathf.Clamp(top.x, half + 8f, Screen.width - half - 8f); // keep it on screen
+        top.x = Mathf.Clamp(top.x, half + 8f, Screen.width - half - 8f);
         box.position = top;
     }
 

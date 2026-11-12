@@ -1,15 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Locust Carrier: carries a hangar of attack drones (C&C carrier style). When it starts a fight the drones
-// pour out one by one and go for its target; when the fight is over they fly home and dock. Lost drones are
-// rebuilt in the hangar over time. If the carrier dies its drones burn out with it.
 [RequireComponent(typeof(Attacker))]
 public class SwarmBay : MonoBehaviour
 {
-    public SelectableUnit dronePrefab; // the Locust Swarm drone
+    public SelectableUnit dronePrefab;
     public int capacity = 4;
-    public float rebuildTime = 6f;     // seconds per lost drone
+    public float rebuildTime = 6f;
     public float launchGap = 0.35f;
 
     readonly List<SelectableUnit> drones = new();
@@ -32,11 +29,10 @@ public class SwarmBay : MonoBehaviour
 
     void Update()
     {
-        if (self.IsRemote || dronePrefab == null) return; // its owner runs the drones
+        if (self.IsRemote || dronePrefab == null) return;
         drones.RemoveAll(d => d == null || !d.TryGetComponent(out Health h) || h.IsDead);
         if (health.IsDead) { foreach (var d in drones) d.GetComponent<Health>().TakeDamage(1e6f); drones.Clear(); enabled = false; return; }
 
-        // Rebuild lost drones.
         if (stock + drones.Count < capacity) { if (Time.time >= rebuildAt) { stock++; rebuildAt = Time.time + rebuildTime; } }
         else rebuildAt = Time.time + rebuildTime;
 
@@ -49,10 +45,9 @@ public class SwarmBay : MonoBehaviour
             return;
         }
 
-        // No fight: come home and dock.
         foreach (var d in drones.ToArray())
         {
-            if (d.TryGetComponent(out Attacker a) && a.HasTarget) continue; // still busy with something
+            if (d.TryGetComponent(out Attacker a) && a.HasTarget) continue;
             Vector3 to = transform.position - d.transform.position; to.y = 0f;
             if (to.magnitude < 3f) { Dock(d); continue; }
             if (d.TryGetComponent(out UnityEngine.AI.NavMeshAgent agent) && agent.isOnNavMesh && (agent.destination - transform.position).sqrMagnitude > 4f)
@@ -68,7 +63,7 @@ public class SwarmBay : MonoBehaviour
         Vector3 at = transform.position + new Vector3(r.x, 0f, r.y);
         var d = Net.Spawn(dronePrefab.gameObject, at, transform.rotation).GetComponent<SelectableUnit>();
         Attacker.SetTeam(d, health.team);
-        d.GetComponent<Health>().onDeath = () => Burnout(d); // no "unit lost" alert or wreck for a drone
+        d.GetComponent<Health>().onDeath = () => Burnout(d);
         drones.Add(d);
         Juice.Burst(Flyer.Center(this), color, 8, 6f, 0.12f, 0.4f);
     }

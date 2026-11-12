@@ -1,15 +1,14 @@
 using UnityEngine;
 
-// Roll-up shutter: every slat slides up to the lintel while open, then drops back down.
 public class Gate : MonoBehaviour
 {
-    [SerializeField] Transform[] slats;    // door pieces, bottom to top
-    [SerializeField] Transform lintel;     // the slats rise to this height
+    [SerializeField] Transform[] slats;
+    [SerializeField] Transform lintel;
     public Transform Lintel => lintel;
     [SerializeField] float openTime = 0.5f;
 
-    Vector3[] closed, open; // local positions
-    float openUntil, t;     // t: 0 closed .. 1 open
+    Vector3[] closed, open;
+    float openUntil, t;
 
     void Awake()
     {

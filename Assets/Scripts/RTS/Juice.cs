@@ -1,24 +1,17 @@
 using UnityEngine;
 
-// One-shot effects built in code (no prefabs to wire up): expanding rings, spark bursts, light flashes and
-// camera shake, plus the big moments made from them: a building exploding or being sold, a promotion,
-// an attack order locking onto its target. Nothing plays where the fog of war hides it.
 public static class Juice
 {
     public static readonly Color Gold = new(1f, 0.8f, 0.25f), Heal = new(0.35f, 1f, 0.45f), Danger = new(1f, 0.25f, 0.2f), Fire = new(1f, 0.55f, 0.15f);
 
-    static ParticleSystem glow, sparks; // shared: glowing bits (no gravity) and falling sparks
+    static ParticleSystem glow, sparks;
     static Material additive;
 
     public static Material Additive => additive != null ? additive : additive = Resources.Load<Material>("HarvestFX");
 
-    // Can the player see this spot? (Own and allied stuff is always in sight.)
     public static bool Seen(Vector3 at) => FogOfWar.Instance == null || FogOfWar.Instance.IsVisible(at);
 
-    // ---- building blocks ----
 
-    // A flat ring on the ground (or at any height) growing from 'from' to 'to' metres while it fades.
-    // follow: keeps the ring centred on it (a moving target).
     public static void Ring(Vector3 at, Color c, float from, float to, float time, float width = 0.25f, Transform follow = null)
     {
         var lr = new GameObject("JuiceRing").AddComponent<LineRenderer>();
@@ -32,7 +25,7 @@ public static class Juice
         Play(lr.gameObject, time, k =>
         {
             Vector3 centre = follow != null ? follow.position + offset : at;
-            float r = Mathf.Lerp(from, to, 1f - (1f - k) * (1f - k)); // ease out
+            float r = Mathf.Lerp(from, to, 1f - (1f - k) * (1f - k));
             for (int i = 0; i < lr.positionCount; i++)
             {
                 float a = i * Mathf.PI * 2f / lr.positionCount;
@@ -42,7 +35,6 @@ public static class Juice
         });
     }
 
-    // Glowing bits flying out (gravity = falling sparks instead).
     public static void Burst(Vector3 at, Color c, int count, float speed, float size = 0.15f, float life = 0.6f, float upward = 0.5f, bool gravity = false)
     {
         var ps = System(gravity);
@@ -70,7 +62,6 @@ public static class Juice
         Play(l.gameObject, time, k => l.intensity = intensity * (1f - k) * (1f - k));
     }
 
-    // Shakes the camera; weaker the further 'at' is from what the camera looks at.
     public static void Shake(Vector3 at, float strength)
     {
         if (!GameSettings.Shake) return;
@@ -84,7 +75,6 @@ public static class Juice
         shake.Add(strength * k);
     }
 
-    // Runs step(0..1) every frame for 'time' seconds, then destroys go.
     public static void Play(GameObject go, float time, System.Action<float> step)
     {
         var a = go.AddComponent<JuiceAnim>();
@@ -109,9 +99,7 @@ public static class Juice
         return ps;
     }
 
-    // ---- moments ----
 
-    // A building blows up: fireball, shockwave rings, flying sparks, a flash and a camera shake.
     public static void BuildingExplosion(GameObject building)
     {
         Sfx.At(Snd.BoomBig, building.transform.position);
@@ -123,17 +111,15 @@ public static class Juice
         Flash(b.center, Fire, 12f, size * 4f, 0.8f);
         Ring(ground, Fire, size * 0.5f, size * 3.5f, 0.7f, 0.8f);
         Ring(ground + Vector3.up * 0.1f, Color.white, size * 0.3f, size * 2.2f, 0.4f, 0.3f);
-        Burst(b.center, Fire, 30, 3f, size * 0.5f, 0.5f, 0.2f);          // fireball
-        Burst(b.center, team, 50, size * 2.5f, 0.25f, 0.8f, 0.3f);       // neon bits
-        Burst(b.center, Fire, 90, size * 3f, 0.18f, 1.2f, 0.8f, true);  // sparks raining down
+        Burst(b.center, Fire, 30, 3f, size * 0.5f, 0.5f, 0.2f);
+        Burst(b.center, team, 50, size * 2.5f, 0.25f, 0.8f, 0.3f);
+        Burst(b.center, Fire, 90, size * 3f, 0.18f, 1.2f, 0.8f, true);
         Shake(b.center, 0.8f);
         Aftermath(b);
     }
 
     static readonly Color Soot = new(0.12f, 0.11f, 0.12f, 0.85f);
 
-    // A building just placed: rings ripple out across the ground grid from its footprint, with a flash
-    // and a burst of grid-coloured bits where it lands.
     public static void PlacedRipple(GameObject building)
     {
         var col = building.GetComponent<BoxCollider>();
@@ -148,20 +134,18 @@ public static class Juice
         Burst(at, c, 24, r * 1.5f, 0.12f, 0.6f, 0.4f);
     }
 
-    static Material additiveLine; // vertex colour does the colour; shared by every scan ring
+    static Material additiveLine;
     public static Material AdditiveLine
     {
         get
         {
             if (additiveLine != null) return additiveLine;
             additiveLine = new Material(Shader.Find("Legacy Shaders/Particles/Additive"));
-            additiveLine.SetColor("_TintColor", new Color(1.2f, 1.2f, 1.2f, 1f)); // over 0.5 so it blooms
+            additiveLine.SetColor("_TintColor", new Color(1.2f, 1.2f, 1.2f, 1f));
             return additiveLine;
         }
     }
 
-    // A new unit from a factory: once it's out of the door (after `delay`), a ring of light in its colour
-    // sweeps up its body, with a flash at its feet and sparks.
     public static void Materialize(GameObject unit, float delay)
     {
         if (unit == null) return;
@@ -205,8 +189,6 @@ public static class Juice
         });
     }
 
-    // After the big blast: a chain of smaller ones through the wreck for a second and a half, then a few
-    // fires that burn and smoke on the spot for several seconds.
     static void Aftermath(Bounds b)
     {
         float size = Mathf.Max(b.extents.x, b.extents.z);
@@ -217,7 +199,7 @@ public static class Juice
         Play(anchor, 9f, k =>
         {
             float t = k * 9f;
-            if (t < 1.6f && t >= nextPop) // secondary explosions
+            if (t < 1.6f && t >= nextPop)
             {
                 nextPop = t + Random.Range(0.15f, 0.35f);
                 Vector3 p = new(Random.Range(b.min.x, b.max.x), Random.Range(b.min.y, b.center.y + b.extents.y * 0.5f), Random.Range(b.min.z, b.max.z));
@@ -226,7 +208,7 @@ public static class Juice
                 Particles.Emit("Smoke", p, Vector3.up * 2f, size * 0.4f, 1.6f, Soot);
                 Sfx.At(Snd.BoomSmall, p, 0.5f);
             }
-            if (t >= nextFire) // lingering fires, dying down
+            if (t >= nextFire)
             {
                 nextFire = t + 0.12f;
                 float left = 1f - k;
@@ -240,16 +222,12 @@ public static class Juice
         });
     }
 
-    // Sold (or removed): the building turns into a hologram that sinks into the ground; credits pop up.
-    // credits = 0: another player's building, no popup.
     public static void Sell(GameObject building, int credits)
     {
         Sfx.At(Snd.Coin, building.transform.position);
         var b = ConstructionSite.RendererBounds(building);
         if (!Seen(b.center)) return;
         Color c = ProductionFX.HoloColor(building);
-        // A hologram copy that dissolves top-down: a scan line sweeps from roof to ground (GD5/Hologram draws
-        // only below _CutY and lights the cut), throwing sparks off the line as it goes.
         var holo = ConstructionSite.MakeHologram(building, building.transform.position, building.transform.rotation, new Color(c.r, c.g, c.b, 0.5f));
         holo.transform.localScale = building.transform.lossyScale;
         var mat = new Material(Shader.Find("GD5/Hologram"));
@@ -271,7 +249,6 @@ public static class Juice
         if (credits > 0) CreditsPopup.Show(b.center + Vector3.up * b.extents.y, $"+${credits}", Gold);
     }
 
-    // A unit ranks up: golden ring and burst, a flash and its new rank name floating up.
     public static void Promoted(GameObject unit, string rankName)
     {
         Sfx.At(Snd.Promote, unit.transform.position);
@@ -283,7 +260,6 @@ public static class Juice
         CreditsPopup.Show(p + Vector3.up * 4f, rankName.ToUpper(), Gold);
     }
 
-    // Move order: a ring and four chevrons close in on the spot.
     public static void MoveMarker(Vector3 at, Color c)
     {
         at.y += 0.12f;
@@ -297,7 +273,7 @@ public static class Juice
             {
                 float d = Mathf.Lerp(3.2f, 0.5f, 1f - (1f - k) * (1f - k));
                 Vector3 tip = at + dir * d;
-                lr.SetPosition(0, tip + dir * 0.6f + side * 0.6f); // V pointing at the spot
+                lr.SetPosition(0, tip + dir * 0.6f + side * 0.6f);
                 lr.SetPosition(1, tip);
                 lr.SetPosition(2, tip + dir * 0.6f - side * 0.6f);
                 lr.startColor = lr.endColor = new Color(c.r, c.g, c.b, 1f - k);
@@ -305,7 +281,6 @@ public static class Juice
         }
     }
 
-    // A thin line from a unit to where it was sent, fading out.
     public static void OrderLine(Vector3 from, Vector3 to, Color c)
     {
         var lr = Line(c, 0.07f, 2);
@@ -331,7 +306,6 @@ public static class Juice
         return lr;
     }
 
-    // Construction done: it settles with a thump, a dust ring rolls out and sparks fly off the roof.
     public static void ConstructionDone(GameObject building)
     {
         var b = ConstructionSite.RendererBounds(building);
@@ -352,7 +326,6 @@ public static class Juice
         Shake(b.center, 0.2f);
     }
 
-    // Attack order: a red reticle closes in on the target twice.
     public static void TargetLock(Health target)
     {
         if (target == null) return;
@@ -367,7 +340,6 @@ public static class Juice
     }
 }
 
-// Drives Juice.Play: calls step with 0..1, then removes the object.
 public class JuiceAnim : MonoBehaviour
 {
     public float time;
@@ -383,8 +355,6 @@ public class JuiceAnim : MonoBehaviour
     }
 }
 
-// Camera shake on top of CameraPan: the offset is added after everything moved the camera
-// and taken off again before CameraPan reads the position next frame.
 [DefaultExecutionOrder(-1000)]
 public class CameraShake : MonoBehaviour
 {

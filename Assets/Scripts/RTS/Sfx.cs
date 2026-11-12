@@ -9,24 +9,18 @@ public enum Snd
 {
     Laser, Blaster, Cannon, Flame, Zap, BoomSmall, BoomBig, Click, Ack, Good, Bad, Warn, Info, Coin, Promote,
     Select, Place, UnitReady, Deposit, WallBreak, Hover, Weld, Ability, Vent, Emp, Cloak, Load, Unload, PowerDown, Hit,
-    Footstep, Mining, Ping, Chat, OutpostWon, OutpostLost, // each = files (Sfx.Files)
+    Footstep, Mining, Ping, Chat, OutpostWon, OutpostLost,
 }
 
-// Announcer lines (CosmicShin voice lines, "Hive AI" processed; old Kenney lines in CyberpunkRTS/Audio/KenneyVoice_Backup), Sfx.Say.
 public enum Line
 {
     Ready, Built, UnderAttack, Destroyed, Research, Upgrade, Start, Hurry, TimeUp, Win, Lose,
 }
 
-// Game audio, all from files (nothing synthesised): CC0 sound effects in Resources/Sfx (Files: Kenney packs +
-// Freesound rain, see CREDITS.txt there), a random variant each time. Music is real tracks from Resources/Music
-// (see PickMusic); rain + distant thunder loop
-// during matches. One object lives across scenes and carries the only AudioListener. World sounds are 2D, quieter
-// the further they are from the camera's view, and silent under the fog of war.
 public class Sfx : MonoBehaviour
 {
     const int Voices = 24, SameAtOnce = 3;
-    const float MinGap = 0.05f; // the same sound can't restart faster than this (20 Skitters = one rattle)
+    const float MinGap = 0.05f;
 
     static Sfx I;
     readonly AudioSource[] voices = new AudioSource[Voices];
@@ -47,7 +41,7 @@ public class Sfx : MonoBehaviour
     {
         I = this;
         gameObject.AddComponent<AudioListener>();
-        gameObject.AddComponent<UIJuice>(); // button hover / flash, credits "can't afford" pulse
+        gameObject.AddComponent<UIJuice>();
         SceneManager.sceneLoaded += (_, _) => { foreach (var l in FindObjectsByType<AudioListener>(FindObjectsSortMode.None)) if (l.gameObject != gameObject) Destroy(l); };
         for (int i = 0; i < Voices; i++) { voices[i] = gameObject.AddComponent<AudioSource>(); voices[i].playOnAwake = false; }
         int count = System.Enum.GetValues(typeof(Snd)).Length;
@@ -61,7 +55,7 @@ public class Sfx : MonoBehaviour
         for (int i = 0; i < lastPlayed.Length; i++) lastPlayed[i] = -1f;
         music = gameObject.AddComponent<AudioSource>();
         music.playOnAwake = false;
-        music.ignoreListenerPause = true; // keeps playing in the pause menu
+        music.ignoreListenerPause = true;
         rain = gameObject.AddComponent<AudioSource>();
         rain.playOnAwake = false;
         rain.loop = true;
@@ -75,7 +69,7 @@ public class Sfx : MonoBehaviour
         announcer.playOnAwake = false;
         announcer.ignoreListenerPause = true;
         lines = System.Array.ConvertAll(LineFiles, f => Resources.Load<AudioClip>("Sfx/Voice/" + f));
-        SceneManager.sceneLoaded += (s, _) => { PickMusic(s.buildIndex == 0); inMatch = s.buildIndex != 0; System.Array.Clear(lineReady, 0, lineReady.Length); }; // announcer lines fresh each match
+        SceneManager.sceneLoaded += (s, _) => { PickMusic(s.buildIndex == 0); inMatch = s.buildIndex != 0; System.Array.Clear(lineReady, 0, lineReady.Length); };
         GameSettings.Changed += ApplyVolume;
         GameSettings.Apply();
     }
@@ -84,50 +78,48 @@ public class Sfx : MonoBehaviour
 
     void ApplyVolume() => music.volume = 0.45f * GameSettings.Music * fade * duck;
 
-    // ---- sound files (CC0, Resources/Sfx; CREDITS.txt there says where each came from) ----
 
     static readonly (Snd, string[])[] Files =
     {
-        (Snd.Laser, new[] { "laserSmall_000", "laserSmall_001", "laserSmall_002", "laserSmall_003", "laserSmall_004" }), // Kenney Sci-fi: weapons
+        (Snd.Laser, new[] { "laserSmall_000", "laserSmall_001", "laserSmall_002", "laserSmall_003", "laserSmall_004" }),
         (Snd.Blaster, new[] { "laserRetro_000", "laserRetro_001", "laserRetro_002", "laserRetro_003", "laserRetro_004" }),
         (Snd.Cannon, new[] { "laserLarge_000", "laserLarge_001", "laserLarge_002", "laserLarge_003", "laserLarge_004" }),
         (Snd.Flame, new[] { "thrusterFire_000", "thrusterFire_001", "thrusterFire_002", "thrusterFire_003", "thrusterFire_004" }),
-        (Snd.Zap, new[] { "glitch_001", "glitch_003", "glitch_004" }),                         // Kenney Interface: electric crackle
-        (Snd.BoomSmall, new[] { "explosionCrunch_003", "explosionCrunch_004" }),               // Kenney Sci-fi: explosions
+        (Snd.Zap, new[] { "glitch_001", "glitch_003", "glitch_004" }),
+        (Snd.BoomSmall, new[] { "explosionCrunch_003", "explosionCrunch_004" }),
         (Snd.BoomBig, new[] { "lowFrequency_explosion_000", "lowFrequency_explosion_001" }),
-        (Snd.Click, new[] { "click_002", "click_003" }),                                       // Kenney Interface: UI + alerts
+        (Snd.Click, new[] { "click_002", "click_003" }),
         (Snd.Ack, new[] { "switch_002", "switch_003" }),
         (Snd.Good, new[] { "confirmation_001", "confirmation_003" }),
         (Snd.Bad, new[] { "error_004", "error_006" }),
         (Snd.Warn, new[] { "question_001" }),
         (Snd.Info, new[] { "bong_001" }),
         (Snd.Promote, new[] { "maximize_008" }),
-        (Snd.Coin, new[] { "handleCoins" }),                                                    // Kenney RPG Audio
-        (Snd.Select, new[] { "select_002", "select_003" }),                                     // Kenney Interface
+        (Snd.Coin, new[] { "handleCoins" }),
+        (Snd.Select, new[] { "select_002", "select_003" }),
         (Snd.Hover, new[] { "tick_001", "tick_002" }),
         (Snd.Deposit, new[] { "confirmation_002" }),
         (Snd.PowerDown, new[] { "minimize_009" }),
         (Snd.Cloak, new[] { "glitch_002" }),
-        (Snd.Place, new[] { "impactMetal_heavy_000", "impactMetal_heavy_001", "impactMetal_heavy_002" }), // Kenney Impact
+        (Snd.Place, new[] { "impactMetal_heavy_000", "impactMetal_heavy_001", "impactMetal_heavy_002" }),
         (Snd.Weld, new[] { "impactMetal_light_000", "impactMetal_light_001", "impactMetal_light_002", "impactMetal_light_003", "impactMetal_light_004" }),
-        (Snd.UnitReady, new[] { "forceField_000", "forceField_001" }),                          // Kenney Sci-fi
+        (Snd.UnitReady, new[] { "forceField_000", "forceField_001" }),
         (Snd.Ability, new[] { "forceField_002" }),
         (Snd.Vent, new[] { "computerNoise_000", "computerNoise_001" }),
-        (Snd.Emp, new[] { "forceField_003", "forceField_004" }), // an energy pulse (the low booms are for buildings)
+        (Snd.Emp, new[] { "forceField_003", "forceField_004" }),
         (Snd.WallBreak, new[] { "explosionCrunch_000", "explosionCrunch_001", "explosionCrunch_002" }),
         (Snd.Load, new[] { "doorClose_000", "doorClose_001" }),
         (Snd.Unload, new[] { "doorOpen_000", "doorOpen_001" }),
         (Snd.Hit, new[] { "impactMetal_000", "impactMetal_001", "impactMetal_002", "impactMetal_003", "impactMetal_004" }),
-        (Snd.Footstep, new[] { "footstep_concrete_000", "footstep_concrete_001", "footstep_concrete_002", "footstep_concrete_003", "footstep_concrete_004" }), // Kenney Impact
+        (Snd.Footstep, new[] { "footstep_concrete_000", "footstep_concrete_001", "footstep_concrete_002", "footstep_concrete_003", "footstep_concrete_004" }),
         (Snd.Mining, new[] { "impactMining_000", "impactMining_001", "impactMining_002", "impactMining_003", "impactMining_004" }),
-        (Snd.Ping, new[] { "pluck_001" }),                                                      // Kenney Interface
+        (Snd.Ping, new[] { "pluck_001" }),
         (Snd.Chat, new[] { "drop_001" }),
         (Snd.OutpostWon, new[] { "maximize_006" }),
         (Snd.OutpostLost, new[] { "minimize_006" }),
     };
-    AudioClip[][] variants; // per Snd: its file versions
+    AudioClip[][] variants;
 
-    // ---- rain (Freesound CC0) during matches, with a far thunder now and then ----
 
     AudioSource rain;
     AudioClip thunder;
@@ -140,7 +132,7 @@ public class Sfx : MonoBehaviour
         rain.volume = Mathf.MoveTowards(rain.volume, target, Time.unscaledDeltaTime * 0.15f);
         if (target > 0f && !rain.isPlaying) rain.Play();
         else if (target <= 0f && rain.volume <= 0f && rain.isPlaying) rain.Stop();
-        if (thunderAt > 0f && Time.time >= thunderAt) { thunderAt = 0f; if (on && thunder != null) rain.PlayOneShot(thunder, thunderLoud); } // scaled by the rain's own volume: far off
+        if (thunderAt > 0f && Time.time >= thunderAt) { thunderAt = 0f; if (on && thunder != null) rain.PlayOneShot(thunder, thunderLoud); }
         engine.volume = Mathf.MoveTowards(engine.volume, inMatch ? EngineLevel * 0.3f * GameSettings.Effects : 0f, Time.unscaledDeltaTime * 0.5f);
         if (engine.volume > 0f && !engine.isPlaying && engine.clip != null) engine.Play();
         else if (engine.volume <= 0f && engine.isPlaying) engine.Stop();
@@ -148,15 +140,12 @@ public class Sfx : MonoBehaviour
 
     float thunderAt, thunderLoud;
 
-    // Ambience flashes the lightning, then the thunder rolls in after `delay` (light first, sound after).
     public static void Thunder(float delay, float loudness) { if (I != null) { I.thunderAt = Time.time + delay; I.thunderLoud = loudness; } }
 
-    // ---- air units' engine hum (0..1, set by WorldSounds from the flyers in view) ----
 
     public static float EngineLevel;
     AudioSource engine;
 
-    // ---- announcer (Kenney Voiceover Pack): one line at a time, each line at most every `cooldown` s ----
 
     static readonly string[] LineFiles = { "ready", "objective_achieved", "war_call_for_backup", "war_target_destroyed", "level_up", "power_up", "war_go_go_go", "hurry_up", "time_over", "you_win", "you_lose" };
     AudioSource announcer;
@@ -167,7 +156,7 @@ public class Sfx : MonoBehaviour
     {
         if (I == null) return;
         int i = (int)line;
-        bool final = line == Line.Win || line == Line.Lose; // the match result talks over anything
+        bool final = line == Line.Win || line == Line.Lose;
         if (I.lines[i] == null || Time.unscaledTime < I.lineReady[i] || (I.announcer.isPlaying && !final)) return;
         I.lineReady[i] = Time.unscaledTime + cooldown;
         I.announcer.Stop();
@@ -176,7 +165,6 @@ public class Sfx : MonoBehaviour
         I.announcer.Play();
     }
 
-    // Victory / defeat: the music dips, a jingle (Kenney Music Jingles), then the announcer says it.
     public static void Stinger(bool won) { if (I != null) I.StartCoroutine(I.PlayStinger(won)); }
 
     System.Collections.IEnumerator PlayStinger(bool won)
@@ -190,9 +178,8 @@ public class Sfx : MonoBehaviour
         duck = 1f;
     }
 
-    float duck = 1f; // music volume while a stinger plays
+    float duck = 1f;
 
-    // ---- music: Kevin MacLeod tracks in Resources/Music (CC BY 4.0, credited in Settings > CREDITS) ----
 
     const string MenuTrack = "MiningbyMoonlight";
     static readonly string[] MatchTracks = { "CyborgNinja", "VoxelRevolution", "SpaceFighterLoop", "Ouroboros" };
@@ -200,12 +187,11 @@ public class Sfx : MonoBehaviour
     const float FadeTime = 1.5f;
 
     bool inMenu;
-    string want;      // the track that should be playing
-    float fade = 1f;  // 0..1 volume while switching tracks
-    int next;         // match playlist position (shuffled each lap)
+    string want;
+    float fade = 1f;
+    int next;
     readonly List<string> playlist = new();
 
-    // Menus: the calm track on a loop (not restarted between menu scenes). Matches: the playlist, shuffled.
     void PickMusic(bool menu)
     {
         if (menu && inMenu && want == MenuTrack) return;
@@ -229,7 +215,6 @@ public class Sfx : MonoBehaviour
     {
         if (want == null) return;
         bool switching = music.clip == null || music.clip.name != want;
-        // Fade the old track out, swap, fade the new one in.
         fade = Mathf.MoveTowards(fade, switching && music.isPlaying ? 0f : 1f, Time.unscaledDeltaTime / FadeTime);
         if (switching && (fade <= 0f || !music.isPlaying))
         {
@@ -239,16 +224,13 @@ public class Sfx : MonoBehaviour
             music.loop = inMenu;
             music.Play();
         }
-        else if (!inMenu && !music.isPlaying && music.clip != null && Application.isFocused) want = NextMatchTrack(); // track ended: the next one
+        else if (!inMenu && !music.isPlaying && music.clip != null && Application.isFocused) want = NextMatchTrack();
         ApplyVolume();
     }
 
-    // ---- playing ----
 
-    // A sound with no place in the world (UI, alerts).
     public static void Play(Snd s, float volume = 1f, float pitch = 1f) { if (I != null) I.Voice(s, volume, pitch); }
 
-    // A sound at a world spot: skipped off-screen or in fog, fades with distance from the view centre.
     public static void At(Snd s, Vector3 at, float volume = 1f)
     {
         if (I == null || !Juice.Seen(at)) return;
@@ -256,7 +238,7 @@ public class Sfx : MonoBehaviour
         if (cam == null) return;
         Vector3 v = cam.WorldToViewportPoint(at);
         if (v.z < 0f || v.x < -0.25f || v.x > 1.25f || v.y < -0.25f || v.y > 1.25f) return;
-        Vector3 focus = cam.transform.position + cam.transform.forward * 30f; // same view centre as Juice.Shake
+        Vector3 focus = cam.transform.position + cam.transform.forward * 30f;
         float d = Vector2.Distance(new Vector2(at.x, at.z), new Vector2(focus.x, focus.z));
         float k = Mathf.Clamp01(1.15f - d / 70f);
         if (k > 0.05f) I.Voice(s, volume * k, Random.Range(0.92f, 1.08f));
@@ -273,7 +255,7 @@ public class Sfx : MonoBehaviour
             if (!voices[i].isPlaying) { if (free < 0) free = i; continue; }
             if (voiceSnd[i] == s && ++same >= SameAtOnce) return;
         }
-        if (free < 0) return; // every voice busy: drop it, the mix is full anyway
+        if (free < 0) return;
         lastPlayed[id] = now;
         var a = voices[free];
         voiceSnd[free] = s;
@@ -285,11 +267,9 @@ public class Sfx : MonoBehaviour
         a.Play();
     }
 
-    // Weapon sound for a unit's or turret's shot.
     public static Snd ShotOf(float damage, float splash, bool electric) =>
         electric ? Snd.Zap : damage >= 50f || splash > 0f ? Snd.Cannon : damage >= 15f ? Snd.Blaster : Snd.Laser;
 
-    // UI click: any button, toggle or slider pressed, in every scene, including buttons made at runtime.
     void Update()
     {
         UpdateMusic();

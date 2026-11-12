@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Uplink Tower Mk II: enemies inside its reveal ring can't hide in a cloak field.
-// The radius comes from the model's "*_RevealRadius" ring, which only shows once the Mk II add-on is on.
 [RequireComponent(typeof(Health))]
 public class Revealer : MonoBehaviour
 {
@@ -23,7 +21,7 @@ public class Revealer : MonoBehaviour
             }
     }
 
-    void OnEnable() => active.Add(this);   // off while under construction
+    void OnEnable() => active.Add(this);
     void OnDisable() => active.Remove(this);
 
     bool On => ring != null && ring.gameObject.activeInHierarchy && !Net.LowPower(self.team);

@@ -1,21 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Look of a building being upgraded (Mk II / Mk III): the new add-on parts appear as a hologram printed
-// bottom-up with the progress, welding drones circle and beam at the print line, a scan frame sweeps the
-// building and sparks fly. When it's done the real parts pop in (BuildingUpgrade) with a flash.
-// Added by BuildingUpgrade. Owner: reads BuildingUpgrade. Other players: NetEntity sets Remote.
 public class UpgradeFX : MonoBehaviour
 {
     const float Kit = 4f, FlashTime = 0.6f, SparksPerSecond = 40f, ScanPeriod = 2.5f;
 
-    public float? Remote; // other players' buildings: the owner's progress 0..1 (null = not upgrading)
+    public float? Remote;
 
     class Drone { public Transform t, emitter; public LineRenderer beam; public float angle, speed, retarget; public Vector3 target; public readonly List<Transform> rotors = new(); }
 
     BuildingUpgrade up;
-    Transform root; // world-space holder for the drones, scan frame, sparks and light
-    readonly List<GameObject> holos = new(); // copies of the new parts, inside the building's model
+    Transform root;
+    readonly List<GameObject> holos = new();
     readonly List<Drone> drones = new();
     Material holoMat;
     Transform scan;
@@ -35,7 +31,7 @@ public class UpgradeFX : MonoBehaviour
         float p = Remote ?? (up.IsUpgrading ? up.Progress : -1f);
         if (p >= 0f && root == null && up.level < up.maxLevel) Begin(up.level + 1);
         if (root == null) return;
-        if (gameObject.layer != layer) SyncLayer(); // fog of war hides and shows the building by layer
+        if (gameObject.layer != layer) SyncLayer();
 
         if (p < 0f) { Finish(); return; }
 
@@ -44,7 +40,6 @@ public class UpgradeFX : MonoBehaviour
         holoMat.SetFloat("_CutY", cut);
         holoMat.SetColor("_Color", color * 1.6f * flicker);
 
-        // Scan frame sweeps the whole building up and down.
         if (scan != null) scan.position = new Vector3(body.center.x, body.min.y + body.size.y * Mathf.PingPong(Time.time / ScanPeriod, 1f), body.center.z);
 
         float radius = Mathf.Max(body.extents.x, body.extents.z) + 0.5f * Kit;
@@ -68,7 +63,6 @@ public class UpgradeFX : MonoBehaviour
             d.beam.SetPosition(1, d.target);
         }
 
-        // Sparks where the beams hit.
         sparkDebt += SparksPerSecond * Time.deltaTime;
         var e = new ParticleSystem.EmitParams { startColor = Color.Lerp(color, new Color(1f, 0.8f, 0.4f), 0.5f), startSize = 0.08f, startLifetime = 0.6f };
         for (; sparkDebt >= 1f && drones.Count > 0; sparkDebt--)
@@ -90,13 +84,12 @@ public class UpgradeFX : MonoBehaviour
         root = new GameObject("UpgradeFX").transform;
         flash = 0f;
 
-        // Hologram copies of the parts this level adds, in place inside the model.
         holoMat = new Material(Shader.Find("GD5/Hologram"));
         var rends = new List<Renderer>();
         foreach (var part in up.PartsFor(level))
         {
             if (part == null) continue;
-            var copy = Instantiate(part.gameObject, part.parent); // the part is still hidden, so the copy starts inactive
+            var copy = Instantiate(part.gameObject, part.parent);
             copy.name = part.name + "_Holo";
             foreach (var comp in copy.GetComponentsInChildren<Component>(true))
                 if (!(comp is Transform || comp is MeshFilter || comp is MeshRenderer || comp is SkinnedMeshRenderer)) DestroyImmediate(comp);
@@ -116,7 +109,6 @@ public class UpgradeFX : MonoBehaviour
             foreach (var r in rends) parts.Encapsulate(r.bounds);
         }
 
-        // The construction kit's scan frame and welding drones.
         float hx = body.extents.x + 0.25f * Kit, hz = body.extents.z + 0.25f * Kit;
         var scanPrefab = Resources.Load<GameObject>("Construction/Build_ScanFrame");
         if (scanPrefab != null)
@@ -151,10 +143,9 @@ public class UpgradeFX : MonoBehaviour
         glow = ProductionFX.MakeLight(root, gameObject.layer);
         glow.range = 14f;
         glow.enabled = true;
-        layer = -1; // SyncLayer next frame
+        layer = -1;
     }
 
-    // Done: drones, frame and hologram go, a bright flash while the real parts pop in.
     void Finish()
     {
         if (flash <= 0f)

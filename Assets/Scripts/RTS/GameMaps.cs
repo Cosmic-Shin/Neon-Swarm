@@ -1,27 +1,22 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// The RTS maps. Each is its own scene (the extra ones are built from RTSSelection by Tools > GD5 > Build Maps),
-// centred on 0, with Base_1..Base_N under "BaseSpots" at `bases`. Lobbies show `preview` (Resources sprite)
-// with a circle per base; the map in play is found by the active scene's name.
 public class GameMap
 {
     public string name, scene, preview;
-    public float size;      // the ground is size x size
-    public Vector2[] bases; // Base_1..Base_N (x, z)
-    public int[] fill;      // where new players / AIs go after base 0 (across the map first)
-    public int[] allies;    // skirmish quick setups: your allies' bases, then enemies'
+    public float size;
+    public Vector2[] bases;
+    public int[] fill;
+    public int[] allies;
     public int[] enemies;
-    public string[] keep = { "Centre" };   // middle features kept from the big map (OreField_Red_X, Outpost_X, Guards_X)
-    public int[] startAi = { 0 };          // skirmish: AI lobby teams when this map is picked (0 = none)
-    public int startYou = 1;               // ... and yours
-    public Chasm[] chasms = new Chasm[0];  // map features (built into the scene by MapBuilder)
+    public string[] keep = { "Centre" };
+    public int[] startAi = { 0 };
+    public int startYou = 1;
+    public Chasm[] chasms = new Chasm[0];
     public int Players => bases.Length;
     public float Half => size * 0.5f;
 }
 
-// A data-chasm ground units can't cross (flyers can), along `path` (x, z). Crossings: open bridges, and
-// bridges sealed by destructible walls (Barrier) that must be broken first.
 public class Chasm
 {
     public Vector2[] path;
@@ -29,9 +24,8 @@ public class Chasm
     public float width = 14f;
     public Vector2[] bridges = new Vector2[0], walls = new Vector2[0];
     public const float BridgeGap = 20f;
-    public const int WallPieces = 3; // Firewall Gate pieces across a walled crossing
+    public const int WallPieces = 3;
 
-    // A ring round the centre; crossings at these angles (degrees, 0 = +x, counter-clockwise).
     public static Chasm Ring(float radius, float[] bridgeAngles, float[] wallAngles)
     {
         const int Sides = 32;
@@ -57,8 +51,6 @@ public static class GameMaps
             name = "WASTELAND  ·  8", scene = "RTSSelection", preview = "MapPreview", size = 600f,
             bases = new Vector2[] { new(-90, -218), new(90, -218), new(218, -90), new(218, 90), new(90, 218), new(-90, 218), new(-218, 90), new(-218, -90) },
             fill = new[] { 4, 2, 6, 1, 7, 3, 5 }, allies = new[] { 1, 7, 2, 6 }, enemies = new[] { 4, 3, 5, 2, 6, 1, 7 },
-            // A chasm ring round the centre (inside the outposts): each base faces a walled crossing, the 4 bridges
-            // sit between base pairs, so every base is the same way from one.
             chasms = new[] { Chasm.Ring(95f, new[] { 0f, 90f, 180f, 270f }, new[] { 22.5f, 67.5f, 112.5f, 157.5f, 202.5f, 247.5f, 292.5f, 337.5f }) },
         },
         new GameMap
@@ -66,7 +58,6 @@ public static class GameMaps
             name = "DUEL  ·  1V1", scene = "Map_Duel", preview = "MapPreview_Duel", size = 320f,
             bases = new Vector2[] { new(0, -118), new(0, 118) },
             fill = new[] { 1 }, allies = new int[0], enemies = new[] { 1 },
-            // A chasm on each side of the centre: two bridges, the straight way through is walled.
             chasms = new[]
             {
                 new Chasm { path = new Vector2[] { new(-180, -60), new(180, -60) }, bridges = new Vector2[] { new(-80, -60), new(80, -60) }, walls = new Vector2[] { new(0, -60) } },
@@ -76,11 +67,9 @@ public static class GameMaps
         new GameMap
         {
             name = "TWIN FRONT  ·  2V2", scene = "Map_TwinFront", preview = "MapPreview_TwinFront", size = 440f,
-            // South pair (1, 2) vs north pair (3, 4); teammates sit side by side.
             bases = new Vector2[] { new(-75, -168), new(75, -168), new(75, 168), new(-75, 168) },
             fill = new[] { 3, 1, 2 }, allies = new[] { 1 }, enemies = new[] { 3, 2, 1 },
             keep = new[] { "Centre", "1", "5" }, startAi = new[] { 1, 2, 2 },
-            // Two chasms round the middle band (centre + flank fields): bridges at x = +-100, walls in the middle and near the edges.
             chasms = new[]
             {
                 new Chasm { path = new Vector2[] { new(-240, -80), new(240, -80) }, bridges = new Vector2[] { new(-100, -80), new(100, -80) }, walls = new Vector2[] { new(-190, -80), new(0, -80), new(190, -80) } },
@@ -90,8 +79,6 @@ public static class GameMaps
         new GameMap
         {
             name = "BREACH LINE  ·  3V3", scene = "Map_BreachLine", preview = "MapPreview_BreachLine", size = 560f,
-            // South trio (1-3) vs north trio (4-6). Two chasms fence off the middle band (centre + flank fields):
-            // bridges at x = +-95, walled crossings in the middle and near the edges.
             bases = new Vector2[] { new(-150, -215), new(0, -228), new(150, -215), new(150, 215), new(0, 228), new(-150, 215) },
             fill = new[] { 3, 1, 4, 2, 5 }, allies = new[] { 1, 2 }, enemies = new[] { 5, 4, 3 },
             keep = new[] { "Centre", "1", "5" }, startAi = new[] { 1, 1, 2, 2, 2 },
@@ -104,8 +91,6 @@ public static class GameMaps
         new GameMap
         {
             name = "QUAD CORE  ·  FFA", scene = "Map_QuadCore", preview = "MapPreview_QuadCore", size = 500f,
-            // A base in each corner, an outpost between each pair, and a chasm ring round the centre:
-            // bridges face the outposts, the way straight in from each base is walled.
             bases = new Vector2[] { new(-165, -165), new(165, -165), new(165, 165), new(-165, 165) },
             fill = new[] { 2, 1, 3 }, allies = new[] { 1, 3 }, enemies = new[] { 2, 1, 3 },
             keep = new[] { "Centre", "1", "3", "5", "7" }, startAi = new[] { 0, 0, 0 }, startYou = 0,
@@ -113,7 +98,6 @@ public static class GameMaps
         },
     };
 
-    // The map in play (by scene name); the big map when the scene isn't one of these.
     public static GameMap Current => Of(SceneManager.GetActiveScene());
 
     public static GameMap Of(Scene scene)
@@ -127,8 +111,6 @@ public static class GameMaps
     public static string PathOf(GameMap m) => $"Assets/Scenes/{m.scene}.unity";
     public static Sprite Preview(GameMap m) => Resources.Load<Sprite>(m.preview);
 
-    // Slot -> base for a fresh room on this map: slot 0 at base 0, then `fill`; slots past the map's size get
-    // the unused numbers (never shown) so Bases stays one per slot.
     public static int[] DefaultBases(GameMap m, int slots)
     {
         var r = new int[slots];

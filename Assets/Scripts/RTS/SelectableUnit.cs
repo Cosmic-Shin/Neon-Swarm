@@ -7,8 +7,8 @@ using UnityEngine.AI;
 public class SelectableUnit : MonoBehaviour
 {
     [SerializeField] GameObject selectionRing;
-    [SerializeField] UnitData data;     // name, icon, cost, build time, health
-    [SerializeField] Animator animator; // optional: Idle/Walk driven by "Speed"
+    [SerializeField] UnitData data;
+    [SerializeField] Animator animator;
 
     static readonly int SpeedHash = Animator.StringToHash("Speed");
 
@@ -18,37 +18,35 @@ public class SelectableUnit : MonoBehaviour
     public float BuildTime => data.buildTime;
     public int Cost => data.cost;
     public bool IsSelected => manager != null;
-    public bool IsEnemy => health != null && health.team != 0; // can't be selected; red ring always on
+    public bool IsEnemy => health != null && health.team != 0;
 
     static readonly Color EnemyRing = new(1f, 0.1f, 0.15f);
     static readonly Color CreepRing = new(1f, 0.55f, 0.1f);
-    Vector3 faceOnArrive; // formation facing; zero = none
+    Vector3 faceOnArrive;
 
     NavMeshAgent agent;
-    Harvester harvester; // only on workers
-    Attacker attacker;   // only on armed units
+    Harvester harvester;
+    Attacker attacker;
     Health health;
     GoodSelectionManager manager;
     int formationIndex = -1;
-    OutpostCapture garrisonTarget; // walking to our outpost to go inside
-    Transport boardTarget;         // walking to our Wasp to climb aboard
+    OutpostCapture garrisonTarget;
+    Transport boardTarget;
     float boardRepath;
     float stunnedUntil;
 
-    // EMP: can't move or shoot for a while.
     public bool IsStunned => Time.time < stunnedUntil;
-    public bool IsRemote { get; set; } // multiplayer: another player's unit, moved by the network
+    public bool IsRemote { get; set; }
     Vector3 lastPos;
     float remoteSpeed;
 
     public void Stun(float seconds)
     {
-        if (IsRemote) { GetComponent<NetEntity>().RPC_Status(seconds, 0f); return; } // its owner applies it
+        if (IsRemote) { GetComponent<NetEntity>().RPC_Status(seconds, 0f); return; }
         stunnedUntil = Mathf.Max(stunnedUntil, Time.time + seconds);
         if (agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
     }
 
-    // Wire snare: half speed for a while.
     float slowedUntil;
     bool wasSlowed;
     public void Slow(float seconds)
@@ -57,7 +55,6 @@ public class SelectableUnit : MonoBehaviour
         slowedUntil = Mathf.Max(slowedUntil, Time.time + seconds);
     }
 
-    // Before research / veterancy; RefreshStats applies the bonuses.
     float baseSpeed, baseCapacity, baseHarvestRate, baseUnloadTime;
 
     void Awake()
@@ -74,8 +71,6 @@ public class SelectableUnit : MonoBehaviour
         ApplyTeamLook();
     }
 
-    // Enemy ring tinted in its side's colour (UnitMarker shows it when hovered or attacking you), plus the
-    // ground glow and brackets. Re-run once a network unit knows its team.
     public void ApplyTeamLook()
     {
         if (!TryGetComponent(out UnitMarker marker)) { marker = gameObject.AddComponent<UnitMarker>(); marker.Init(selectionRing); }
@@ -83,7 +78,7 @@ public class SelectableUnit : MonoBehaviour
         if (selectionRing == null) return;
         selectionRing.SetActive(IsSelected);
         if (!IsEnemy) return;
-        var mat = selectionRing.GetComponent<Renderer>().material; // per-enemy copy
+        var mat = selectionRing.GetComponent<Renderer>().material;
         Color ring = health.team == Creep.Team ? CreepRing : Net.Online || Skirmish.Active ? Net.ColorOf(health.team) : EnemyRing;
         mat.color = ring;
         mat.SetColor("_EmissionColor", ring * 2f);
@@ -91,7 +86,7 @@ public class SelectableUnit : MonoBehaviour
 
     void RefreshStats()
     {
-        if (harvester != null) // it drives its own agent speed
+        if (harvester != null)
         {
             harvester.capacity = Stats.Value(Stat.HarvestCapacity, baseCapacity, this);
             harvester.harvestRate = Stats.Value(Stat.HarvestRate, baseHarvestRate, this);
@@ -101,7 +96,6 @@ public class SelectableUnit : MonoBehaviour
         agent.speed = Stats.Value(Stat.MoveSpeed, baseSpeed, this) * (wasSlowed ? 0.5f : 1f) * boost;
     }
 
-    // Charge: a short burst of speed (1 = normal).
     float boost = 1f;
     public void SetBoost(float k)
     {
@@ -112,7 +106,7 @@ public class SelectableUnit : MonoBehaviour
 
     void Update()
     {
-        if (IsRemote) // legs follow how fast the network moves it
+        if (IsRemote)
         {
             float dt = Mathf.Max(Time.deltaTime, 0.0001f);
             remoteSpeed = Mathf.Lerp(remoteSpeed, (transform.position - lastPos).magnitude / dt, 10f * dt);
@@ -121,14 +115,13 @@ public class SelectableUnit : MonoBehaviour
             return;
         }
         if (animator != null && agent.enabled) animator.SetFloat(SpeedHash, agent.velocity.magnitude);
-        if (agent.enabled && agent.isOnNavMesh && agent.isStopped && !IsStunned) agent.isStopped = false; // stun wore off
+        if (agent.enabled && agent.isOnNavMesh && agent.isStopped && !IsStunned) agent.isStopped = false;
         bool slowedNow = Time.time < slowedUntil;
-        if (slowedNow != wasSlowed) { agent.speed *= slowedNow ? 0.5f : 2f; wasSlowed = slowedNow; } // only on change (harvesters set their own speed)
+        if (slowedNow != wasSlowed) { agent.speed *= slowedNow ? 0.5f : 2f; wasSlowed = slowedNow; }
 
         Settle();
         NextOrder();
 
-        // Formation move done: turn to face the way the formation points (unless busy shooting).
         if (faceOnArrive != Vector3.zero && agent.enabled && agent.isOnNavMesh && !agent.pathPending &&
             agent.remainingDistance <= agent.stoppingDistance + 0.2f && (attacker == null || !attacker.HasTarget))
         {
@@ -145,7 +138,7 @@ public class SelectableUnit : MonoBehaviour
             if ((garrisonTarget.transform.position - transform.position).sqrMagnitude > r * r) return;
             var outpost = garrisonTarget;
             garrisonTarget = null;
-            if (outpost.TryGarrison(GetComponent<TeamMember>())) Deselect(); // hidden inside now
+            if (outpost.TryGarrison(GetComponent<TeamMember>())) Deselect();
         }
     }
 
@@ -153,24 +146,21 @@ public class SelectableUnit : MonoBehaviour
     {
         if (boardTarget.Full || !boardTarget.isActiveAndEnabled) { boardTarget = null; return; }
         if (boardTarget.InReach(this)) { var w = boardTarget; boardTarget = null; w.TryLoad(this); return; }
-        if (Time.time > boardRepath && agent.isOnNavMesh) { boardRepath = Time.time + 0.5f; agent.SetDestination(boardTarget.transform.position); } // it may be moving
+        if (Time.time > boardRepath && agent.isOnNavMesh) { boardRepath = Time.time + 0.5f; agent.SetDestination(boardTarget.transform.position); }
     }
 
-    // Leave a building: the building carves a hole in the navmesh, so walk out by hand,
-    // then hand control back to the agent. via: optional stop on the way, e.g. the edge of a raised floor.
-    // thenGo: the building's rally point (harvesters ignore it and go mining).
     public void WalkOut(Vector3 from, Vector3 to, float speed, Vector3? via = null, Vector3? thenGo = null) =>
         StartCoroutine(WalkOutRoutine(from, to, speed, via, thenGo));
 
     IEnumerator WalkOutRoutine(Vector3 from, Vector3 to, float speed, Vector3? via, Vector3? thenGo)
     {
         agent.enabled = false;
-        if (harvester != null) harvester.enabled = false; // it would try to drive off on its own
+        if (harvester != null) harvester.enabled = false;
         transform.position = from;
         if (animator != null)
         {
             animator.SetFloat(SpeedHash, agent.speed);
-            animator.speed = speed / agent.speed; // slower legs to match the slower walk
+            animator.speed = speed / agent.speed;
         }
 
         if (via is Vector3 v)
@@ -210,7 +200,6 @@ public class SelectableUnit : MonoBehaviour
         if (selectionRing != null) { selectionRing.SetActive(true); if (isActiveAndEnabled) StartCoroutine(PopRing()); }
     }
 
-    // The ring springs in: big, small, settles.
     Vector3? ringScale;
     IEnumerator PopRing()
     {
@@ -234,18 +223,15 @@ public class SelectableUnit : MonoBehaviour
         if (selectionRing != null) selectionRing.SetActive(false);
     }
 
-    // Crowded spot (others already standing on or around it, e.g. a shared rally point): once a unit stops
-    // getting any closer for a moment it stops where it is, instead of shoving the others forever.
-    // The nearer it is, the sooner it gives up; units still far off keep trying for longer.
     Vector3 settleDest;
     float settleBest, settleSince;
 
     void Settle()
     {
         if (harvester != null || !agent.enabled || !agent.isOnNavMesh || agent.pathPending || !agent.hasPath) return;
-        if (attacker != null && attacker.HasTarget) return; // chasing or fighting: the Attacker steers
-        if (IsStunned) { settleSince = Time.time; return; } // frozen by EMP isn't "stuck"
-        if ((agent.destination - settleDest).sqrMagnitude > 0.25f) // new order
+        if (attacker != null && attacker.HasTarget) return;
+        if (IsStunned) { settleSince = Time.time; return; }
+        if ((agent.destination - settleDest).sqrMagnitude > 0.25f)
         {
             settleDest = agent.destination;
             settleBest = float.MaxValue;
@@ -253,21 +239,19 @@ public class SelectableUnit : MonoBehaviour
         }
         float left = agent.remainingDistance;
         if (float.IsInfinity(left)) return;
-        if (left < settleBest - 0.2f) { settleBest = left; settleSince = Time.time; return; } // still making progress
+        if (left < settleBest - 0.2f) { settleBest = left; settleSince = Time.time; return; }
         if (left < 20f && Time.time - settleSince > 0.6f + left * 0.15f) agent.ResetPath();
     }
 
-    // ---- queued orders (Shift) and patrol (P) ----
     struct Order { public Vector3 at; public bool attack; }
-    readonly List<Order> queue = new(); // what to do after the current order
-    bool patrol;                         // patrol: orders go back on the end of the queue
-    LineRenderer pathLine;               // shows the queue while selected
+    readonly List<Order> queue = new();
+    bool patrol;
+    LineRenderer pathLine;
 
-    // Shift held and something already going on: add to the queue. Returns true if queued.
     bool Queued(Vector3 at, bool attack)
     {
         if (manager == null || !manager.Queueing || Idle()) { queue.Clear(); patrol = false; return false; }
-        if (patrol) { queue.Clear(); patrol = false; } // Shift+click ends a patrol after this leg
+        if (patrol) { queue.Clear(); patrol = false; }
         queue.Add(new Order { at = at, attack = attack });
         return true;
     }
@@ -323,7 +307,6 @@ public class SelectableUnit : MonoBehaviour
         for (int i = 0; i < queue.Count; i++) pathLine.SetPosition(i + 2, queue[i].at + up);
     }
 
-    // P + click: walk back and forth between here and there, fighting anything met.
     void HandlePatrolCommand(List<Vector3> slots)
     {
         if (formationIndex < 0 || formationIndex >= slots.Count) return;
@@ -339,20 +322,18 @@ public class SelectableUnit : MonoBehaviour
         Go(there);
     }
 
-    // Each unit only uses its own slot.
     void HandleMoveCommand(List<Vector3> slots)
     {
         if (formationIndex < 0 || formationIndex >= slots.Count) return;
         if (Queued(slots[formationIndex], false)) return;
         boardTarget = null;
         garrisonTarget = null;
-        if (harvester != null) harvester.Stop(); // a plain move pauses mining
-        if (attacker != null) attacker.Stop();   // and drops the current target
+        if (harvester != null) harvester.Stop();
+        if (attacker != null) attacker.Stop();
         if (agent.isOnNavMesh) agent.SetDestination(slots[formationIndex]);
         faceOnArrive = manager.Facing;
     }
 
-    // A + click: armed units fight their way there; others just walk.
     void HandleAttackMoveCommand(List<Vector3> slots)
     {
         if (attacker == null) { HandleMoveCommand(slots); return; }
@@ -381,13 +362,11 @@ public class SelectableUnit : MonoBehaviour
         if (attacker != null) attacker.Hold();
     }
 
-    // Right-clicked ore: workers go mine it; other units ignore it.
     void HandleHarvestCommand(OreNode ore)
     {
         if (harvester != null && harvester.enabled) harvester.OrderHarvest(ore);
     }
 
-    // Right-clicked an enemy: armed units go shoot it.
     void HandleAttackCommand(Health target)
     {
         queue.Clear();
@@ -396,13 +375,11 @@ public class SelectableUnit : MonoBehaviour
         if (attacker != null) attacker.Attack(target);
     }
 
-    // Right-clicked our Wasp: infantry-sized units go aboard once they reach it.
     void HandleBoardCommand(Transport wasp)
     {
         if (Transport.CanCarry(this) && !Flyer.IsAir(this)) boardTarget = wasp;
     }
 
-    // Right-clicked our outpost: armed units go inside once they reach it (harvesters just walk there).
     void HandleGarrisonCommand(OutpostCapture outpost)
     {
         if (attacker != null) garrisonTarget = outpost;

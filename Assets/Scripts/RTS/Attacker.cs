@@ -1,15 +1,14 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-// Shoots enemies: walks into range of an ordered target, or picks one nearby while idle.
 [RequireComponent(typeof(NavMeshAgent), typeof(Health), typeof(SelectableUnit))]
 public class Attacker : MonoBehaviour
 {
-    [SerializeField] Material laserMaterial; // unlit; tinted per team
-    [SerializeField] float aggroExtra = 6f;  // idle units notice enemies this far past their range
-    [SerializeField] float leashExtra = 10f; // and give up chasing past this
+    [SerializeField] Material laserMaterial;
+    [SerializeField] float aggroExtra = 6f;
+    [SerializeField] float leashExtra = 10f;
 
-    static readonly Color PlayerLaser = new Color(0.2f, 1f, 1f) * 3f; // HDR so the bloom catches it
+    static readonly Color PlayerLaser = new Color(0.2f, 1f, 1f) * 3f;
     static readonly Color EnemyLaser = new Color(1f, 0.15f, 0.2f) * 3f;
 
     NavMeshAgent agent;
@@ -17,7 +16,7 @@ public class Attacker : MonoBehaviour
     UnitData data;
     SelectableUnit unit;
     Health target;
-    bool ordered;  // player told us to attack this target: chase it anywhere
+    bool ordered;
     float nextShot;
     LineRenderer laser;
 
@@ -47,7 +46,7 @@ public class Attacker : MonoBehaviour
                 foreach (var c in anim.runtimeAnimatorController.animationClips) if (c.name == "Attack") clipLength = c.length;
         }
         kick = GetComponentInChildren<RecoilKick>(true);
-        switch (data.ability) // UnitData picks it; research tunes it (Abilities.cs)
+        switch (data.ability)
         {
             case UnitData.Ability.Brood: gameObject.AddComponent<Brood>(); break;
             case UnitData.Ability.Overheat: heat = gameObject.AddComponent<Overheat>(); break;
@@ -57,29 +56,27 @@ public class Attacker : MonoBehaviour
         foreach (var t in GetComponentsInChildren<Transform>(true)) if (pattern.IsMatch(t.name)) muzzles.Add(t);
     }
 
-    AttackEvents attackEvents; // the unit's authored Attack clip
+    AttackEvents attackEvents;
     float clipLength;
-    RecoilKick kick;           // fast shooters without a clip: a procedural kick instead
-    Overheat heat;             // Overclock: fires in bursts
+    RecoilKick kick;
+    Overheat heat;
     readonly System.Collections.Generic.List<Transform> muzzles = new();
-    Health pending;            // attack started, waiting for the clip's Fire frame
+    Health pending;
     bool pendingReal;
 
-    Vector3? attackMove; // walking here, but fighting anything met on the way
-    bool resume;         // attack-move was interrupted by a fight: walk on afterwards
-    bool hold;           // hold position: never walk, only shoot what's in range
+    Vector3? attackMove;
+    bool resume;
+    bool hold;
 
     public bool HasTarget => target != null;
-    public bool Busy => target != null || attackMove != null; // fighting, or still on an attack-move
+    public bool Busy => target != null || attackMove != null;
     public Health Target => target;
-    // Research / veterancy / upgrades; cached because Update reads it every frame, redone when stats change.
     float range = -1f;
     float Range => range >= 0f ? range : range = Stats.Value(Stat.Range, data.range, this);
     void OnEnable() => Stats.Changed += ForgetRange;
     void OnDisable() => Stats.Changed -= ForgetRange;
     void ForgetRange() => range = -1f;
 
-    // Idle units look for enemies a few times a second, not every frame (staggered so they don't all look at once).
     const float ScanEvery = 0.25f;
     float nextScan;
     Health Scan(float radius)
@@ -96,12 +93,11 @@ public class Attacker : MonoBehaviour
     public void AttackMove(Vector3 to)
     {
         Stop();
-        if (NavMesh.SamplePosition(to, out NavMeshHit hit, 12f, NavMesh.AllAreas)) to = hit.position; // inside a building's hole: the ground beside it
+        if (NavMesh.SamplePosition(to, out NavMeshHit hit, 12f, NavMesh.AllAreas)) to = hit.position;
         attackMove = to;
         if (agent.isOnNavMesh) agent.SetDestination(to);
     }
 
-    // Got shot: answer back unless busy or walking somewhere (attack-move counts as looking for a fight).
     public void Retaliate(Health from)
     {
         if (target == null && (attackMove != null || !IsMoving()) && !Net.Allied(from.team, self.team) && CanHit(from)) target = from;
@@ -111,11 +107,11 @@ public class Attacker : MonoBehaviour
 
     void Update()
     {
-        if (!agent.enabled || data.damage <= 0f) return; // walking out of a building / unarmed
+        if (!agent.enabled || data.damage <= 0f) return;
 
-        if (unit.IsStunned) return; // EMP
-        if (target != null && (target.IsDead || !target.isActiveAndEnabled || target.CloakedFrom(transform.position))) target = null; // dead, garrisoned, outpost gone neutral, or cloaked
-        if (target == null) // none yet, or it died
+        if (unit.IsStunned) return;
+        if (target != null && (target.IsDead || !target.isActiveAndEnabled || target.CloakedFrom(transform.position))) target = null;
+        if (target == null)
         {
             if (ordered) { ordered = false; if (agent.isOnNavMesh) agent.ResetPath(); }
             if (attackMove is Vector3 dest)
@@ -124,14 +120,14 @@ public class Attacker : MonoBehaviour
                 if (target == null)
                 {
                     if (resume) { resume = false; if (agent.isOnNavMesh) agent.SetDestination(dest); }
-                    else if (!IsMoving()) attackMove = null; // arrived
+                    else if (!IsMoving()) attackMove = null;
                     return;
                 }
                 resume = true;
             }
             else
             {
-                if (IsMoving()) return; // a move order beats looking for fights
+                if (IsMoving()) return;
                 target = Scan(hold ? Range : Range + aggroExtra);
                 if (target == null) return;
             }
@@ -144,8 +140,8 @@ public class Attacker : MonoBehaviour
 
         if (dist > Range)
         {
-            if (hold && !ordered) { target = null; return; } // holding: don't chase
-            if (!ordered && dist > Range + leashExtra) { target = null; return; } // let it go
+            if (hold && !ordered) { target = null; return; }
+            if (!ordered && dist > Range + leashExtra) { target = null; return; }
             if (agent.isOnNavMesh) agent.SetDestination(aim);
             return;
         }
@@ -154,8 +150,8 @@ public class Attacker : MonoBehaviour
         if (to.sqrMagnitude > 0.01f)
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), agent.angularSpeed * Time.deltaTime);
 
-        if (Time.time < nextShot || pending != null || (heat != null && !heat.Ready)) return; // Overclock: venting
-        nextShot = Time.time + Mathf.Max(clipLength, data.attackCooldown / Stats.Value(Stat.FireRate, 1f, this)); // never cut the clip short
+        if (Time.time < nextShot || pending != null || (heat != null && !heat.Ready)) return;
+        nextShot = Time.time + Mathf.Max(clipLength, data.attackCooldown / Stats.Value(Stat.FireRate, 1f, this));
         Fire(target);
         if (heat != null) heat.Shot();
     }
@@ -163,13 +159,11 @@ public class Attacker : MonoBehaviour
     void Fire(Health t)
     {
         Begin(t, true);
-        if (TryGetComponent(out NetEntity net)) net.SendShot(t); // other players play the attack too
+        if (TryGetComponent(out NetEntity net)) net.SendShot(t);
     }
 
-    // Multiplayer: another player's unit attacked; show it, damage comes from its owner.
     public void ShowShot(Health t) { if (t != null) Begin(t, false); }
 
-    // Attack clip (wind-up, bite, recoil): the shot leaves on its "Fire" frame. No clip: right away.
     void Begin(Health t, bool real)
     {
         if (attackEvents == null) { Release(t, real); return; }
@@ -177,7 +171,7 @@ public class Attacker : MonoBehaviour
         pendingReal = real;
         attackEvents.PlayAttack();
         CancelInvoke(nameof(FireNow));
-        Invoke(nameof(FireNow), clipLength + 0.1f); // safety: an off-screen (culled) or interrupted animator skips its events
+        Invoke(nameof(FireNow), clipLength + 0.1f);
     }
 
     void FireNow()
@@ -191,7 +185,7 @@ public class Attacker : MonoBehaviour
 
     void Release(Health t, bool real)
     {
-        if (t == null) return; // gone during the wind-up
+        if (t == null) return;
         if (kick != null) kick.Kick(t.transform.position - transform.position);
         switch (data.style)
         {
@@ -200,10 +194,9 @@ public class Attacker : MonoBehaviour
             case UnitData.WeaponStyle.FlameStream: StartCoroutine(FlameStream(t)); break;
         }
         if (muzzles.Count == 0) { Shoot(t, real, transform.position + Vector3.up * (1f + Flyer.HeightOf(this)) + transform.forward * 0.8f, 1f); return; }
-        foreach (var m in muzzles) Shoot(t, real, m.position, 1f / muzzles.Count); // twin guns, three bombs: damage split
+        foreach (var m in muzzles) Shoot(t, real, m.position, 1f / muzzles.Count);
     }
 
-    // Burner: the flame keeps pouring out for the rest of the clip while the nozzle sweeps.
     System.Collections.IEnumerator FlameStream(Health t)
     {
         var flame = data.visual.muzzleFlash;
@@ -219,7 +212,6 @@ public class Attacker : MonoBehaviour
         }
     }
 
-    // Moth Mothership: a Skitter pod falls from the bay and the crew joins the fight. A few at a time.
     readonly System.Collections.Generic.List<SelectableUnit> pods = new();
     const int MaxPods = 4;
 
@@ -232,7 +224,7 @@ public class Attacker : MonoBehaviour
         if (NavMesh.SamplePosition(ground, out NavMeshHit hit, 15f, NavMesh.AllAreas)) ground = hit.position;
         var pod = Net.Spawn(data.extra, from, transform.rotation).GetComponent<SelectableUnit>();
         SetTeam(pod, self.team);
-        pod.GetComponent<Health>().onDeath = () => // no "unit lost" alert for a pod
+        pod.GetComponent<Health>().onDeath = () =>
         {
             if (pod == null) return;
             pod.HideRing();
@@ -243,7 +235,6 @@ public class Attacker : MonoBehaviour
         Juice.Burst(from, ProductionFX.HoloColor(gameObject), 10, 5f, 0.15f, 0.5f, -1f);
     }
 
-    // Offline an enemy carrier's spawn must fight for the enemy (online every spawn is already ours).
     public static void SetTeam(SelectableUnit u, int team)
     {
         if (Net.Online) return;
@@ -252,7 +243,6 @@ public class Attacker : MonoBehaviour
         u.ApplyTeamLook();
     }
 
-    // Jellyfish: a shock pulse hits every ground enemy under it, lightning from the tendril tips to the ground.
     void Pulse(bool real)
     {
         float r = data.splash > 0f ? Stats.Value(Stat.Splash, data.splash, this) : 8f;
@@ -268,7 +258,7 @@ public class Attacker : MonoBehaviour
             Vector3 d = h.transform.position - transform.position; d.y = 0f;
             if (!Net.Allied(h.team, self.team) && !Flyer.IsAir(h) && d.sqrMagnitude <= r * r) hits.Add(h);
         }
-        for (int i = 0; i < Mathf.Min(6, muzzles.Count) && data.extra != null; i++) // a bolt to each victim, the rest strike the ground
+        for (int i = 0; i < Mathf.Min(6, muzzles.Count) && data.extra != null; i++)
         {
             Vector3 from = muzzles[Random.Range(0, muzzles.Count)].position;
             Vector2 rand = Random.insideUnitCircle * r * 0.6f;
@@ -277,7 +267,7 @@ public class Attacker : MonoBehaviour
         }
         if (!real) return;
         float dmg = Stats.Value(Stat.Damage, data.damage, this), stun = Stats.Value(Stat.StunTime, data.stunOnHit, this);
-        foreach (var h in hits.ToArray()) Hit(h, dmg, stun); // copy: kills change the list
+        foreach (var h in hits.ToArray()) Hit(h, dmg, stun);
     }
 
     void HideLaser() => laser.enabled = false;
@@ -287,13 +277,13 @@ public class Attacker : MonoBehaviour
         var v = data.visual;
         Vector3 aim = AimPoint(t, transform.position) + Vector3.up * (1f + Flyer.HeightOf(t));
         float dmg = Stats.Value(Stat.Damage, data.damage, this) * share;
-        float splash = data.splash > 0f ? Stats.Value(Stat.Splash, data.splash, this) : 0f; // worked out now: the shell can land after we die
+        float splash = data.splash > 0f ? Stats.Value(Stat.Splash, data.splash, this) : 0f;
         float stun = Stats.Value(Stat.StunTime, data.stunOnHit, this);
         if (v.muzzleFlash != null) Fx.Spawn(v.muzzleFlash, muzzle, Quaternion.LookRotation(aim - muzzle));
         Sfx.At(Sfx.ShotOf(data.damage, data.splash, data.stunOnHit > 0f), muzzle, 0.5f);
         LightPool.Flash(muzzle, Color.Lerp(ProductionFX.HoloColor(gameObject), Color.white, 0.5f), data.damage >= 30f ? 4f : 2.5f);
 
-        if (v.projectile != null) // damage lands when the shot does
+        if (v.projectile != null)
         {
             Projectile.Fire(v.projectile, muzzle, t, v.speed, v.arc, at => Land(t, at, dmg, splash, stun, muzzle, real));
             return;
@@ -305,7 +295,7 @@ public class Attacker : MonoBehaviour
             laser.SetPosition(1, aim);
             laser.enabled = true;
             CancelInvoke(nameof(HideLaser));
-            Invoke(nameof(HideLaser), 0.08f); // Invoke: also runs on other players' copies, whose Update is off
+            Invoke(nameof(HideLaser), 0.08f);
         }
         Land(t, aim, dmg, splash, stun, muzzle, real);
     }
@@ -314,7 +304,6 @@ public class Attacker : MonoBehaviour
 
     static readonly Color Spark = new(1f, 0.9f, 0.55f), Dirt = new(0.32f, 0.27f, 0.24f, 0.9f), DirtChunk = new(0.45f, 0.38f, 0.3f), Fireball = new(1f, 0.55f, 0.15f), Smoke = new(0.2f, 0.2f, 0.22f, 0.8f);
 
-    // What the counter system means, shown on impact: guns spark, cannons throw up dirt, explosives make a fireball.
     static void ImpactByWeapon(DamageTable.Weapon w, Vector3 at, float splash)
     {
         if (!Juice.Seen(at)) return;
@@ -336,25 +325,23 @@ public class Attacker : MonoBehaviour
         }
     }
 
-    // Impact effects, then damage: the target, or everything near the landing point (splash).
-    // Can run after this unit died (a shell still in the air), so it only uses data and self's fields.
     void Land(Health t, Vector3 at, float dmg, float splash, float stun, Vector3 from, bool real)
     {
         var v = data.visual;
         float r = splash > 0f ? splash : 1f;
         Vector3 flat = at - from; flat.y = 0f;
-        if (v.impact != null) Fx.Spawn(v.impact, at, Quaternion.identity, splash > 0f ? r * 0.6f : r); // the ring grows on its own: full splash size covered the whole fight
+        if (v.impact != null) Fx.Spawn(v.impact, at, Quaternion.identity, splash > 0f ? r * 0.6f : r);
         if (splash > 0f) Sfx.At(Snd.BoomSmall, at, 0.4f);
         ImpactByWeapon(data.weapon, at, splash);
         bool rapid = data.attackCooldown < 1f;
-        if (v.scorch != null && (!rapid || Random.value < 0.25f)) // rapid fire would carpet the ground
+        if (v.scorch != null && (!rapid || Random.value < 0.25f))
             Fx.Spawn(v.scorch, new Vector3(at.x, 0.04f, at.z), flat.sqrMagnitude > 0.01f ? Quaternion.LookRotation(flat) : Quaternion.identity, r * 0.8f);
 
-        if (!real) return; // just the look
+        if (!real) return;
         if (splash <= 0f) { if (t != null && t.isActiveAndEnabled) Hit(t, dmg, stun); return; }
-        hits.Clear(); // copy first: kills change Health.All
+        hits.Clear();
         float s2 = splash * splash;
-        bool air = Flyer.IsAir(t); // bombs hit the ground, flak hits the air
+        bool air = Flyer.IsAir(t);
         foreach (var h in Health.All)
         {
             Vector3 d = h.transform.position - at; d.y = 0f;
@@ -366,25 +353,23 @@ public class Attacker : MonoBehaviour
     void Hit(Health h, float dmg, float stun)
     {
         bool isUnit = h.TryGetComponent(out SelectableUnit u);
-        dmg *= DamageTable.Factor(data.weapon, h); // counters: gun vs light, cannon vs heavy...
+        dmg *= DamageTable.Factor(data.weapon, h);
         h.TakeDamage(isUnit ? dmg : dmg * data.buildingDamage, self);
         if (!isUnit) return;
         if (stun > 0f) u.Stun(stun);
         if (data.slowOnHit > 0f) u.Slow(data.slowOnHit);
     }
 
-    // ponytail: scans every unit each idle frame; fine for dozens, use a physics overlap if it grows to hundreds.
     Health FindEnemy(float radius)
     {
         Health best = null;
         float bestSqr = radius * radius;
         Vector3 me = transform.position;
-        float near = radius + 25f; // centre distance a target could still be in range from (big buildings: their wall counts)
+        float near = radius + 25f;
         var all = Health.All;
         for (int i = 0; i < all.Count; i++)
         {
             var h = all[i];
-            // Cheap tests first; the cloak check and the building's closest wall point only for what's close.
             Vector3 d = h.transform.position - me;
             if (d.x * d.x + d.z * d.z > near * near || Net.Allied(h.team, self.team) || !CanHit(h) || h.CloakedFrom(me)) continue;
             float sqr = (AimPoint(h, me) - me).sqrMagnitude;
@@ -393,7 +378,6 @@ public class Attacker : MonoBehaviour
         return best;
     }
 
-    // Units: their centre (minus agent radius). Buildings: the nearest point of their wall, so big ones are reachable.
     static Vector3 AimPoint(Health h, Vector3 from) =>
         !h.TryGetComponent(out NavMeshAgent _) && h.TryGetComponent(out Collider c) ? c.ClosestPoint(from) : h.transform.position;
     static float Radius(Health h) => Flyer.IsAir(h) ? Flyer.SizeOf(h) * 0.5f : h.TryGetComponent(out NavMeshAgent a) ? a.radius * h.transform.lossyScale.x : 0f;

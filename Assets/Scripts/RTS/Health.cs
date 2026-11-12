@@ -1,57 +1,52 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Hit points + team. Dies (is destroyed) at 0.
 public class Health : MonoBehaviour
 {
-    public static readonly List<Health> All = new(); // every living thing, for target searches
-    public static Vector3? LastBuildingDeath; // where (and when) a building last blew up: the match-end camera goes there
+    public static readonly List<Health> All = new();
+    public static Vector3? LastBuildingDeath;
     public static float LastBuildingDeathAt;
 
     [SerializeField] float maxHealth = 100f;
-    public int team; // 0 = player, 1 = enemy
+    public int team;
 
-    float baseMax; // before research / upgrades / veterancy
+    float baseMax;
     float current;
-    NetEntity net; // multiplayer: another player's copy forwards damage to its owner
+    NetEntity net;
 
     public float Fraction => current / maxHealth;
     public bool IsDamaged => current < maxHealth;
     public bool IsDead => current <= 0f;
 
-    // Paint it in its owner's colour (network units know their team by now: NetEntity.Spawned runs first).
     void Start()
     {
         if (!TryGetComponent(out OutpostCapture _)) TeamLook.Apply(gameObject, team);
         if (TryGetComponent(out SelectableUnit _))
         {
-            gameObject.AddComponent<StatusFX>(); // stunned / cloaked look
-            gameObject.AddComponent<UnitMotion>(); // lean, footprints, dust
+            gameObject.AddComponent<StatusFX>();
+            gameObject.AddComponent<UnitMotion>();
         }
-        hitFx = gameObject.AddComponent<HitFX>(); // white flash, damage numbers, smoking when hurt
+        hitFx = gameObject.AddComponent<HitFX>();
     }
 
     HitFX hitFx;
 
-    // Death look: flyers crash first, everything else breaks apart where it is.
     void PlayDeath(UnitDeath death) { if (!AirCrash.Begin(this, death)) death.Die(); }
 
     void Awake()
     {
-        // Units take their max health from their UnitData; anything else uses the field.
         if (TryGetComponent(out SelectableUnit unit) && unit.Data != null) maxHealth = unit.Data.maxHealth;
         baseMax = maxHealth;
         current = maxHealth;
         SpawnPos = transform.position;
         net = GetComponent<NetEntity>();
-        if (TryGetComponent(out TeamMember tm)) tm.team = team; // the pack's outpost capture counts TeamMembers
+        if (TryGetComponent(out TeamMember tm)) tm.team = team;
         Stats.Changed += RefreshMax;
         RefreshMax();
     }
 
     void OnDestroy() => Stats.Changed -= RefreshMax;
 
-    // Bonuses changed: keep the same fraction of a new max.
     void RefreshMax()
     {
         float max = Stats.Value(Stat.MaxHealth, baseMax, this);
@@ -60,13 +55,12 @@ public class Health : MonoBehaviour
         maxHealth = max;
     }
 
-    public System.Action onDeath; // set = called instead of destroying (outposts fall back to neutral)
+    public System.Action onDeath;
     public void Revive() => current = maxHealth;
-    public void SetFraction(float f) => current = Mathf.Clamp(f, 0.01f, 1f) * maxHealth; // loading a save
-    public Vector3 SpawnPos { get; private set; } // where it started (saves match scene objects by it)
+    public void SetFraction(float f) => current = Mathf.Clamp(f, 0.01f, 1f) * maxHealth;
+    public Vector3 SpawnPos { get; private set; }
     public float MaxHealth => maxHealth;
 
-    // Inside a friendly cloak field, the viewer isn't close enough to spot it, and no enemy Uplink Mk II reveals it.
     public bool CloakedFrom(Vector3 viewer) =>
         (transform.position - viewer).sqrMagnitude > CloakField.RevealRange * CloakField.RevealRange && CloakField.Covers(this) && !Revealer.Reveals(this);
     public float Current => current;
@@ -78,7 +72,6 @@ public class Health : MonoBehaviour
     void OnEnable() { if (!scenery) All.Add(this); }
     void OnDisable() => All.Remove(this);
 
-    // Multiplayer, someone else's object: its owner sends health and death.
     public void SetFromNet(float hp, float max)
     {
         if (max > 0f) maxHealth = max;
@@ -87,7 +80,7 @@ public class Health : MonoBehaviour
         synced = true;
         current = hp;
     }
-    bool synced; // had a first value from the owner (so a lower one means damage)
+    bool synced;
 
     public void DieRemote()
     {
@@ -95,24 +88,22 @@ public class Health : MonoBehaviour
         if (scenery) Sfx.At(Snd.WallBreak, transform.position);
         if (TryGetComponent(out Structure _)) { Juice.BuildingExplosion(gameObject); LastBuildingDeath = transform.position; LastBuildingDeathAt = Time.time; }
         if (TryGetComponent(out SelectableUnit unit)) { unit.HideRing(); if (unit.TryGetComponent(out UnitMarker marker)) marker.Remove(); Sfx.At(Snd.BoomSmall, transform.position, 0.7f); }
-        if (TryGetComponent(out UnitDeath death)) PlayDeath(death); // just the look; the owner despawns it
+        if (TryGetComponent(out UnitDeath death)) PlayDeath(death);
     }
 
-    // from: who shot us, so an idle unit can shoot back (and gets the kill).
-    /// <summary>Multiplayer: damage to scene objects another PC runs (outposts). True = it was sent there.</summary>
     public static System.Func<Health, float, Health, bool> RemoteDamage;
 
     public void TakeDamage(float amount, Health from = null)
     {
-        if (net != null && net.IsRemote) { if (!net.IsDead) net.RPC_Damage(amount, NetEntity.IdOf(from)); return; } // owner applies it
-        if (RemoteDamage != null && net == null && RemoteDamage(this, amount, from)) return; // multiplayer: a host-run outpost
+        if (net != null && net.IsRemote) { if (!net.IsDead) net.RPC_Damage(amount, NetEntity.IdOf(from)); return; }
+        if (RemoteDamage != null && net == null && RemoteDamage(this, amount, from)) return;
         if (IsDead) return;
         current = Mathf.Max(0f, current - amount);
-        Minimap.Fight(transform.position, Net.Allied(team, 0)); // a flash on the minimap where the fighting is
+        Minimap.Fight(transform.position, Net.Allied(team, 0));
         if (team == 0 && from != null && !Net.Allied(from.team, team)) Alerts.Attacked(this);
         if (IsDead) { Die(from); return; }
-        Sfx.At(Snd.Hit, transform.position, 0.22f); // the shot lands (the voice limit keeps a big fight from clattering)
-        if (scenery && Juice.Seen(transform.position)) // a map wall: sparks and grit fly off it
+        Sfx.At(Snd.Hit, transform.position, 0.22f);
+        if (scenery && Juice.Seen(transform.position))
         {
             Vector3 at = transform.position + Vector3.up * Random.Range(1f, 4f) + transform.right * Random.Range(-2.5f, 2.5f);
             Juice.Burst(at, Juice.Fire, 8, 5f, 0.12f, 0.4f, 1f, true);
@@ -122,7 +113,6 @@ public class Health : MonoBehaviour
         if (from != null && TryGetComponent(out Attacker attacker)) attacker.Retaliate(from);
     }
 
-    // This one (ours, or a host-run creep) made a kill: the match score, and veterancy for units.
     public void CreditKill()
     {
         if (team == 0) MatchStats.Add(MatchStats.Kind.Kills);
@@ -133,16 +123,16 @@ public class Health : MonoBehaviour
 
     void Die(Health killer)
     {
-        enabled = false; // leaves Health.All, so nobody keeps targeting the wreck
-        if (net != null) net.MarkDead(); // multiplayer: everyone plays the death
+        enabled = false;
+        if (net != null) net.MarkDead();
         if (killer != null && !Net.Allied(killer.team, team))
         {
-            if (killer.TryGetComponent(out NetEntity kn) && kn.IsRemote) kn.RPC_AddKill(); // another player's: its owner counts it
+            if (killer.TryGetComponent(out NetEntity kn) && kn.IsRemote) kn.RPC_AddKill();
             else killer.CreditKill();
-            if (killer.team == 0 && team != Creep.Team && TryGetComponent(out Structure _)) Sfx.Say(Line.Destroyed, 12f); // we took out an enemy building
+            if (killer.team == 0 && team != Creep.Team && TryGetComponent(out Structure _)) Sfx.Say(Line.Destroyed, 12f);
         }
         if (onDeath != null) { onDeath(); return; }
-        if (scenery) Sfx.At(Snd.WallBreak, transform.position); // a map wall coming down
+        if (scenery) Sfx.At(Snd.WallBreak, transform.position);
         if (team == 0)
         {
             if (TryGetComponent(out Structure s)) Alerts.Show($"Building destroyed: {s.Name}", Alerts.Bad);
@@ -150,8 +140,7 @@ public class Health : MonoBehaviour
             MatchStats.Add(TryGetComponent(out Structure _) ? MatchStats.Kind.BuildingsLost : MatchStats.Kind.UnitsLost);
         }
         if (TryGetComponent(out Structure _)) { Juice.BuildingExplosion(gameObject); LastBuildingDeath = transform.position; LastBuildingDeathAt = Time.time; }
-        if (TryGetComponent(out SelectableUnit unit)) { unit.HideRing(); if (unit.TryGetComponent(out UnitMarker marker)) marker.Remove(); Sfx.At(Snd.BoomSmall, transform.position, 0.7f); } // or it flies off as debris
-        // Pack effect: neon flickers out, the model breaks into physics debris.
+        if (TryGetComponent(out SelectableUnit unit)) { unit.HideRing(); if (unit.TryGetComponent(out UnitMarker marker)) marker.Remove(); Sfx.At(Snd.BoomSmall, transform.position, 0.7f); }
         if (TryGetComponent(out UnitDeath death)) PlayDeath(death);
         else Net.Destroy(gameObject);
     }

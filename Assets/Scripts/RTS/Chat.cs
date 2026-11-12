@@ -2,18 +2,15 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// Multiplayer chat: Enter opens team chat (all chat if you have no allies), Shift+Enter opens all chat;
-// Enter sends, Esc cancels. Messages show in the Alerts feed in the sender's colour (RoomState.RPC_Chat). While typing, game hotkeys read Chat.Keys and get nothing.
-[DefaultExecutionOrder(-100)] // before the scripts that read hotkeys
+[DefaultExecutionOrder(-100)]
 public class Chat : MonoBehaviour
 {
-    [SerializeField] InputField input; // inactive until Enter
+    [SerializeField] InputField input;
 
     public static bool Typing { get; private set; }
     static int closedFrame = -1;
     bool toAll;
 
-    // The keyboard for game hotkeys: null while typing (and on the frame the box closes, so its Enter/Esc don't leak).
     public static Keyboard Keys => Typing || Time.frameCount == closedFrame ? null : Keyboard.current;
 
     void Awake() { Typing = false; input.gameObject.SetActive(false); }
@@ -52,7 +49,7 @@ public class Chat : MonoBehaviour
             Close();
         }
         else if (kb.escapeKey.wasPressedThisFrame) Close();
-        else if (!input.isFocused) input.ActivateInputField(); // clicking the map mustn't strand the box
+        else if (!input.isFocused) input.ActivateInputField();
     }
 
     void Close()

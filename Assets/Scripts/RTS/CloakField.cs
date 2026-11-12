@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Cloak Field Generator: friendly units and buildings inside the radius can't be targeted by enemies
-// unless an enemy gets within revealRange. Offline while the player is low on power.
 [RequireComponent(typeof(Health))]
 public class CloakField : MonoBehaviour
 {
@@ -18,7 +16,6 @@ public class CloakField : MonoBehaviour
     void Awake()
     {
         self = GetComponent<Health>();
-        // Faint ring on the ground showing the field.
         ring = new GameObject("CloakRing").AddComponent<LineRenderer>();
         ring.transform.SetParent(transform, false);
         ring.material = new Material(Shader.Find("Sprites/Default"));
@@ -37,11 +34,10 @@ public class CloakField : MonoBehaviour
     void OnEnable() { active.Add(this); ring.enabled = true; }
     void OnDisable() { active.Remove(this); ring.enabled = false; }
 
-    bool Online => !Net.LowPower(self.team); // other players' power comes over the network
+    bool Online => !Net.LowPower(self.team);
 
     void Update() => ring.enabled = Online;
 
-    // Is h inside a working cloak field of its own side (allies' fields count)?
     public static bool Covers(Health h)
     {
         foreach (var f in active)

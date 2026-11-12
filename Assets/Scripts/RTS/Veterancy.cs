@@ -1,9 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Units rank up from kills. Ranks, kills needed and bonuses live in the VeterancyData asset
-// (Resources/Veterancy). The bonuses go through Stats; the unit's neon glows brighter each rank
-// (MaterialPropertyBlock, like UnitDeath's fade). Added to a unit the first time it scores a kill (Health.Die).
 public class Veterancy : MonoBehaviour
 {
     static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
@@ -24,7 +21,7 @@ public class Veterancy : MonoBehaviour
         block = new MaterialPropertyBlock();
         foreach (var r in GetComponentsInChildren<Renderer>(true))
         {
-            if (r is LineRenderer) continue; // lasers, rings
+            if (r is LineRenderer) continue;
             var mats = r.sharedMaterials;
             for (int i = 0; i < mats.Length; i++)
                 if (mats[i] && mats[i].HasProperty(EmissionId) && mats[i].IsKeywordEnabled("_EMISSION"))
@@ -37,7 +34,6 @@ public class Veterancy : MonoBehaviour
 
     public void AddKill() => SetKills(Kills + 1);
 
-    // Saves call this directly (quietly).
     public void SetKills(int kills, bool announce = true)
     {
         Kills = kills;
@@ -48,11 +44,10 @@ public class Veterancy : MonoBehaviour
         Rank = rank;
         Glow();
         if (up && announce) Juice.Promoted(gameObject, RankName);
-        Stats.Refresh(); // max HP etc.
+        Stats.Refresh();
         if (announce && health != null && health.team == 0 && Data.promoted) Data.promoted.Raise(gameObject);
     }
 
-    // Multiplayer: another player's unit; its owner counts the kills, we only show the glow.
     public void ShowRank(int rank)
     {
         if (rank == Rank) return;
@@ -74,7 +69,6 @@ public class Veterancy : MonoBehaviour
         }
     }
 
-    // Gold chevrons floating over the unit, one per rank, turned to face the camera.
     readonly List<LineRenderer> chevrons = new();
     float top = -1f;
 
@@ -102,7 +96,7 @@ public class Veterancy : MonoBehaviour
         {
             var lr = chevrons[i];
             lr.enabled = i < n;
-            lr.gameObject.layer = gameObject.layer; // fog of war hides it with the unit
+            lr.gameObject.layer = gameObject.layer;
             Vector3 c = basePos + Vector3.up * i * 0.35f;
             lr.SetPosition(0, c - right * 0.45f - Vector3.up * 0.2f);
             lr.SetPosition(1, c);

@@ -3,17 +3,16 @@ using UnityEngine.InputSystem;
 using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.UI;
 
-// Player options, saved in PlayerPrefs: volumes, graphics quality, fullscreen, camera speed, screen shake.
 public static class GameSettings
 {
     public static float Master = Get("master", 1f), Music = Get("music", 0.6f), Effects = Get("effects", 0.8f), CameraSpeed = Get("camSpeed", 1f);
     public static bool Shake = Get("shake", 1f) > 0.5f, Rain = Get("rain", 1f) > 0.5f, DamageNumbers = Get("dmgNumbers", 0f) > 0.5f;
-    public static int Quality = (int)Get("quality", -1f); // -1: the project's default level
-    public static float BloomLevel = Get("bloom", 1f);        // x the profile's bloom; 0 = off (bright neon can strain eyes)
-    public static bool PostFX = Get("postfx", 1f) > 0.5f;     // all post-processing (bloom, grading, vignette): off for slow PCs
-    public static float NeonColours = Get("neon", 1f);        // 0.3..1: colour grading saturation/brightness (needs post effects)
+    public static int Quality = (int)Get("quality", -1f);
+    public static float BloomLevel = Get("bloom", 1f);
+    public static bool PostFX = Get("postfx", 1f) > 0.5f;
+    public static float NeonColours = Get("neon", 1f);
     public static bool ReduceFlashing = Get("calm", 0f) > 0.5f;
-    public static float FlashScale => ReduceFlashing ? 0.3f : 1f; // light flashes (explosions, muzzles, deaths)
+    public static float FlashScale => ReduceFlashing ? 0.3f : 1f;
     public static event System.Action Changed;
 
     static float Get(string key, float fallback) => PlayerPrefs.GetFloat("settings." + key, fallback);
@@ -40,7 +39,6 @@ public static class GameSettings
     [RuntimeInitializeOnLoadMethod]
     static void HookScenes() => UnityEngine.SceneManagement.SceneManager.sceneLoaded += (s, m) => ApplyPostFX();
 
-    // Edits each volume's runtime copy (volume.profile), never the shared asset, so the base look is kept.
     public static void ApplyPostFX()
     {
         foreach (var layer in Object.FindObjectsByType<PostProcessLayer>(FindObjectsSortMode.None)) layer.enabled = PostFX;
@@ -54,7 +52,7 @@ public static class GameSettings
             }
             if (vol.sharedProfile.TryGetSettings(out ColorGrading baseGrade) && vol.profile.TryGetSettings(out ColorGrading grade))
             {
-                float dim = 1f - NeonColours; // 0 = the authored look
+                float dim = 1f - NeonColours;
                 grade.saturation.value = baseGrade.saturation.value - dim * 100f;
                 grade.postExposure.value = baseGrade.postExposure.value - dim * 0.6f;
             }
@@ -62,12 +60,10 @@ public static class GameSettings
     }
 }
 
-// The Settings screen, built in code so the main menu and the in-game Esc menu share it.
 public class SettingsPanel : MonoBehaviour
 {
     public static bool IsOpen { get; private set; }
 
-    // Shared with the Skirmish screen.
     public static readonly Color Back = new(0.01f, 0.01f, 0.03f, 0.92f), Box = new(0.02f, 0.03f, 0.07f, 0.95f), Cyan = new(0.44f, 1f, 1f);
     static Font cachedFont;
     static Font font => cachedFont != null ? cachedFont : cachedFont = HoloSkin.Font != null ? HoloSkin.Font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -78,7 +74,7 @@ public class SettingsPanel : MonoBehaviour
         var root = new GameObject("Settings", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
         root.SetParent(canvas.transform, false);
         Stretch(root);
-        root.GetComponent<Image>().color = Back; // also blocks clicks to the game underneath
+        root.GetComponent<Image>().color = Back;
         root.gameObject.AddComponent<SettingsPanel>().Build(root);
         IsOpen = true;
     }
@@ -109,14 +105,14 @@ public class SettingsPanel : MonoBehaviour
         string[] cursorNames = { "AUTO", "SMALL 32", "MEDIUM 48", "LARGE 64" };
         int CursorIndex() => Mathf.Max(0, System.Array.IndexOf(cursorPx, PlayerPrefs.GetInt(CursorManager.PrefKey, 0)));
         Cycle(box, "Cursor size", ref y, () => cursorNames[CursorIndex()],
-            () => CursorManager.SetSizePreference(cursorPx[(CursorIndex() + 1) % cursorPx.Length])); // saved by CursorManager
+            () => CursorManager.SetSizePreference(cursorPx[(CursorIndex() + 1) % cursorPx.Length]));
 
         string[] q = QualitySettings.names;
         Text postLabel = null;
         Cycle(box, "Graphics", ref y, () => q[QualitySettings.GetQualityLevel()], () =>
         {
             GameSettings.Quality = (QualitySettings.GetQualityLevel() + 1) % q.Length;
-            GameSettings.PostFX = GameSettings.Quality > 1; // Very Low / Low: post effects off too (the toggle below can bring them back)
+            GameSettings.PostFX = GameSettings.Quality > 1;
             GameSettings.Apply();
             postLabel.text = GameSettings.PostFX ? "ON" : "OFF";
             HoloSkin.SetOn(postLabel.GetComponentInParent<Button>(), GameSettings.PostFX);
@@ -135,13 +131,12 @@ public class SettingsPanel : MonoBehaviour
         Button(box, "CREDITS", new Vector2(150f, -450f), new Vector2(270f, 56f)).onClick.AddListener(() => ShowCredits(root));
     }
 
-    // The music's CC BY 4.0 credits, in the form incompetech.com asks for (one block per track).
     static void ShowCredits(RectTransform root)
     {
         var cover = new GameObject("Credits", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
         cover.SetParent(root, false);
         Stretch(cover);
-        cover.GetComponent<Image>().color = new Color(0f, 0f, 0.01f, 0.97f); // hides the settings underneath
+        cover.GetComponent<Image>().color = new Color(0f, 0f, 0.01f, 0.97f);
         var box = new GameObject("Box", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
         box.SetParent(cover, false);
         box.sizeDelta = new Vector2(760f, 1000f);
@@ -156,7 +151,6 @@ public class SettingsPanel : MonoBehaviour
         Button(box, "CLOSE", new Vector2(0f, -450f), new Vector2(300f, 56f)).onClick.AddListener(() => Destroy(cover.gameObject));
     }
 
-    // ---- widgets ----
 
     public static Text Label(Transform parent, string text, Vector2 pos, int size, TextAnchor align, float width)
     {
@@ -179,20 +173,20 @@ public class SettingsPanel : MonoBehaviour
         rt.anchoredPosition = new Vector2(95f, y);
         rt.sizeDelta = new Vector2(220f, 20f);
         HoloUI.StyleSlider(s);
-        foreach (var part in new[] { "Background", "Fill Area" }) // a 6px track
+        foreach (var part in new[] { "Background", "Fill Area" })
         {
             var pr = (RectTransform)s.transform.Find(part);
             pr.anchorMin = new Vector2(0f, 0.5f); pr.anchorMax = new Vector2(1f, 0.5f);
             pr.sizeDelta = new Vector2(pr.sizeDelta.x, 6f);
         }
         s.fillRect.offsetMin = new Vector2(s.fillRect.offsetMin.x, 0f); s.fillRect.offsetMax = new Vector2(s.fillRect.offsetMax.x, 0f);
-        s.handleRect.sizeDelta = new Vector2(20f, 0f); // the handle area is 20px tall: a 20x20 diamond
+        s.handleRect.sizeDelta = new Vector2(20f, 0f);
         s.minValue = min; s.maxValue = max; s.value = value;
         s.onValueChanged.AddListener(v => { set(v); readout.text = show(v); });
         y -= RowStep;
     }
 
-    const float RowStep = 58f; // 14 rows fit the window
+    const float RowStep = 58f;
 
     public static Text Cycle(Transform box, string name, ref float y, System.Func<string> show, System.Action next)
     {
@@ -215,7 +209,7 @@ public class SettingsPanel : MonoBehaviour
         var t = Label(go.transform, text, Vector2.zero, 22, TextAnchor.MiddleCenter, size.x);
         t.rectTransform.sizeDelta = size;
         var b = go.GetComponent<Button>();
-        HoloSkin.Button(b); // callers restyle as Small / Gold / Danger where needed
+        HoloSkin.Button(b);
         return b;
     }
 

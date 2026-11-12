@@ -4,33 +4,21 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-// Makes every building look alive and shows what it is doing, by moving and lighting the named parts of
-// its model (no animation clips needed):
-//  - Turrets turn their heads onto targets and sweep when idle; the Railspike charges up before each shot,
-//    the Arc Coil crackles, the Flak Lantern's core flares.
-//  - Factories work while producing / researching: the Hive's pods pulse and its welder sparks, the Hangar's
-//    shutters roll up, the Lab's DNA helix spins and its tubes bubble.
-//  - The Refinery's intake surges while a harvester unloads; the Siphon's capsules fill towards each payout;
-//    the mines blink armed and go dark while recharging; the Uplink's radar spins and pings.
-//  - Ambient cyberpunk life everywhere else: spinning rings, chasing lights, glitching holo signs, arcs, data motes.
-// Glow effects pause while the building's side is low on power (BuildingFX owns the neon then) and every
-// motion slows down. Off-screen or fogged buildings skip all of it. Added by Structure; Construction keeps it
-// off until the building is finished.
 public class BuildingLife : MonoBehaviour
 {
     static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
     static readonly Color Cyan = new(0.25f, 1f, 1f), Magenta = new(1f, 0.2f, 0.8f), Red = new(1f, 0.15f, 0.2f), Amber = new(1f, 0.65f, 0.15f);
 
-    readonly List<Action<float>> ticks = new();      // motion, every visible frame
-    readonly List<Action<float>> glowTicks = new();  // emission changes, only while powered
+    readonly List<Action<float>> ticks = new();
+    readonly List<Action<float>> glowTicks = new();
     Transform[] parts;
     Structure s;
-    Renderer eye;    // the biggest renderer: is the building on screen at all?
-    Color team;      // team colour for effects (cyan for you offline)
+    Renderer eye;
+    Color team;
     MaterialPropertyBlock block;
 
     bool Powered => s == null || s.power >= 0 || !Net.LowPower(s.Health.team);
-    float Pace => Powered ? 1f : 0.2f; // low power: everything crawls
+    float Pace => Powered ? 1f : 0.2f;
 
     void Start()
     {
@@ -52,13 +40,12 @@ public class BuildingLife : MonoBehaviour
         if (eye != null && !eye.isVisible) return;
         if (!Juice.Seen(transform.position)) return;
         float dt = Time.deltaTime;
-        for (int i = 0; i < ticks.Count; i++) ticks[i](dt); // by index: a first Zap adds its own tick mid-loop
+        for (int i = 0; i < ticks.Count; i++) ticks[i](dt);
         if (Powered) for (int i = 0; i < glowTicks.Count; i++) glowTicks[i](dt);
     }
 
     void OnDisable() { foreach (var z in zaps) if (z.lr != null) z.lr.enabled = false; }
 
-    // ================= recipes =================
 
     void Setup()
     {
@@ -89,12 +76,11 @@ public class BuildingLife : MonoBehaviour
     {
         Spin(P("Arc_Toroid"), 60f, () => 1f + 4f * Charge(t));
         Spin(P("Arc_Orb"), -90f, () => 1f + 4f * Charge(t));
-        // Idle: the odd bolt flickers on; just after a shot every bolt blazes.
         Toggle(@"^Arc_Bolt", () => Since(t) < 0.15f || Random.value < 0.08f + 0.25f * Charge(t));
         Glow(@"Glow$|^Arc_Orb$", () => (0.6f + 0.4f * Mathf.Sin(Time.time * 8f)) * (1f + 3f * Flare(t, 0.3f)));
         var rods = Ps(@"^Arc_GroundRodTip");
         Every(0.15f, 0.6f, () => rods.Count > 0 && t != null && t.Online, () =>
-            Zap(P("Arc_Orb").position, rods[Random.Range(0, rods.Count)].position, new Color(0.7f, 0.5f, 1f), 0.12f)); // static crackle
+            Zap(P("Arc_Orb").position, rods[Random.Range(0, rods.Count)].position, new Color(0.7f, 0.5f, 1f), 0.12f));
         OnShot(t, () =>
         {
             Vector3 orb = P("Arc_Orb").position;
@@ -106,7 +92,7 @@ public class BuildingLife : MonoBehaviour
     void NeonTurret(Turret t)
     {
         TrackHead(P("NeonTurret_Head"), t, 240f);
-        Glow(@"^Turret_(Sensor|EyeSmall)", () => t != null && t.Aim != null ? (Mathf.Repeat(Time.time * 6f, 1f) < 0.5f ? 3f : 0.4f) : 1f); // locked on: eyes strobe
+        Glow(@"^Turret_(Sensor|EyeSmall)", () => t != null && t.Aim != null ? (Mathf.Repeat(Time.time * 6f, 1f) < 0.5f ? 3f : 0.4f) : 1f);
         Blink(@"^Turret_AntennaTip", 1.2f);
         Glow(@"^Turret_(Coil|TopGlow|BearingGlow|AmmoGlow)|^TurMk2_(Coil|TopGlow|SideArmorGlow)", () => 0.4f + 1.6f * Charge(t) + 2f * Flare(t, 0.15f));
         OnShot(t, () => Juice.Burst(P("NeonTurret_Head").position + Vector3.up, team, 6, 4f, 0.08f, 0.25f));
@@ -122,7 +108,7 @@ public class BuildingLife : MonoBehaviour
         {
             var core = P("Flak_LanternCore");
             if (core != null) Juice.Flash(core.position, Amber, 6f, 12f, 0.15f);
-            Juice.Burst(P("FlakLantern_Head").position + Vector3.up * 1.5f, new Color(0.6f, 0.6f, 0.65f), 8, 3f, 0.35f, 0.8f, 1f); // gun smoke
+            Juice.Burst(P("FlakLantern_Head").position + Vector3.up * 1.5f, new Color(0.6f, 0.6f, 0.65f), 8, 3f, 0.35f, 0.8f, 1f);
         });
     }
 
@@ -130,19 +116,18 @@ public class BuildingLife : MonoBehaviour
     {
         TrackHead(P("RailspikeTower_Head"), t, 90f);
         foreach (var coil in Ps(@"^Rail_Coil")) Spin(coil, 200f, () => 0.2f + 3f * Charge(t) * Charge(t));
-        // Charging: rails and capacitors brighten as the shot builds, then dump everything on the shot.
         Glow(@"^Rail_(RailGlow|Capacitor|ButtressGlow|TurntableGlow)", () => 0.15f + 3f * Charge(t) * Charge(t) + 4f * Flare(t, 0.2f));
         Blink(@"^Rail_Beacon", 0.8f);
         var rails = Ps(@"^Rail_Rail-?\d");
         Every(0.05f, 0.15f, () => rails.Count >= 2 && t != null && t.Online && Charge(t) > 0.8f && t.Aim != null, () =>
-            Zap(rails[0].position, rails[1].position, new Color(1f, 0.9f, 0.4f), 0.08f)); // about to fire: arcs jump between the rails
+            Zap(rails[0].position, rails[1].position, new Color(1f, 0.9f, 0.4f), 0.08f));
         OnShot(t, () =>
         {
             Vector3 head = P("RailspikeTower_Head").position + Vector3.up * 1.5f;
             Juice.Flash(head, new Color(1f, 0.9f, 0.4f), 14f, 20f, 0.3f);
             Juice.Ring(head, new Color(1f, 0.85f, 0.3f), 0.5f, 6f, 0.35f, 0.3f);
             Juice.Shake(head, 0.15f);
-            foreach (var cap in Ps(@"^Rail_CapacitorCap")) Juice.Burst(cap.position, new Color(0.75f, 0.8f, 0.85f), 6, 2.5f, 0.4f, 0.9f, 1.5f); // venting
+            foreach (var cap in Ps(@"^Rail_CapacitorCap")) Juice.Burst(cap.position, new Color(0.75f, 0.8f, 0.85f), 6, 2.5f, 0.4f, 0.9f, 1.5f);
         });
     }
 
@@ -157,7 +142,6 @@ public class BuildingLife : MonoBehaviour
         Health spotted = null;
         float range = s != null && s.sight > 0f ? s.sight : 40f;
 
-        // A searchlight that sweeps the ground, and locks red onto any enemy in sight.
         var spot = new GameObject("Searchlight").AddComponent<Light>();
         spot.type = LightType.Spot;
         spot.range = range * 1.2f;
@@ -170,7 +154,7 @@ public class BuildingLife : MonoBehaviour
             look -= dt;
             if (look <= 0f) { look = 0.3f; spotted = Nearest(range); }
             float want = spotted != null ? Vector3.SignedAngle(restFwd, Flat(spotted.transform.position - nest.position, restFwd), Vector3.up)
-                                          : Mathf.Repeat(Time.time * 25f, 360f) - 180f; // slow 360 sweep
+                                          : Mathf.Repeat(Time.time * 25f, 360f) - 180f;
             yaw = Mathf.MoveTowardsAngle(yaw, want, (spotted != null ? 160f : 25f) * Pace * dt);
             nest.rotation = Quaternion.AngleAxis(yaw, Vector3.up) * rest;
             Vector3 from = lens != null ? lens.position : nest.position;
@@ -194,12 +178,12 @@ public class BuildingLife : MonoBehaviour
         Chase(@"^Uplink_(Beacon|ButtressLight)", 5f);
         Blink(@"^Uplink_TopLight", 0.9f);
         Glow(@"^Uplink_(BandGlow|TurntableGlow|ButtressGlow|DishCore)", () => 0.7f + 0.3f * Mathf.Sin(Time.time * 4f));
-        Every(2.8f, 2.8f, () => true, () => // radar ping sweeping across the ground
+        Every(2.8f, 2.8f, () => true, () =>
         {
             Vector3 c = new(transform.position.x, 0.2f, transform.position.z);
             Juice.Ring(c, team, 2f, 28f, 1.6f, 0.12f);
         });
-        Motes(P("Uplink_TopSpike"), team, -0.6f, 6f); // data uplinked to the sky
+        Motes(P("Uplink_TopSpike"), team, -0.6f, 6f);
     }
 
     void Pylon()
@@ -210,7 +194,7 @@ public class BuildingLife : MonoBehaviour
         int i = 0;
         foreach (var ring in Ps(@"^Pylon_EnergyRing")) { Spin(ring, i % 2 == 0 ? 90f : -90f); Bob(ring, 0.25f, 0.6f, i++ * 0.7f); }
         Toggle(@"^(Pylon_Arc|PylMk2_Arc)", () => Random.value < 0.35f);
-        Glow(@"^Pylon_(Core|Orb)$|Glow$", () => 0.8f + 0.5f * Mathf.Pow(Mathf.Abs(Mathf.Sin(Time.time * 2.5f)), 6f) * 3f); // power hum with spikes
+        Glow(@"^Pylon_(Core|Orb)$|Glow$", () => 0.8f + 0.5f * Mathf.Pow(Mathf.Abs(Mathf.Sin(Time.time * 2.5f)), 6f) * 3f);
         var struts = Ps(@"^Pylon_Strut");
         Every(0.2f, 0.7f, () => struts.Count > 0, () => Zap(P("Pylon_Orb").position, struts[Random.Range(0, struts.Count)].position, team, 0.1f));
     }
@@ -229,7 +213,6 @@ public class BuildingLife : MonoBehaviour
         Bob(P("Nexus_EnergyCore"), 0.15f, 0.5f, 0f);
         Bob(P("Nexus_EnergyCoreInner"), 0.15f, 0.5f, 0f);
         Glow(@"^Nexus_(EnergyCore|EnergyCoreInner|InnerGlow|CradleGlow)", () => Heartbeat(1.1f) * 1.6f + 0.6f);
-        // The holo billboards glitch: blackouts, double-bright flashes.
         Glitch(@"^Nexus_Bill(Screen|Glyph)");
         Chase(@"^Nexus_(PylonLight|ACLight|T3Strip)", 3f);
         Blink(@"^(Nexus|NexusMk3)_Beacon", 1.4f);
@@ -246,7 +229,7 @@ public class BuildingLife : MonoBehaviour
         Glow(@"^(Ref|RefMk2)_(FunnelGlow|IntakeArmGlow|SiloGaugeFill|DockInner)", () => 0.4f + 2.5f * busy() * (0.7f + 0.3f * Mathf.Sin(Time.time * 12f)));
         Chase(@"^Ref_DockChevron", 8f);
         Glow(@"^Ref_(HallRoofGlow|SlabGlow)", () => 0.8f + 0.2f * Mathf.Sin(Time.time * 1.5f));
-        Every(0.06f, 0.12f, () => busy() > 0.5f, () => // ore crunching in the funnel
+        Every(0.06f, 0.12f, () => busy() > 0.5f, () =>
         {
             var f = P("Ref_Funnel");
             if (f != null) Juice.Burst(f.position + Vector3.up * 0.5f, Random.value < 0.5f ? Magenta : Cyan, 3, 3f, 0.1f, 0.4f, 0.8f, true);
@@ -259,7 +242,6 @@ public class BuildingLife : MonoBehaviour
         var siphon = GetComponent<Siphon>();
         Func<float> fill = () => siphon != null ? siphon.Progress01 : Mathf.Repeat(Time.time / 4f, 1f);
         Spin(P("Siphon_FissureRing"), 70f);
-        // The rings ride up the data stream, over and over.
         Scroll(P("Siphon_StreamRingA"), 3f, 0.6f, 0f);
         Scroll(P("Siphon_StreamRingB"), 3f, 0.6f, 0.5f);
         Glow(@"^Siphon_CapsuleFluid", () => 0.2f + 2.5f * fill() * fill());
@@ -273,7 +255,6 @@ public class BuildingLife : MonoBehaviour
     {
         var mine = GetComponent<EmpMine>();
         Func<float> charge = () => mine != null ? mine.Charge01 : 1f;
-        // Armed: the mine cores blink in a running chase; spent: dark, slowly glowing back.
         var cores = Ps(@"^Field_MineCore");
         glowTicks.Add(dt =>
         {
@@ -291,7 +272,6 @@ public class BuildingLife : MonoBehaviour
 
     void Firewall()
     {
-        // Scanning laser curtain: beams flicker, the whole curtain drifts up and down, the field ripples.
         Toggle(@"^Gate_Laser", () => Random.value > 0.12f);
         Bob(P("FirewallGate_Lasers"), 0.2f, 0.4f, 0f);
         Glow(@"^Gate_(EnergyField|Laser)", () => 0.7f + 0.3f * Mathf.Sin(Time.time * 9f) + (Random.value < 0.02f ? 2f : 0f));
@@ -306,11 +286,11 @@ public class BuildingLife : MonoBehaviour
         Spin(P("Cloak_CoreRingA"), 90f);
         Spin(P("Cloak_CoreRingB"), -140f);
         Spin(P("CloakFieldGenerator_Field"), 8f);
-        Toggle(@"^Cloak_(FieldGlitch|Pixel)", () => Random.value < 0.5f); // dead pixels in the field
+        Toggle(@"^Cloak_(FieldGlitch|Pixel)", () => Random.value < 0.5f);
         Glitch(@"^Cloak_GlitchCore");
         Glow(@"^Cloak_(FieldDome|FieldEdge)", () => 0.5f + 0.5f * Mathf.Abs(Mathf.Sin(Time.time * 1.3f)));
         var fins = Ps(@"^Cloak_FinGlow");
-        glowTicks.Add(dt => { for (int i = 0; i < fins.Count; i++) SetGlow(fins[i], 0.4f + 1.6f * Mathf.Max(0f, Mathf.Sin(Time.time * 3f - i * 0.8f))); }); // wave round the fins
+        glowTicks.Add(dt => { for (int i = 0; i < fins.Count; i++) SetGlow(fins[i], 0.4f + 1.6f * Mathf.Max(0f, Mathf.Sin(Time.time * 3f - i * 0.8f))); });
         Motes(P("Cloak_GlitchCore"), new Color(0.6f, 0.4f, 1f), -0.2f, 8f);
     }
 
@@ -329,7 +309,6 @@ public class BuildingLife : MonoBehaviour
 
     void Hangar(Func<float> working)
     {
-        // Working: the bay shutters roll up one after another; idle: they come back down.
         int i = 0;
         foreach (var sh in Ps(@"^Hangar_BayShutter"))
         {
@@ -355,11 +334,10 @@ public class BuildingLife : MonoBehaviour
         Glow(@"^(Hive_PodGlow|HiveMk2_PodGlow)", () => 0.4f + 2f * working() * Heartbeat(1.4f));
         foreach (var e in Ps(@"^Hive_PodEmbryo")) Bob(e, 0.06f, 1.4f, Random.value * 6f);
         Glitch(@"^Hive_(Emblem|EmblemCell)");
-        Glow(@"^Hive_Lamp(Lens)?", () => Random.value < 0.03f ? 0.1f : 1.2f); // a buzzing street lamp
+        Glow(@"^Hive_Lamp(Lens)?", () => Random.value < 0.03f ? 0.1f : 1.2f);
         Chase(@"^Hive_Chevron", 6f);
         Glow(@"^Hive_(DoorLintelGlow|DoorSlatGlow|RoofGlow|SlabGlow|ArmBaseGlow|ArmForeGlow)", () => 0.6f + 0.6f * working());
         Toggle(@"^HiveMk2_WeldSpark", () => working() > 0.5f && Random.value < 0.5f);
-        // The robot arm's welder at work on the held part.
         Every(0.05f, 0.18f, () => working() > 0.5f, () =>
         {
             var held = P("Hive_HeldPart");
@@ -381,7 +359,6 @@ public class BuildingLife : MonoBehaviour
         foreach (var w in Ps(@"^Aerie_WindRing")) Spin(w, 120f);
     }
 
-    // ================= building blocks =================
 
     Transform P(string name)
     {
@@ -425,7 +402,6 @@ public class BuildingLife : MonoBehaviour
         ticks.Add(dt => t.position = t.parent.TransformPoint(rest) + Vector3.up * Mathf.Sin((Time.time * hz * Pace + phase) * Mathf.PI * 2f) * metres);
     }
 
-    // Rides up `height` metres and wraps round to the bottom (rings travelling up a beam).
     void Scroll(Transform t, float height, float hz, float phase)
     {
         if (t == null) return;
@@ -433,7 +409,6 @@ public class BuildingLife : MonoBehaviour
         ticks.Add(dt => t.position = t.parent.TransformPoint(rest) + Vector3.up * Mathf.Repeat(Time.time * hz * Pace + phase, 1f) * height);
     }
 
-    // Every emissive material slot on the matching parts, scaled by k() (1 = the model's own glow).
     void Glow(string pattern, Func<float> k)
     {
         var list = Ps(pattern);
@@ -464,7 +439,6 @@ public class BuildingLife : MonoBehaviour
 
     void Blink(string pattern, float hz) => Glow(pattern, () => Mathf.Repeat(Time.time * hz, 1f) < 0.2f ? 3f : 0.15f);
 
-    // Lights in name order flash one after another, running round the building.
     void Chase(string pattern, float hz)
     {
         var list = Ps(pattern);
@@ -477,7 +451,6 @@ public class BuildingLife : MonoBehaviour
         });
     }
 
-    // Holo-sign glitch: mostly steady, sometimes a blackout or a double-bright stutter.
     void Glitch(string pattern)
     {
         var list = Ps(pattern);
@@ -514,7 +487,6 @@ public class BuildingLife : MonoBehaviour
         });
     }
 
-    // ---- turrets ----
 
     static float Charge(Turret t) => t != null && t.Online ? t.Charge01 : 0f;
     static float Since(Turret t) => t != null ? Time.time - t.LastShot : 99f;
@@ -529,8 +501,6 @@ public class BuildingLife : MonoBehaviour
         ticks.Add(dt => { if (t.LastShot != seen) { seen = t.LastShot; act(); } });
     }
 
-    // Head turns onto the turret's target; idle, it scans left and right. Runs in Update so RecoilKick
-    // (LateUpdate) kicks on top of the aimed pose.
     void TrackHead(Transform head, Turret t, float degPerSec)
     {
         if (head == null || t == null) return;
@@ -542,7 +512,7 @@ public class BuildingLife : MonoBehaviour
         float yaw = 0f, phase = Random.value * 6f;
         ticks.Add(dt =>
         {
-            if (!t.Online) return; // dead head when the power is out
+            if (!t.Online) return;
             float want = t.Aim != null ? Vector3.SignedAngle(restFwd, Flat(t.Aim.transform.position - head.position, restFwd), Vector3.up)
                                        : Mathf.Sin(Time.time * 0.35f + phase) * 60f;
             yaw = Mathf.MoveTowardsAngle(yaw, want, (t.Aim != null ? degPerSec : degPerSec * 0.15f) * dt);
@@ -564,9 +534,7 @@ public class BuildingLife : MonoBehaviour
         return best;
     }
 
-    // ---- effects ----
 
-    // Electric arc: a jagged line that re-shapes every frame for a moment.
     readonly List<(LineRenderer lr, float until, Vector3 a, Vector3 b)> zaps = new();
     void Zap(Vector3 a, Vector3 b, Color c, float time)
     {
@@ -603,7 +571,6 @@ public class BuildingLife : MonoBehaviour
             lr.SetPosition(p, Vector3.Lerp(a, b, p / (lr.positionCount - 1f)) + (p == 0 || p == lr.positionCount - 1 ? Vector3.zero : Random.insideUnitSphere * jitter));
     }
 
-    // Glowing data motes drifting off a part (negative gravity = rising).
     void Motes(Transform at, Color c, float gravity, float perSecond)
     {
         if (at == null) return;
@@ -628,14 +595,12 @@ public class BuildingLife : MonoBehaviour
         });
     }
 
-    // Bubbles rising in a tube while `on`.
     void Bubbles(Transform tube, Func<bool> on)
     {
         if (tube == null) return;
         Every(0.08f, 0.2f, on, () => Juice.Burst(tube.position + Vector3.down * 0.4f, new Color(0.4f, 1f, 0.6f), 1, 0.6f, 0.08f, 0.8f, 2.5f));
     }
 
-    // Grey puffs from a stack or vent while `on`.
     void Smoke(Transform at, Func<bool> on, float gap)
     {
         if (at == null) return;

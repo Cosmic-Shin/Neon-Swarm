@@ -2,19 +2,16 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// The 5 save slots, for saving (Esc menu in a match) or loading (Esc menu, or the skirmish lobby).
-// Each row: slot number, what the save is (mode, opponents), play time and date, then SAVE / LOAD and
-// DELETE (click twice). Built in code with the Settings screen's widgets; Esc or BACK closes it.
 public class SaveSlotsPanel : MonoBehaviour
 {
     public static bool IsOpen { get; private set; }
-    public static int ClosedAt = -1; // frame it closed on Esc, so the screen under it ignores that Esc
+    public static int ClosedAt = -1;
 
     bool saving;
     System.Action onSaved;
     readonly Text[] info = new Text[SaveSystem.Slots + 1];
     readonly Button[] act = new Button[SaveSystem.Slots + 1], del = new Button[SaveSystem.Slots + 1];
-    int confirmDelete, confirmOverwrite; // slot waiting for its second click (0 = none)
+    int confirmDelete, confirmOverwrite;
 
     public static void Open(Component anyUI, bool saving, System.Action onSaved = null)
     {
@@ -50,7 +47,7 @@ public class SaveSlotsPanel : MonoBehaviour
             row.SetParent(box, false);
             row.anchoredPosition = new Vector2(0f, y);
             row.sizeDelta = new Vector2(920f, 78f);
-            HoloSkin.Row(row.GetComponent<Button>()); // Panel_Inset, Btn_Hover while the mouse is over the slot
+            HoloSkin.Row(row.GetComponent<Button>());
             var number = SettingsPanel.Label(row, s.ToString(), new Vector2(-418f, 0f), 34, TextAnchor.MiddleCenter, 60f);
             number.color = new Color(1f, 0.1f, 0.9f);
             info[s] = SettingsPanel.Label(row, "", new Vector2(-120f, 0f), 18, TextAnchor.MiddleLeft, 520f);
@@ -82,7 +79,7 @@ public class SaveSlotsPanel : MonoBehaviour
                 var when = new System.DateTime(d.savedAt, System.DateTimeKind.Utc).ToLocalTime();
                 string time = $"{(int)d.elapsed / 60}:{(int)d.elapsed % 60:00}";
                 string limit = d.skirmish && d.minutes > 0 ? $" / {d.minutes}:00" : "";
-                string date = d.savedAt > 0 ? when.ToString("MMM d, HH:mm") : "older save"; // saves from before slots had no date
+                string date = d.savedAt > 0 ? when.ToString("MMM d, HH:mm") : "older save";
                 info[s].text = $"<b>{d.summary ?? "SAVED GAME"}</b>\n<color=#8C99BF>Played {time}{limit}   ·   ${Mathf.Max(0, d.credits):N0}   ·   {date}</color>";
             }
             bool has = SaveSystem.HasSave(s);

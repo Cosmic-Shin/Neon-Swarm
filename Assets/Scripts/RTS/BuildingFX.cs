@@ -1,10 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Building looks driven by its state:
-//  - Being repaired: a construction drone circles it, welding with a green beam; green sparks and pulses.
-//  - Its side is low on power (power users only): the neon dims and stutters and a red bolt blinks overhead.
-// Added by Structure. Construction keeps it off until the building is finished.
 public class BuildingFX : MonoBehaviour
 {
     static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
@@ -13,14 +9,12 @@ public class BuildingFX : MonoBehaviour
     Structure s;
     Collider body;
 
-    // repair
     Transform drone;
     LineRenderer beam;
     readonly List<Transform> rotors = new();
     float angle, retarget, nextSpark, nextPulse;
     Vector3 weld;
 
-    // low power
     List<(Renderer r, int slot, Color c)> neon;
     MaterialPropertyBlock block;
     LineRenderer bolt;
@@ -44,7 +38,6 @@ public class BuildingFX : MonoBehaviour
         Power(seen && s.Health.enabled && s.power < 0 && Net.LowPower(s.Health.team), b);
     }
 
-    // ---- repair drone ----
     void Repair(bool on, Bounds b = default)
     {
         if (!on)
@@ -82,7 +75,7 @@ public class BuildingFX : MonoBehaviour
         {
             retarget = Random.Range(0.3f, 0.6f);
             Vector3 aim = new(Random.Range(b.min.x, b.max.x), Random.Range(b.min.y + 0.5f, b.max.y), Random.Range(b.min.z, b.max.z));
-            weld = body != null ? body.ClosestPoint(pos + (aim - pos) * 0.5f) : aim; // a spot on the wall facing the drone
+            weld = body != null ? body.ClosestPoint(pos + (aim - pos) * 0.5f) : aim;
         }
         beam.enabled = Random.value > 0.1f;
         beam.SetPosition(0, pos);
@@ -96,7 +89,6 @@ public class BuildingFX : MonoBehaviour
         }
     }
 
-    // ---- power failure ----
     void Power(bool low, Bounds b = default)
     {
         if (!low)
@@ -111,7 +103,7 @@ public class BuildingFX : MonoBehaviour
         if (Time.time >= nextFlicker)
         {
             nextFlicker = Time.time + Random.Range(0.04f, 0.12f);
-            SetNeon(Random.value < 0.07f ? 0.9f : 0.12f + 0.12f * Random.value); // mostly dark, the odd stutter back on
+            SetNeon(Random.value < 0.07f ? 0.9f : 0.12f + 0.12f * Random.value);
         }
 
         if (bolt == null)
@@ -126,11 +118,10 @@ public class BuildingFX : MonoBehaviour
             bolt.startColor = bolt.endColor = Juice.Danger;
             bolt.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
-        bolt.enabled = Mathf.Repeat(Time.time, 1f) < 0.75f; // blinking
+        bolt.enabled = Mathf.Repeat(Time.time, 1f) < 0.75f;
         var cam = Camera.main;
         Vector3 right = cam != null ? cam.transform.right : Vector3.right, up = Vector3.up;
         Vector3 top = new(b.center.x, b.max.y + 3.5f, b.center.z);
-        // A lightning bolt shape: zigzag down, facing the camera.
         Vector2[] shape = { new(0.5f, 1.5f), new(-0.4f, 0.2f), new(0.3f, 0.2f), new(-0.5f, -1.5f), new(0.4f, -0.1f), new(-0.3f, -0.1f) };
         for (int i = 0; i < shape.Length; i++) bolt.SetPosition(i, top + right * shape[i].x + up * shape[i].y);
     }

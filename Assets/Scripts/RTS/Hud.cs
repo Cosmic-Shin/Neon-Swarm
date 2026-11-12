@@ -3,14 +3,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// In-game HUD, built in code on the Canvas (cloned from the BUILDINGS button for the neon look):
-//  - bottom: selection panel (one unit: portrait, health, rank, counters, ability; several: a grid per type)
-//    and command buttons (attack-move, patrol, stop, hold, formation, unload) with their hotkeys
-//  - top-left: control groups 1-9, then everything being built / researched / upgraded (click to jump there)
-//  - IDLE button next to BUILDINGS, the match clock offline, "F1 HOTKEYS" under the minimap and the F1 sheet
 public class Hud : MonoBehaviour
 {
-    // Panel is opaque: the HDR neon behind would bleed through any alpha.
     static readonly Color Panel = new(0.02f, 0.03f, 0.07f, 1f), Cyan = new(0.44f, 1f, 1f), Grey = new(0.72f, 0.77f, 0.85f),
         Gold = new(1f, 0.82f, 0.29f), Pink = new(1f, 0.6f, 0.88f), BarBack = new(0.08f, 0.1f, 0.16f),
         High = new(0.2f, 1f, 1f), Mid = new(1f, 0.9f, 0.2f), Low = new(1f, 0.2f, 0.6f);
@@ -27,7 +21,7 @@ public class Hud : MonoBehaviour
         manager = FindFirstObjectByType<GoodSelectionManager>();
         template = transform.Find("BuildingsButton").GetComponent<Button>();
         font = template.GetComponentInChildren<Text>().font;
-        if (transform.Find("SelectedUnits") is Transform old) old.gameObject.SetActive(false); // replaced by the bottom panel
+        if (transform.Find("SelectedUnits") is Transform old) old.gameObject.SetActive(false);
 
         BuildUnitPanel();
         BuildGroups();
@@ -43,14 +37,14 @@ public class Hud : MonoBehaviour
         UpdateGroups();
         UpdateProduction();
         UpdateIdle();
-        if (!Net.Online && clock != null) // offline: the online timer box shows the time played, or the skirmish time left
+        if (!Net.Online && clock != null)
         {
             clock.transform.parent.gameObject.SetActive(true);
             bool limit = Skirmish.Active && Skirmish.Minutes > 0;
             float t = limit ? Mathf.Max(0f, MatchManager.SkirmishTimeLeft) : Skirmish.Elapsed;
             clock.text = $"{(int)t / 60:00}:{(int)t % 60:00}";
             clock.color = limit && t < 60f ? new Color(1f, 0.3f, 0.3f) : Color.white;
-            if (limit && t < 60f && t > 0f) Sfx.Say(Line.Hurry, 3600f); // the last minute
+            if (limit && t < 60f && t > 0f) Sfx.Say(Line.Hurry, 3600f);
         }
         var kb = Chat.Keys;
         if (kb != null && kb.f1Key.wasPressedThisFrame) help.SetActive(!help.activeSelf);
@@ -59,7 +53,6 @@ public class Hud : MonoBehaviour
 
     Text clock;
 
-    // ================= selection panel + commands =================
 
     RectTransform unitPanel, single, grid;
     Image portrait;
@@ -73,7 +66,6 @@ public class Hud : MonoBehaviour
     {
         unitPanel = Box(transform, "UnitHud", new Vector2(0.5f, 0f), new Vector2(0f, 12f), new Vector2(1180f, 180f), Panel, true);
 
-        // One unit: a card.
         single = Box(unitPanel, "Single", new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(800f, 156f), null, false, new Vector2(0f, 0.5f));
         portrait = new GameObject("Portrait", typeof(RectTransform)).AddComponent<Image>();
         portrait.transform.SetParent(single, false);
@@ -89,13 +81,11 @@ public class Hud : MonoBehaviour
         abilityBar = abilityFill.parent.gameObject;
         abilityText = Label(single, "", 17, TextAnchor.UpperLeft, Gold, new Vector2(520f, -120f), new Vector2(280f, 24f), FontStyle.Bold);
 
-        // Several: one cell per unit type.
         grid = Box(unitPanel, "Grid", new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(800f, 156f), null, false, new Vector2(0f, 0.5f));
         var layout = grid.gameObject.AddComponent<GridLayoutGroup>();
         layout.cellSize = new Vector2(72f, 72f);
         layout.spacing = new Vector2(6f, 6f);
 
-        // Orders.
         var cmd = Box(unitPanel, "Commands", new Vector2(1f, 0.5f), new Vector2(-14f, 0f), new Vector2(342f, 156f), null, false, new Vector2(1f, 0.5f));
         Vector2 size = new(108f, 74f);
         Button At(int col, int row, string label, System.Action a) => MakeButton(cmd, label, new Vector2(col * 117f, -row * 82f), size, a, new Vector2(0f, 1f));
@@ -113,7 +103,6 @@ public class Hud : MonoBehaviour
         Tip(unloadBtn, "Wasp Transport: drop off everyone aboard.");
     }
 
-    // An order waiting for its click shows as a toggle that is ON.
     static void Armed(Button b, bool on)
     {
         HoloSkin.SetOn(b, on);
@@ -159,7 +148,6 @@ public class Hud : MonoBehaviour
             ? $"DMG {Stats.Value(Stat.Damage, d.damage, u):0}  ·  RANGE {Stats.Value(Stat.Range, d.range, u):0}m  ·  SPEED {agent.speed:0}"
             : $"Unarmed  ·  SPEED {agent.speed:0}";
 
-        // Ability / cargo, with a bar when it has one.
         string ability = "";
         float bar = -1f;
         if (u.TryGetComponent(out Charge c)) { ability = c.Charging ? "CHARGING!" : c.CooldownLeft > 0f ? $"CHARGE  {c.CooldownLeft:0}s" : "CHARGE READY"; bar = 1f - c.CooldownLeft / c.CooldownTotal; }
@@ -225,7 +213,6 @@ public class Hud : MonoBehaviour
         foreach (var u in alive) if (u.TryGetComponent(out T t)) yield return t;
     }
 
-    // ================= control groups =================
 
     readonly Button[] groupTabs = new Button[10];
 
@@ -250,7 +237,7 @@ public class Hud : MonoBehaviour
             var tab = groupTabs[i];
             tab.gameObject.SetActive(n > 0);
             if (n == 0) continue;
-            ((RectTransform)tab.transform).anchoredPosition = new Vector2(x, -12f); // packed to the left
+            ((RectTransform)tab.transform).anchoredPosition = new Vector2(x, -12f);
             x += 66f;
             Text(tab).text = $"<b>{i}</b>\n<size=13>x{n}</size>";
         }
@@ -259,7 +246,6 @@ public class Hud : MonoBehaviour
 
     float groupsWidth;
 
-    // ================= production overview =================
 
     readonly List<(Button b, Image icon, RectTransform fill, Text label)> prodCells = new();
     float nextProdScan;
@@ -291,7 +277,6 @@ public class Hud : MonoBehaviour
         }
     }
 
-    // Everything of ours in progress: units / research in each building, construction sites, upgrades.
     void ScanJobs()
     {
         jobs.Clear();
@@ -309,7 +294,7 @@ public class Hud : MonoBehaviour
         }
         foreach (var c in FindObjectsByType<Construction>(FindObjectsSortMode.None))
         {
-            if (c.remote || TeamEconomy.TeamOf(c) != 0) continue; // AI sites aren't yours
+            if (c.remote || TeamEconomy.TeamOf(c) != 0) continue;
             var st = c.GetComponent<Structure>();
             jobs.Add((c.transform, null, st != null && st.data != null ? st.data.icon : null, c.Progress, "BUILD"));
         }
@@ -320,7 +305,7 @@ public class Hud : MonoBehaviour
         var go = new GameObject("Job", typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(transform, false);
         Place((RectTransform)go.transform, new Vector2(0f, 1f), Vector2.zero, new Vector2(56f, 56f), new Vector2(0f, 1f));
-        HoloSkin.Back((RectTransform)go.transform, "Card_Building"); // a job in progress
+        HoloSkin.Back((RectTransform)go.transform, "Card_Building");
         var icon = new GameObject("Icon", typeof(RectTransform)).AddComponent<Image>();
         icon.transform.SetParent(go.transform, false);
         Place(icon.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 3f), new Vector2(44f, 44f));
@@ -332,7 +317,6 @@ public class Hud : MonoBehaviour
         return (go.GetComponent<Button>(), icon, fill, label);
     }
 
-    // ================= idle units =================
 
     Button idleBtn;
     float nextIdleScan;
@@ -353,7 +337,6 @@ public class Hud : MonoBehaviour
         idleBtn.interactable = n > 0;
     }
 
-    // ================= hotkey sheet (F1) =================
 
     void BuildHelp()
     {
@@ -402,17 +385,16 @@ public class Hud : MonoBehaviour
         help.SetActive(false);
     }
 
-    // ================= building blocks =================
 
     RectTransform Box(Transform parent, string name, Vector2 anchor, Vector2 pos, Vector2 size, Color? fill, bool framed, Vector2? pivot = null)
     {
         var rt = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
         rt.SetParent(parent, false);
         Place(rt, anchor, pos, size, pivot ?? anchor);
-        if (fill is Color c) rt.gameObject.AddComponent<Image>().color = c; // stays as an invisible click blocker once framed
+        if (fill is Color c) rt.gameObject.AddComponent<Image>().color = c;
         if (framed)
         {
-            bool sheet = name == "Hotkeys"; // the F1 sheet is an info popup
+            bool sheet = name == "Hotkeys";
             HoloSkin.Back(rt, sheet ? "Tooltip" : "Panel_Frame");
             HoloSkin.FX(rt, sheet ? HoloUI.Yellow : HoloUI.Cyan, intro: sheet, strength: sheet ? 0.8f : 0.5f, aura: sheet);
         }
@@ -427,7 +409,6 @@ public class Hud : MonoBehaviour
         r.sizeDelta = size;
     }
 
-    // Default: positioned from the parent's top-left corner.
     Text Label(Transform parent, string s, int size, TextAnchor align, Color c, Vector2 pos, Vector2 box, FontStyle style = FontStyle.Normal, Vector2? anchor = null)
     {
         var t = new GameObject("Label", typeof(RectTransform)).AddComponent<Text>();
@@ -441,7 +422,6 @@ public class Hud : MonoBehaviour
         return t;
     }
 
-    // A bar from the top-left (or 'anchor') corner; returns the fill, sized with SetBar.
     RectTransform Bar(Transform parent, Vector2 pos, Vector2 size, Vector2? anchor = null)
     {
         var back = new GameObject("Bar", typeof(RectTransform)).AddComponent<Image>();
@@ -454,7 +434,7 @@ public class Hud : MonoBehaviour
         fill.raycastTarget = false;
         var r = fill.rectTransform;
         r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = r.offsetMax = Vector2.zero;
-        HoloSkin.Bar(back, fill, Color.white); // SetBar tints it
+        HoloSkin.Bar(back, fill, Color.white);
         return r;
     }
 

@@ -2,13 +2,10 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-// Hover life for a Holo button (added by HoloSkin.Button for full-size buttons): a thin accent bar on the left
-// edge that brightens and grows on hover, a light shine that sweeps across once, and the label nudging right.
-// Built at runtime; decoration only (no raycasts).
 public class HoloButtonFX : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     public Color accent = new Color32(0, 229, 212, 255);
-    public string index; // optional "01" etc. drawn at the left, for menu lists
+    public string index;
 
     const float ShineTime = 0.45f, Nudge = 6f;
     static Texture2D fade;
@@ -19,7 +16,7 @@ public class HoloButtonFX : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     Image barImg;
     Text number;
     Vector2 labelRest;
-    float hoverAt = -10f, hover; // hover: 0..1 eased
+    float hoverAt = -10f, hover;
     bool over, built;
 
     void Awake()
@@ -48,7 +45,7 @@ public class HoloButtonFX : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
         bar.anchorMin = new Vector2(0f, 0.5f); bar.anchorMax = new Vector2(0f, 0.5f);
         bar.anchoredPosition = new Vector2(10f, 0f);
 
-        shineImg = Part<RawImage>("HoloShine", transform.childCount); // after the label: HoloLabelColor takes the first non-Image graphic as the label
+        shineImg = Part<RawImage>("HoloShine", transform.childCount);
         shineImg.texture = fade;
         shine = shineImg.rectTransform;
         shine.anchorMin = new Vector2(0f, 0f); shine.anchorMax = new Vector2(0f, 1f);
@@ -74,7 +71,7 @@ public class HoloButtonFX : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
 
     T Part<T>(string name, int index) where T : Graphic
     {
-        if (transform.Find(name) is Transform have && have.TryGetComponent(out T existing)) return existing; // a runtime copy
+        if (transform.Find(name) is Transform have && have.TryGetComponent(out T existing)) return existing;
         var go = new GameObject(name, typeof(RectTransform), typeof(T), typeof(LayoutElement));
         go.GetComponent<LayoutElement>().ignoreLayout = true;
         go.transform.SetParent(transform, false);
@@ -95,7 +92,6 @@ public class HoloButtonFX : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
 
     void OnDisable() { over = false; hover = 0f; if (built) Apply(0f); }
 
-    // Restyled to a small toggle: take the parts away too.
     void OnDestroy()
     {
         if (!built) return;

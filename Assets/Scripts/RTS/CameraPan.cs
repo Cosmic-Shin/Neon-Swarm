@@ -1,12 +1,11 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// C&C-style camera: WASD / arrows / screen edge to scroll, mouse wheel to zoom.
 public class CameraPan : MonoBehaviour
 {
     [SerializeField] float speed = 60f;
-    [SerializeField] float edgeSize = 12f;   // px from the screen edge that scrolls
-    public static Vector2 EdgeDir { get; private set; } // the mouse's edge-scroll direction this frame (zero = none), for the cursor
+    [SerializeField] float edgeSize = 12f;
+    public static Vector2 EdgeDir { get; private set; }
     [SerializeField] float zoomStep = 4f;
     [SerializeField] float minHeight = 25f;
     [SerializeField] float maxHeight = 70f;
@@ -20,14 +19,13 @@ public class CameraPan : MonoBehaviour
     void Awake()
     {
         instance = this;
-        float h = GameMaps.Of(gameObject.scene).Half; // the view can reach every edge (it looks north, so it sits a bit south)
+        float h = GameMaps.Of(gameObject.scene).Half;
         minXZ = new Vector2(-h, -h - 35f); maxXZ = new Vector2(h, h - 30f);
-        gameObject.AddComponent<Ambience>(); // rain, ore glints, city life around the view
-        gameObject.AddComponent<WorldFX>(); // lightning, engine hum / mining / footsteps, chasm flow, bridge lights
-        gameObject.AddComponent<MapDressing>(); // ground detail, roads, traffic, holo ads, searchlights, ore glow, base pads
+        gameObject.AddComponent<Ambience>();
+        gameObject.AddComponent<WorldFX>();
+        gameObject.AddComponent<MapDressing>();
     }
 
-    // Camera position p moved so the screen centre looks at 'spot'.
     Vector3 Centered(Vector3 p, Vector3 spot)
     {
         if (transform.forward.y > -0.01f) return p;
@@ -38,9 +36,7 @@ public class CameraPan : MonoBehaviour
         return p;
     }
 
-    // Jump the camera to look at a spot (idle button, production overview).
     public static void LookAt(Vector3 spot) { if (instance != null) instance.transform.position = instance.Centered(instance.transform.position, spot); }
-    // The ground point at the middle of the screen.
     public static Vector3 LookingAt
     {
         get
@@ -57,7 +53,6 @@ public class CameraPan : MonoBehaviour
         var mouse = Mouse.current;
         if (kb == null) return;
 
-        // With units selected A/S are orders (attack-move, stop), so the letters stop panning; arrows always pan.
         bool letters = !GoodSelectionManager.UnitsSelected;
         Vector2 dir = Vector2.zero;
         if ((letters && kb.wKey.isPressed) || kb.upArrowKey.isPressed) dir.y += 1f;
@@ -68,7 +63,6 @@ public class CameraPan : MonoBehaviour
         Vector3 p = transform.position;
         if (mouse != null)
         {
-            // Mouse reads (0,0) until it first moves over the game view; don't treat that as the corner.
             if (mouse.delta.ReadValue() != Vector2.zero) mouseMoved = true;
             Vector2 m = mouse.position.ReadValue();
             bool inside = mouseMoved && Application.isFocused && m.x >= 0 && m.y >= 0 && m.x <= Screen.width && m.y <= Screen.height;
@@ -84,11 +78,9 @@ public class CameraPan : MonoBehaviour
             dir += edge;
             float scroll = mouse.scroll.ReadValue().y;
             bool overUI = UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
-            // Wheel over a panel scrolls the panel instead of zooming.
             if (scroll != 0f && !overUI) p.y = Mathf.Clamp(p.y - Mathf.Sign(scroll) * zoomStep, minHeight, maxHeight);
         }
 
-        // Space: look at where the last alert happened (attack, construction done).
         if (kb.spaceKey.wasPressedThisFrame && Alerts.LastSpot is Vector3 spot) p = Centered(p, spot);
 
         dir = Vector2.ClampMagnitude(dir, 1f);

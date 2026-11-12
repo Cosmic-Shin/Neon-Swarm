@@ -3,14 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-// Shared world-space particle systems, one per look; effects Emit() single particles into them.
-//  Smoke: grey puffs that grow and fade (alpha blended, so they show on the dark ground)
-//  Dust:  like smoke, smaller and quicker
-//  Steam: like smoke, bigger and slower
-//  Print: faint wet footprints lying flat on the ground
-//  Ripple: rain rings on the ground
-//  Rain:  falling streaks
-//  Mote:  floating specks that fade in and out
 public static class Particles
 {
     static readonly Dictionary<string, ParticleSystem> made = new();
@@ -57,7 +49,6 @@ public static class Particles
 
     static ParticleSystem.MinMaxCurve Grow(float from, float to) => new(1f, AnimationCurve.Linear(0f, from, 1f, to));
 
-    // Fades in over the first 'fadeIn' of its life, holds, fades out after 1 - fadeOut.
     static Gradient Fade(float fadeIn, float fadeOut)
     {
         var g = new Gradient();
@@ -66,7 +57,6 @@ public static class Particles
         return g;
     }
 
-    // A thin soft ring, drawn once.
     static Texture2D RingTexture()
     {
         const int n = 64;
@@ -83,11 +73,6 @@ public static class Particles
     }
 }
 
-// On everything with Health (added by Health.Start). When it loses health:
-//  - it flashes white for a moment
-//  - optional floating damage numbers (Settings), summed over a quarter second
-//  - units below 35% trail smoke and the odd spark
-// Health.TakeDamage calls Hurt on the owner's PC, Health.SetFromNet on everyone else's.
 public class HitFX : MonoBehaviour
 {
     static readonly int ColorId = Shader.PropertyToID("_Color"), EmissionId = Shader.PropertyToID("_EmissionColor");
@@ -98,10 +83,10 @@ public class HitFX : MonoBehaviour
     SelectableUnit unit;
     StatusFX status;
     readonly List<(Renderer r, int slot, Color c)> slots = new();
-    (bool had, Color c)[] before; // each slot's own _Color override before the flash
+    (bool had, Color c)[] before;
     bool collected, flashing;
     float flashEnd, lastFlash = -1f, pending, pendingSince, nextSmoke, top = 2f;
-    CreditsPopup live; // the damage number currently counting up over this unit
+    CreditsPopup live;
     float liveTotal;
 
     void Awake()
@@ -151,7 +136,6 @@ public class HitFX : MonoBehaviour
         flashEnd = Time.time + 0.07f;
     }
 
-    // Puts _Color back as it was; keeps whatever glow others (veterancy, building lights) set meanwhile.
     public void EndFlash()
     {
         if (!flashing) return;
@@ -176,7 +160,6 @@ public class HitFX : MonoBehaviour
 
         if (pending > 0f && Time.time - pendingSince > 0.25f)
         {
-            // One number per target that adds up while the fight goes on (a new one once it has floated off).
             if (live != null && live.Age < 0.9f) { liveTotal += pending; live.Restart(Mathf.CeilToInt(liveTotal).ToString()); }
             else
             {
@@ -201,12 +184,10 @@ public class HitFX : MonoBehaviour
     void OnDestroy() => EndFlash();
 }
 
-// A flyer shot down: it spins and falls trailing smoke and fire, then blows up on the ground and breaks apart there.
 public class AirCrash : MonoBehaviour
 {
     static readonly Color SmokeColor = new(0.15f, 0.14f, 0.15f, 0.9f);
 
-    // true = the crash took over; it calls death.Die() when it hits the ground.
     public static bool Begin(Health h, UnitDeath death)
     {
         if (death == null || !h.TryGetComponent(out Flyer f) || h.transform.Find("Model") == null) return false;
@@ -226,12 +207,12 @@ public class AirCrash : MonoBehaviour
 
         var model = transform.Find("Model");
         var anim = model.GetComponentInChildren<Animator>();
-        if (anim != null) anim.speed = 0.3f; // wings / rotors winding down
+        if (anim != null) anim.speed = 0.3f;
         float h0 = model.localPosition.y, size = f.size;
         float time = Mathf.Clamp(0.8f + h0 * 0.06f, 1f, 1.8f);
         float spin = Random.value < 0.5f ? -1f : 1f;
         Quaternion rot0 = model.localRotation;
-        Vector3 drift = transform.forward * Mathf.Min(8f, 2f + size * 1.5f); // keeps some of its speed
+        Vector3 drift = transform.forward * Mathf.Min(8f, 2f + size * 1.5f);
 
         for (float t = 0f; t < time; t += Time.deltaTime)
         {
@@ -260,11 +241,10 @@ public class AirCrash : MonoBehaviour
                 Particles.Emit("Dust", ground + Random.insideUnitSphere * size, Random.insideUnitSphere * 2f + Vector3.up, size * 0.8f, 1.5f, new Color(0.45f, 0.42f, 0.4f, 0.6f));
             Juice.Shake(ground, big ? 0.7f : 0.2f);
         }
-        death.Die(); // debris and scorch where it landed
+        death.Die();
     }
 }
 
-// Ground units: lean into turns and starts/stops, faint wet footprints, and heavy units kick up dust.
 public class UnitMotion : MonoBehaviour
 {
     static readonly Color PrintColor = new(0.35f, 0.6f, 0.85f, 0.22f), DustColor = new(0.5f, 0.47f, 0.43f, 0.35f);
@@ -279,12 +259,12 @@ public class UnitMotion : MonoBehaviour
     void Start()
     {
         model = transform.Find("Model");
-        if (model == null || TryGetComponent(out Flyer _) || model.localPosition.y > 1f) { enabled = false; return; } // flyers / hovering drones
+        if (model == null || TryGetComponent(out Flyer _) || model.localPosition.y > 1f) { enabled = false; return; }
         health = GetComponent<Health>();
         rest = model.localRotation;
         radius = TryGetComponent(out NavMeshAgent agent) ? agent.radius * transform.lossyScale.x : 1f;
         stride = Mathf.Max(0.8f, radius * 1.3f);
-        leanScale = 1f / (1f + radius * 0.4f); // big things lean less
+        leanScale = 1f / (1f + radius * 0.4f);
         var data = GetComponent<SelectableUnit>().Data;
         heavy = radius > 1.6f || (data != null && (data.role == UnitData.Role.Heavy || data.role == UnitData.Role.Elite));
         lastPos = transform.position;
@@ -294,12 +274,12 @@ public class UnitMotion : MonoBehaviour
     void LateUpdate()
     {
         float dt = Time.deltaTime;
-        if (dt <= 0f || !health.enabled) return; // dead: the pieces are on their own
+        if (dt <= 0f || !health.enabled) return;
         Vector3 p = transform.position;
         Vector3 v = (p - lastPos) / dt;
         v.y = 0f;
         lastPos = p;
-        if (v.sqrMagnitude > 2500f) v = vel; // warped (spawn, network snap)
+        if (v.sqrMagnitude > 2500f) v = vel;
         Vector3 newVel = Vector3.Lerp(vel, v, 10f * dt);
         float accel = Vector3.Dot((newVel - vel) / dt, transform.forward);
         vel = newVel;
@@ -329,7 +309,6 @@ public class UnitMotion : MonoBehaviour
     }
 }
 
-// A few reusable point lights for muzzle flashes (making a new light per shot would pile up).
 public class LightPool : MonoBehaviour
 {
     const int Size = 10;

@@ -1,9 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// On a panel title (HoloSkin.Title): bold Oxanium, a pink Deco_HeaderTick left of the words and a cyan Deco_Divider
-// rule under them (children, so they move with it; the tick follows the text as it changes). At runtime it also
-// gets a soft neon outline and a colour band behind the words that fades out to both sides.
 [RequireComponent(typeof(Text))]
 public class HoloTitle : MonoBehaviour
 {
@@ -39,7 +36,7 @@ public class HoloTitle : MonoBehaviour
         return have;
     }
 
-    static Texture2D fade; // horizontal: clear, solid, clear
+    static Texture2D fade;
 
     void Start()
     {
@@ -55,11 +52,11 @@ public class HoloTitle : MonoBehaviour
             fade.Apply();
         }
         var parent = transform.parent;
-        if (parent.Find(name + "Band") != null) return; // a runtime copy of this panel already has one
+        if (parent.Find(name + "Band") != null) return;
         var band = new GameObject(name + "Band", typeof(RectTransform), typeof(RawImage), typeof(LayoutElement)).GetComponent<RawImage>();
         band.GetComponent<LayoutElement>().ignoreLayout = true;
         band.transform.SetParent(parent, false);
-        band.transform.SetSiblingIndex(transform.GetSiblingIndex()); // behind the title
+        band.transform.SetSiblingIndex(transform.GetSiblingIndex());
         band.texture = fade;
         band.color = new Color(HoloUI.Pink.r, HoloUI.Pink.g, HoloUI.Pink.b, 0.16f);
         band.raycastTarget = false;
@@ -77,7 +74,6 @@ public class HoloTitle : MonoBehaviour
         if (text.text != shown) Place();
     }
 
-    // Line up with the words (not the whole text box): left/centre/right by the text's alignment.
     void Place()
     {
         if (text == null) text = GetComponent<Text>();
@@ -97,7 +93,7 @@ public class HoloTitle : MonoBehaviour
             TextAnchor.LowerLeft or TextAnchor.LowerCenter or TextAnchor.LowerRight => box.yMin + lines / 2f,
             _ => box.center.y,
         };
-        x -= box.center.x; // children are anchored to the box centre
+        x -= box.center.x;
         y -= box.center.y;
         tick.gameObject.SetActive(shown.Length > 0);
         tick.anchoredPosition = new Vector2(x - words / 2f - 14f, y);

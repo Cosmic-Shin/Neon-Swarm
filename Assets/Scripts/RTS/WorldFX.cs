@@ -2,15 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-// More life around the camera (added by CameraPan, next to Ambience):
-//  - lightning: the sky flickers bright now and then while it rains, the thunder (Sfx) rolls in a moment later
-//  - sounds from what's in view: air units' engine hum, harvesters' mining clinks, footsteps of moving units
-//  - map features: data pulses flow along the chasms with motes rising out of them; bridge rails light up
-//    while units cross
-// Sounds and particles only near the view centre and never under the fog of war (Juice.Seen / Sfx.At).
 public class WorldFX : MonoBehaviour
 {
-    const float Near = 70f; // how far from the view centre things are heard / animated
+    const float Near = 70f;
     static readonly int TintId = Shader.PropertyToID("_TintColor"), StId = Shader.PropertyToID("_MainTex_ST"), EmissionId = Shader.PropertyToID("_EmissionColor");
     static readonly Color Rail = new Color(0.2f, 0.9f, 1f) * 1.6f, ChasmMote = new(1f, 0.35f, 0.85f, 0.7f);
 
@@ -20,12 +14,11 @@ public class WorldFX : MonoBehaviour
     readonly List<Health> flyers = new(), walkers = new();
     readonly List<Harvester> mining = new();
 
-    // map features (built by MapBuilder): chasm pieces and bridges
     readonly List<Transform> chasms = new();
     Material flow;
     class Bridge { public Transform t; public float halfX, halfZ, glow; public Renderer[] rails; }
     readonly List<Bridge> bridges = new();
-    MaterialPropertyBlock block; // made in Start (Unity forbids it in a field initializer)
+    MaterialPropertyBlock block;
 
     void Start()
     {
@@ -48,7 +41,6 @@ public class WorldFX : MonoBehaviour
 
     bool Close(Vector3 p) => (p.x - focus.x) * (p.x - focus.x) + (p.z - focus.z) * (p.z - focus.z) < Near * Near;
 
-    // What's near the view, sorted into sound makers (4x a second is plenty).
     void Scan()
     {
         flyers.Clear(); walkers.Clear(); mining.Clear();
@@ -68,7 +60,7 @@ public class WorldFX : MonoBehaviour
     void Footsteps()
     {
         if (walkers.Count == 0 || Time.time < nextStep) return;
-        nextStep = Time.time + Mathf.Lerp(0.35f, 0.09f, Mathf.Clamp01(walkers.Count / 12f)); // a crowd marches faster
+        nextStep = Time.time + Mathf.Lerp(0.35f, 0.09f, Mathf.Clamp01(walkers.Count / 12f));
         var w = walkers[Random.Range(0, walkers.Count)];
         if (w != null) Sfx.At(Snd.Footstep, w.transform.position, 0.18f);
     }
@@ -81,7 +73,6 @@ public class WorldFX : MonoBehaviour
         if (hv != null) Sfx.At(Snd.Mining, hv.transform.position, 0.3f);
     }
 
-    // ---- lightning ----
 
     Light sun;
     float sunBase;
@@ -94,7 +85,7 @@ public class WorldFX : MonoBehaviour
         nextFlash = Time.time + Random.Range(30f, 75f);
         if (sun == null) { sun = RenderSettings.sun != null ? RenderSettings.sun : FindFirstObjectByType<Light>(); if (sun != null) sunBase = sun.intensity; }
         if (sun == null) return;
-        float near = Random.value; // close strikes: brighter, louder, sooner
+        float near = Random.value;
         StartCoroutine(Flash(Mathf.Lerp(2f, 5f, near) * GameSettings.FlashScale));
         Sfx.Thunder(Mathf.Lerp(2.5f, 0.4f, near), Mathf.Lerp(0.6f, 1f, near));
     }
@@ -102,7 +93,7 @@ public class WorldFX : MonoBehaviour
     System.Collections.IEnumerator Flash(float peak)
     {
         Color ambient = RenderSettings.ambientLight;
-        float[] beats = { 1f, 0.2f, 0.7f, 0f }; // flicker: bright, dip, bright again, out
+        float[] beats = { 1f, 0.2f, 0.7f, 0f };
         foreach (float b in beats)
         {
             float k = b * peak;
@@ -120,20 +111,18 @@ public class WorldFX : MonoBehaviour
         Sfx.EngineLevel = 0f;
     }
 
-    // ---- chasms and bridges ----
 
     void FindFeatures()
     {
         var root = GameObject.Find("MapFeatures");
         if (root == null) return;
-        // Pulses flowing along each chasm: a dashed additive texture scrolled on the centre stream.
         var tex = new Texture2D(16, 64, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Repeat };
         var px = new Color32[16 * 64];
         for (int y = 0; y < 64; y++)
             for (int x = 0; x < 16; x++)
             {
                 float v = y / 64f, across = 1f - Mathf.Abs((x + 0.5f) / 16f - 0.5f) * 2f;
-                byte a = (byte)(Mathf.Clamp01((v < 0.18f ? 1f - v / 0.18f : 0f) * across) * 255); // a short bright head, then a gap
+                byte a = (byte)(Mathf.Clamp01((v < 0.18f ? 1f - v / 0.18f : 0f) * across) * 255);
                 px[y * 16 + x] = new Color32(a, a, a, a);
             }
         tex.SetPixels32(px);
@@ -151,7 +140,7 @@ public class WorldFX : MonoBehaviour
                 var r = stream.GetComponent<Renderer>();
                 r.sharedMaterial = flow;
                 r.GetPropertyBlock(block);
-                block.SetVector(StId, new Vector4(1f, stream.localScale.y / 9f, 0f, Random.value)); // a pulse every 9 m
+                block.SetVector(StId, new Vector4(1f, stream.localScale.y / 9f, 0f, Random.value));
                 r.SetPropertyBlock(block);
             }
             else if (c.name == "Bridge" || c.name == "SealedBridge")
@@ -167,7 +156,7 @@ public class WorldFX : MonoBehaviour
     void Chasms()
     {
         if (flow == null || chasms.Count == 0) return;
-        flow.mainTextureOffset = new Vector2(0f, -Time.time * 0.6f); // ~5 m/s along every chasm
+        flow.mainTextureOffset = new Vector2(0f, -Time.time * 0.6f);
         for (moteDebt += 30f * Time.deltaTime; moteDebt >= 1f; moteDebt--)
         {
             var c = chasms[Random.Range(0, chasms.Count)];
@@ -177,7 +166,6 @@ public class WorldFX : MonoBehaviour
         }
     }
 
-    // Rails glow brighter while any unit is on the bridge.
     void Bridges()
     {
         foreach (var b in bridges)

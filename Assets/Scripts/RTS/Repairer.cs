@@ -1,17 +1,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Field medic (Patchbot): slowly heals damaged friendly units nearby, not itself.
-// Each unit it is fixing gets a wavy green beam and rising "+" sparkles.
 [RequireComponent(typeof(Health))]
 public class Repairer : MonoBehaviour
 {
     [SerializeField] float range = 10f;
-    [SerializeField] float healPerSecond = 8f; // per unit in range
+    [SerializeField] float healPerSecond = 8f;
 
     const int BeamPoints = 8;
     Health self;
-    readonly List<LineRenderer> beams = new(); // reused, one per patient
+    readonly List<LineRenderer> beams = new();
     float nextSparkle;
 
     void Awake() => self = GetComponent<Health>();
@@ -21,7 +19,7 @@ public class Repairer : MonoBehaviour
     void Update()
     {
         float r2 = range * range;
-        float heal = Stats.Value(Stat.RepairRate, healPerSecond, this) * Time.deltaTime; // Nano-Welders
+        float heal = Stats.Value(Stat.RepairRate, healPerSecond, this) * Time.deltaTime;
         int used = 0;
         bool sparkle = Time.time >= nextSparkle;
         if (sparkle) nextSparkle = Time.time + 0.25f;
@@ -62,7 +60,7 @@ public class Repairer : MonoBehaviour
         for (int p = 0; p < BeamPoints; p++)
         {
             float k = p / (BeamPoints - 1f);
-            float wave = Mathf.Sin(k * 10f - Time.time * 12f) * 0.25f * Mathf.Sin(k * Mathf.PI); // a soft wave running along it
+            float wave = Mathf.Sin(k * 10f - Time.time * 12f) * 0.25f * Mathf.Sin(k * Mathf.PI);
             beam.SetPosition(p, Vector3.Lerp(from, to, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 0.8f + side * wave);
         }
     }

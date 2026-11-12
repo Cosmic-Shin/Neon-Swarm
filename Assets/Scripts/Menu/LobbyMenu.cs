@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// Main menu shown after sign-in, plus the Account screen it opens.
 public class LobbyMenu : MonoBehaviour
 {
     public LoginScreen login;
@@ -37,7 +36,7 @@ public class LobbyMenu : MonoBehaviour
         gameObject.SetActive(false);
         accountPanel.SetActive(true);
         if (!accountPanel.TryGetComponent(out AccountScreen screen)) screen = accountPanel.AddComponent<AccountScreen>();
-        screen.Show(); // profile, rank, win rates, recent matches
+        screen.Show();
     }
 
     void Quit()

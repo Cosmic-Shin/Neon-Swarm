@@ -4,18 +4,16 @@ using System.Threading.Tasks;
 using Fusion;
 using UnityEngine;
 
-// The only class that talks to Photon Fusion (Shared mode). Menus call this, never the runner.
-// A runner can't be restarted after shutdown, so each lobby/room visit gets a fresh one.
 public class RoomService : MonoBehaviour
 {
     public const int MaxPlayers = 8;
     public static RoomService Instance { get; private set; }
     public static event Action RoomsChanged;
-    public static event Action<string> Disconnected; // dropped out of a room without pressing Leave
+    public static event Action<string> Disconnected;
 
-    public NetworkRunner runnerPrefab; // NetworkRunner + NetworkSceneManagerDefault + NetworkEvents
+    public NetworkRunner runnerPrefab;
     public NetworkObject roomPlayerPrefab;
-    public NetworkObject roomStatePrefab; // seats, bases and settings; spawned by whoever opens the room
+    public NetworkObject roomStatePrefab;
     public NetworkRunner Runner { get; private set; }
     public List<SessionInfo> Rooms { get; private set; } = new();
     bool inRoom;
@@ -28,12 +26,10 @@ public class RoomService : MonoBehaviour
     }
 
 #if DEVELOPMENT_BUILD
-    // Test builds only: "GD5.exe -autojoin MyRoom" joins that room without signing in (keeps retrying
-    // until it exists), so a second copy of the game can be a test opponent.
     async void Start()
     {
         var args = System.Environment.GetCommandLineArgs();
-        if (FriendsHub.DevArg("-quickmatch")) // "-quickmatch": QUICK MATCH once signed in, then ready up
+        if (FriendsHub.DevArg("-quickmatch"))
         {
             while (this && !AccountService.SignedIn) await Task.Delay(500);
             await Task.Delay(2000);
@@ -53,7 +49,6 @@ public class RoomService : MonoBehaviour
         }
     }
 
-    // "-team N": join lobby team N. Then click READY after a few seconds (so the host sees NOT READY first).
     async void AutoReady(string[] args)
     {
         while (this && (RoomState.Instance == null || RoomState.Instance.SlotOf(Runner.LocalPlayer) < 0)) await Task.Delay(500);
@@ -75,7 +70,6 @@ public class RoomService : MonoBehaviour
         return result.Ok ? null : "Can't reach server: " + result.ShutdownReason;
     }
 
-    // friendsOnly: left off the public room list; friends get in with JOIN or an invite.
     public async Task<string> Create(string room, bool friendsOnly = false)
     {
         if (Rooms.Exists(r => r.Name == room)) return "A room with that name already exists.";
@@ -84,10 +78,8 @@ public class RoomService : MonoBehaviour
 
     public Task<string> Join(string room) => StartRoom(room, false);
 
-    // Joins it if it exists, else creates it (Photon decides atomically, so a group racing here meets up).
     public Task<string> JoinOrCreate(string room, bool visible) => StartRoom(room, true, visible);
 
-    // QUICK MATCH: the fullest open public room with a seat, else a new public one.
     public Task<string> QuickMatch()
     {
         SessionInfo best = null;
@@ -99,7 +91,6 @@ public class RoomService : MonoBehaviour
     public static string HostOf(SessionInfo r) =>
         r.Properties != null && r.Properties.TryGetValue("host", out var h) ? (string)h.PropertyValue : null;
 
-    // PLAY AGAIN: the group's next room ("Name #2", "#3"...) and the settings to bring along.
     public static (string room, bool visible, int credits, int minutes, int map)? Again;
 
     public void SetUpPlayAgain()
@@ -128,7 +119,6 @@ public class RoomService : MonoBehaviour
 
     public bool IsHost => Runner && Runner.IsRunning && Runner.IsSharedModeMasterClient;
 
-    // Host only: lock the room and send everyone to the map (Fusion loads it on every client).
     public void StartMatch()
     {
         if (!IsHost || RoomState.Instance == null || RoomState.Instance.TooManyPlayers) return;
@@ -145,14 +135,14 @@ public class RoomService : MonoBehaviour
             GameMode = GameMode.Shared,
             SessionName = room,
             PlayerCount = MaxPlayers,
-            EnableClientSessionCreation = create, // Join must not silently create a new room
+            EnableClientSessionCreation = create,
             IsVisible = visible,
             SessionProperties = new System.Collections.Generic.Dictionary<string, SessionProperty> { { "host", AccountService.Username ?? "Player" } },
             SceneManager = Runner.GetComponent<NetworkSceneManagerDefault>(),
         });
         if (!result.Ok)
         {
-            await EnterLobby(); // the failed runner is dead; get back on the room list
+            await EnterLobby();
             return result.ShutdownReason switch
             {
                 ShutdownReason.GameNotFound => "No room named \"" + room + "\".",
@@ -162,9 +152,9 @@ public class RoomService : MonoBehaviour
             };
         }
         inRoom = true;
-        FriendsHub.SetRoom(room); // friends see it and can JOIN
-        Runner.Spawn(roomPlayerPrefab); // Shared mode: each player spawns and owns their own
-        if (Runner.IsSharedModeMasterClient && RoomState.Instance == null) // the room's creator
+        FriendsHub.SetRoom(room);
+        Runner.Spawn(roomPlayerPrefab);
+        if (Runner.IsSharedModeMasterClient && RoomState.Instance == null)
         {
             var state = Runner.Spawn(roomStatePrefab).GetComponent<RoomState>();
             if (Again is var (againRoom, _, credits, minutes, map) && againRoom == room && credits > 0) { state.Credits = credits; state.Minutes = minutes; state.SetMap(map); }
@@ -175,7 +165,6 @@ public class RoomService : MonoBehaviour
 
     NetworkRunner NewRunner()
     {
-        // Prefab, not AddComponent: NetworkEvents' UnityEvents are only created when serialized.
         var runner = Instantiate(runnerPrefab);
         DontDestroyOnLoad(runner.gameObject);
         var events = runner.GetComponent<NetworkEvents>();
@@ -187,7 +176,7 @@ public class RoomService : MonoBehaviour
         });
         events.OnShutdown.AddListener((r, reason) =>
         {
-            if (r != Runner) return; // we shut it down ourselves
+            if (r != Runner) return;
             bool wasInRoom = inRoom;
             Runner = null;
             inRoom = false;

@@ -2,31 +2,28 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-// Production building: a C&C queue of units and/or one-time research. Options are units first, then upgrades.
 public class Building : MonoBehaviour
 {
-    [SerializeField] SelectableUnit[] unitPrefabs; // one panel button per entry
-    [SerializeField] ResearchData[] upgrades;      // research options (Research Lab)
+    [SerializeField] SelectableUnit[] unitPrefabs;
+    [SerializeField] ResearchData[] upgrades;
     [SerializeField] Transform spawnPoint;
     [SerializeField] float spawnSpread = 1.5f;
-    [SerializeField] float exitSpeed = 4f; // m/s while a new unit walks out of the building
-    [SerializeField] Gate gate;            // optional door that opens for each new unit
-    [SerializeField] Transform padEdge;    // optional: front edge of a raised floor; units walk on the floor to here, then step down
+    [SerializeField] float exitSpeed = 4f;
+    [SerializeField] Gate gate;
+    [SerializeField] Transform padEdge;
 
-    // Set by right-clicking the ground with this building selected: new units walk there.
     public Vector3? Rally { get; set; }
 
-    // Production queue: one at a time, in click order.
     readonly List<int> queue = new();
-    float progress; // seconds spent on queue[0]
+    float progress;
     LineRenderer rallyLine;
     Structure structure;
     ProductionFX fx;
-    AerieFX aerie; // air factory: flyers launch out of its roof hatch, titans from its mast
+    AerieFX aerie;
 
     void Awake()
     {
-        unitPrefabs = unitPrefabs.OrderBy(u => u.Cost).ToArray(); // cheapest first
+        unitPrefabs = unitPrefabs.OrderBy(u => u.Cost).ToArray();
         upgrades = upgrades.OrderBy(u => u.tier).ThenBy(u => u.branch).ThenBy(u => u.cost).ToArray();
         structure = GetComponent<Structure>();
         aerie = GetComponent<AerieFX>();
@@ -48,10 +45,10 @@ public class Building : MonoBehaviour
     ResearchData Upgrade(int i) => upgrades[i - unitPrefabs.Length];
 
     public string NameOf(int i) => IsUnit(i) ? unitPrefabs[i].DisplayName : Upgrade(i).displayName;
-    public int SquadOf(int i) => IsUnit(i) ? Mathf.Max(1, unitPrefabs[i].Data.squadSize) : 1; // units per purchase
+    public int SquadOf(int i) => IsUnit(i) ? Mathf.Max(1, unitPrefabs[i].Data.squadSize) : 1;
     public Sprite IconOf(int i) => IsUnit(i) ? unitPrefabs[i].Icon : Upgrade(i).icon;
     public int CostOf(int i) => IsUnit(i) ? unitPrefabs[i].Cost : Upgrade(i).cost;
-    public float TimeOf(int i) => IsUnit(i) ? Stats.Value(Stat.BuildTime, unitPrefabs[i].BuildTime, this) : Upgrade(i).researchTime; // Hive Mk II: -20%
+    public float TimeOf(int i) => IsUnit(i) ? Stats.Value(Stat.BuildTime, unitPrefabs[i].BuildTime, this) : Upgrade(i).researchTime;
     public string TooltipOf(int i)
     {
         string tip = IsUnit(i) ? Tooltip.For(unitPrefabs[i].Data) : Tooltip.For(Upgrade(i));
@@ -62,26 +59,21 @@ public class Building : MonoBehaviour
 
     public int Producing => queue.Count > 0 ? queue[0] : -1;
     public float Progress01 => queue.Count > 0 ? progress / TimeOf(queue[0]) : 0f;
-    // The production look for option i (-1 = idle): the unit's model, or the research's icon.
     public void ShowProduction(int i, float progress01) =>
         fx.Show(i < 0 || i >= OptionCount ? null : IsUnit(i) ? unitPrefabs[i] : Upgrade(i).icon, progress01);
 
-    // Why this option can't be queued right now, credits aside (null = it can).
-    // Elite units need Core Nexus Mk III; research: one project per lab, plus ResearchManager's rules.
     public string Blocker(int i)
     {
         if (IsUnit(i))
         {
             if (unitPrefabs[i].Data.role != UnitData.Role.Elite) return null;
             if (ResearchManager.CoreLevelOf(Team) < 3) return "Needs Core Nexus Mk III";
-            return aerie != null && !aerie.HasMast ? "Needs Hive Aerie Mk III" : null; // titans moor at the mast
+            return aerie != null && !aerie.HasMast ? "Needs Hive Aerie Mk III" : null;
         }
         if (queue.Exists(q => !IsUnit(q))) return queue.Contains(i) ? "Researching" : "Lab busy: one project at a time";
         return ResearchManager.Blocker(Upgrade(i), this);
     }
 
-    // What's still needed before option i can be bought, for the button's lock badge (null = nothing).
-    // A busy lab or a finished project isn't a requirement, so those don't lock the button.
     public string Needs(int i)
     {
         string why = Blocker(i);
@@ -93,13 +85,11 @@ public class Building : MonoBehaviour
 
     public bool CanQueue(int i) => TeamEconomy.Credits(Team) >= CostOf(i) && Blocker(i) == null;
 
-    // Whose building (single player: you or an AI); it pays and its units fight for that team.
     public int Team => structure != null ? structure.Health.team : 0;
-    public UnitData UnitOf(int i) => IsUnit(i) ? unitPrefabs[i].Data : null; // null = research
+    public UnitData UnitOf(int i) => IsUnit(i) ? unitPrefabs[i].Data : null;
     public ResearchData ResearchOf(int i) => IsUnit(i) ? null : Upgrade(i);
     public int QueueLength => queue.Count;
 
-    // Paid up front; refused when short on credits.
     public void Enqueue(int index)
     {
         if (!CanQueue(index) || !TeamEconomy.Spend(Team, CostOf(index))) return;
@@ -107,18 +97,16 @@ public class Building : MonoBehaviour
         if (!IsUnit(index)) ResearchManager.Started(Upgrade(index), this);
     }
 
-    // Removes the most recently queued one of this type (C&C right-click) and refunds it.
     public void CancelOne(int index)
     {
         int at = queue.LastIndexOf(index);
         if (at < 0) return;
         queue.RemoveAt(at);
-        if (at == 0) progress = 0f; // cancelled the one in production
+        if (at == 0) progress = 0f;
         if (!IsUnit(index)) ResearchManager.Stopped(Upgrade(index), this);
         TeamEconomy.Add(Team, CostOf(index));
     }
 
-    // Saves: the research project running here and its time left.
     public ResearchData CurrentResearch => queue.Count > 0 && !IsUnit(queue[0]) ? Upgrade(queue[0]) : null;
     public float TimeLeft => queue.Count > 0 ? TimeOf(queue[0]) - progress : 0f;
 
@@ -131,7 +119,6 @@ public class Building : MonoBehaviour
         ResearchManager.Started(r, this);
     }
 
-    // Destroyed mid-project: the research is lost (paid for, not refunded), another lab can start it.
     void OnDestroy()
     {
         foreach (int q in queue) if (!IsUnit(q)) ResearchManager.Stopped(Upgrade(q), this);
@@ -145,7 +132,6 @@ public class Building : MonoBehaviour
         return n;
     }
 
-    // Runs only while enabled, so a building under construction doesn't produce.
     void Update()
     {
         bool showRally = Rally.HasValue && structure != null && structure.IsSelected && unitPrefabs.Length > 0;
@@ -159,7 +145,7 @@ public class Building : MonoBehaviour
 
         ShowProduction(Producing, Progress01);
         if (queue.Count == 0) return;
-        progress += Time.deltaTime * (Structure.LowPowerOf(Team) ? 0.5f : 1f); // low power: half speed
+        progress += Time.deltaTime * (Structure.LowPowerOf(Team) ? 0.5f : 1f);
         if (progress < TimeOf(queue[0])) return;
 
         int done = queue[0];
@@ -170,8 +156,6 @@ public class Building : MonoBehaviour
         else { ResearchManager.Complete(Upgrade(done), Team); if (ours) { MatchStats.Add(MatchStats.Kind.Research); Alerts.Show($"Research complete: {NameOf(done)}", Alerts.Good) ; Sfx.Say(Line.Research, 4f); } }
     }
 
-    // A hologram flag on the rally point while the building is selected: a pole, a waving pennant and a
-    // ring that pulses on the ground, in the building's colour.
     Transform flag;
     LineRenderer pennant;
 
@@ -195,7 +179,7 @@ public class Building : MonoBehaviour
             pennant.useWorldSpace = false;
             pennant.sharedMaterial = Juice.AdditiveLine;
             pennant.positionCount = 6;
-            pennant.widthCurve = AnimationCurve.Linear(0f, 0.9f, 1f, 0.05f); // a triangle: wide at the pole
+            pennant.widthCurve = AnimationCurve.Linear(0f, 0.9f, 1f, 0.05f);
             pennant.startColor = pennant.endColor = new Color(c.r, c.g, c.b, 0.55f);
             var ring = new GameObject("Ring").AddComponent<LineRenderer>();
             ring.transform.SetParent(flag, false);
@@ -211,7 +195,6 @@ public class Building : MonoBehaviour
         flag.gameObject.SetActive(show);
         if (!show) return;
         flag.position = Rally.Value;
-        // Face the camera so the pennant reads as a flag, and let it wave.
         if (Camera.main != null) flag.rotation = Quaternion.Euler(0f, Camera.main.transform.eulerAngles.y, 0f);
         for (int i = 0; i < 6; i++)
         {
@@ -224,7 +207,6 @@ public class Building : MonoBehaviour
 
     void OnDisable() { if (flag != null) flag.gameObject.SetActive(false); }
 
-    // Squad units (C&C style) come out one after another, this far apart.
     const float SquadGap = 0.45f;
 
     void SummonUnit(int index) => StartCoroutine(SummonSquad(index, SquadOf(index)));
@@ -233,7 +215,6 @@ public class Building : MonoBehaviour
     {
         for (int n = 0; n < squad; n++)
         {
-            // Each one gets its own spot around the rally point, so the squad doesn't fight over one spot.
             Vector3? rally = Rally;
             if (rally.HasValue && squad > 1) rally += Quaternion.Euler(0f, n * 360f / squad, 0f) * Vector3.forward * 3f;
             SummonOne(index, rally);
@@ -241,30 +222,48 @@ public class Building : MonoBehaviour
         }
     }
 
-    void SummonOne(int index, Vector3? rally)
+    public SelectableUnit Release(SelectableUnit prefab)
+    {
+        var (exit, inside, edge) = ExitPath();
+        var unit = Net.Spawn(prefab, exit, Quaternion.LookRotation(spawnPoint.position - transform.position));
+        if (Team != 0) Attacker.SetTeam(unit, Team);
+        Sfx.At(Snd.UnitReady, exit, 0.6f);
+        unit.WalkOut(inside, exit, exitSpeed, edge, null);
+        float doorTime = Vector3.Distance(inside, exit) / exitSpeed;
+        Juice.Materialize(unit.gameObject, doorTime * 0.85f);
+        OpenGate(doorTime);
+        if (TryGetComponent(out NetEntity net) && net.Online) net.RPC_OpenGate(doorTime);
+        return unit;
+    }
+
+    (Vector3 exit, Vector3 inside, Vector3? edge) ExitPath()
     {
         Vector2 r = Random.insideUnitCircle * spawnSpread;
         Vector3 exit = spawnPoint.position + new Vector3(r.x, 0f, r.y);
         float floor = padEdge != null ? padEdge.position.y : spawnPoint.position.y;
         Vector3 inside = new(transform.position.x, floor, transform.position.z);
-        Vector3? edge = padEdge != null ? padEdge.position + (exit - spawnPoint.position) * 0.5f : null; // follow the spread, roughly
+        Vector3? edge = padEdge != null ? padEdge.position + (exit - spawnPoint.position) * 0.5f : null;
+        return (exit, inside, edge);
+    }
 
-        // Created at the exit (on the navmesh), then walks there from inside the building, then on to the rally point.
+    void SummonOne(int index, Vector3? rally)
+    {
+        var (exit, inside, edge) = ExitPath();
         var unit = Net.Spawn(unitPrefabs[index], exit, Quaternion.LookRotation(spawnPoint.position - transform.position));
         Sfx.At(Snd.UnitReady, exit, 0.6f);
         if (Team == 0) Sfx.Say(Line.Ready, 8f);
-        if (Team != 0) Attacker.SetTeam(unit, Team); // an AI's factory (offline only; online everything spawned here is ours)
+        if (Team != 0) Attacker.SetTeam(unit, Team);
         else MatchStats.Add(MatchStats.Kind.UnitsBuilt);
         if (aerie != null && Flyer.IsAir(unit))
         {
             float launch = aerie.Launch(unit, exit, rally);
-            if (TryGetComponent(out NetEntity n) && n.Online) n.RPC_OpenGate(launch); // others see the hatch open
+            if (TryGetComponent(out NetEntity n) && n.Online) n.RPC_OpenGate(launch);
             Juice.Materialize(unit.gameObject, launch * 0.6f);
             return;
         }
         unit.WalkOut(inside, exit, exitSpeed, edge, rally);
-        float doorTime = Vector3.Distance(inside, exit) / exitSpeed; // shut once it's through
-        Juice.Materialize(unit.gameObject, doorTime * 0.85f); // as it clears the door
+        float doorTime = Vector3.Distance(inside, exit) / exitSpeed;
+        Juice.Materialize(unit.gameObject, doorTime * 0.85f);
         OpenGate(doorTime);
         if (TryGetComponent(out NetEntity net) && net.Online) net.RPC_OpenGate(doorTime);
     }

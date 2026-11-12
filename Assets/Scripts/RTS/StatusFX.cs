@@ -1,10 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// What's happening to a unit, shown on it:
-//  - EMP-stunned: blue electric arcs crackle over it and a light flickers.
-//  - Cloaked (ours or an ally's, inside a working Cloak Field): it turns into a see-through purple shimmer.
-// Added to every unit by Health.Start. Other players' units: NetEntity sets RemoteStunned.
 public class StatusFX : MonoBehaviour
 {
     static readonly Color Electric = new(0.6f, 0.85f, 1f), CloakTint = new(0.55f, 0.35f, 1f);
@@ -17,7 +13,7 @@ public class StatusFX : MonoBehaviour
     Health health;
     SelectableUnit unit;
     Renderer[] rends;
-    Material[][] normal; // each renderer's own materials, while cloaked
+    Material[][] normal;
     LineRenderer[] arcs;
     Light zap;
     float height = 2f, radius = 1f, nextArc;
@@ -44,11 +40,10 @@ public class StatusFX : MonoBehaviour
         bool stunned = alive && ((unit != null && unit.IsStunned) || RemoteStunned) && Juice.Seen(transform.position);
         Stun(stunned);
         SetCloak(alive && Net.Allied(health.team, 0) && CloakField.Covers(health));
-        if (cloaked && cloakMat != null) // slow shimmer
+        if (cloaked && cloakMat != null)
             cloakMat.SetColor("_Color", CloakTint * (1.1f + 0.35f * Mathf.Sin(Time.time * 3f)));
     }
 
-    // ---- stun ----
     void Stun(bool on)
     {
         if (arcs == null)
@@ -78,7 +73,7 @@ public class StatusFX : MonoBehaviour
         zap.enabled = on;
         if (!on || Time.time < nextArc) return;
 
-        nextArc = Time.time + 0.06f; // new random arcs ~16 times a second
+        nextArc = Time.time + 0.06f;
         Vector3 c = transform.position;
         foreach (var lr in arcs)
         {
@@ -95,12 +90,11 @@ public class StatusFX : MonoBehaviour
         if (Random.value < 0.3f) Juice.Burst(c + Vector3.up * Random.Range(0.2f, height), Electric, 3, 2f, 0.12f, 0.25f);
     }
 
-    // ---- cloak ----
     void SetCloak(bool on)
     {
         if (on == cloaked || rends == null) return;
         cloaked = on;
-        Sfx.At(Snd.Cloak, transform.position, 0.35f); // shimmering in or out
+        Sfx.At(Snd.Cloak, transform.position, 0.35f);
         if (on)
         {
             if (cloakMat == null)

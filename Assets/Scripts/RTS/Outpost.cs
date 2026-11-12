@@ -1,17 +1,13 @@
 using UnityEngine;
 
-// Glue between the pack's OutpostCapture and our combat.
-// Owned: it can be shot (at 0 HP it drops back to neutral and kicks the garrison out) and it shoots
-// enemies in range, harder and further for every unit stationed inside. Neutral: not a target.
 [RequireComponent(typeof(OutpostCapture), typeof(Health))]
 public class Outpost : MonoBehaviour
 {
     [SerializeField] Material laserMaterial;
-    [SerializeField] float range = 20f;      // empty outpost; garrisoned units' range x garrisonRangeBonus if longer
-    [SerializeField] float baseDamage = 6f;  // empty outpost; each garrisoned unit adds its own damage
+    [SerializeField] float range = 20f;
+    [SerializeField] float baseDamage = 6f;
     [SerializeField] float cooldown = 1f;
 
-    /// <summary>Multiplayer (host): told about every shot so the other PCs can draw the laser.</summary>
     public static System.Action<Outpost, Health> ShotHook;
 
     OutpostCapture capture;
@@ -38,9 +34,8 @@ public class Outpost : MonoBehaviour
         started = true;
     }
 
-    bool started; // the first OwnerChanged (scene start) shows no capture
+    bool started;
 
-    // Changing hands: rings sweep out and a beam of the new owner's colour shoots up, then fades.
     void CaptureFX(int team)
     {
         Color c = team >= 0 ? Net.ColorOf(team) : new Color(0.6f, 0.6f, 0.7f);
@@ -55,7 +50,7 @@ public class Outpost : MonoBehaviour
         beam.SetPosition(1, p + Vector3.up * 45f);
         beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         beam.startColor = beam.endColor = c * 2f;
-        Juice.Play(beam.gameObject, 1.2f, k => beam.widthMultiplier = Mathf.Lerp(2.5f, 0f, k)); // destroyed when done
+        Juice.Play(beam.gameObject, 1.2f, k => beam.widthMultiplier = Mathf.Lerp(2.5f, 0f, k));
     }
 
     void OwnerChanged(int team)
@@ -65,7 +60,7 @@ public class Outpost : MonoBehaviour
         if (started && health.team != team && Juice.Seen(transform.position)) CaptureFX(team);
         health.team = team;
         health.Revive();
-        health.enabled = team >= 0; // neutral ruins aren't a target
+        health.enabled = team >= 0;
         laser.material.color = Net.ColorOf(team) * 3f;
     }
 
@@ -77,7 +72,6 @@ public class Outpost : MonoBehaviour
         laserOff = Time.time + 0.1f;
     }
 
-    // Shot down: empty it and let OutpostCapture decay it to neutral (it does once hold time and progress hit 0).
     void Fall()
     {
         capture.EjectAll();
@@ -88,13 +82,13 @@ public class Outpost : MonoBehaviour
     void Update()
     {
         if (laser.enabled && Time.time >= laserOff) laser.enabled = false;
-        if (capture.remote || !capture.IsOwned || Time.time < nextShot) return; // remote: the host shoots
+        if (capture.remote || !capture.IsOwned || Time.time < nextShot) return;
 
         float damage = baseDamage, reach = range;
         foreach (var g in capture.Garrison)
         {
             if (g == null || !g.TryGetComponent(out SelectableUnit u)) continue;
-            damage += Stats.Value(Stat.Damage, u.Data.damage, u);   // research + veterancy carry inside
+            damage += Stats.Value(Stat.Damage, u.Data.damage, u);
             reach = Mathf.Max(reach, Stats.Value(Stat.Range, u.Data.range, u) * capture.garrisonRangeBonus);
         }
 

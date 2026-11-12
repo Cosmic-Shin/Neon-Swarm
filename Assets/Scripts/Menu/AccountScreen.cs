@@ -1,12 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// Main menu > Account: who you are and how you play. Built in code inside the scene's AccountPanel
-// (its SIGN OUT / BACK buttons are kept); LobbyMenu calls Show(). Numbers come from ProfileService.
-//   top:    avatar, name, rank + progress to the next, member since, player ID
-//   cards:  matches, wins, losses, win rate (ring), streak
-//   left:   win rate by mode and by AI difficulty, career totals
-//   right:  the last 10 matches
 public class AccountScreen : MonoBehaviour
 {
     static readonly Color Cyan = new(0.3f, 1f, 1f), Pink = new(1f, 0.1f, 0.9f), Win = new(0.35f, 1f, 0.55f), Loss = new(1f, 0.32f, 0.38f),
@@ -35,7 +29,7 @@ public class AccountScreen : MonoBehaviour
         Fill(ProfileService.Current ?? new PlayerProfile());
 
         var profile = await ProfileService.Load();
-        if (this == null) return; // closed meanwhile
+        if (this == null) return;
         Fill(profile);
         note.text = ProfileService.LastError ?? "Stats are saved to your account (Unity Cloud Save).";
         try
@@ -108,14 +102,13 @@ public class AccountScreen : MonoBehaviour
         value.text = t.games > 0 ? $"{t.Rate * 100f:0}%   <color=#8C99BF>{t.wins}W {t.Losses}L</color>" : "<color=#8C99BF>no games</color>";
     }
 
-    // ---- layout ----
 
     void Build()
     {
         built = true;
         var panel = (RectTransform)transform;
         panel.sizeDelta = new Vector2(1560f, 800f);
-        panel.anchoredPosition = new Vector2(0f, -70f); // clear of the game title
+        panel.anchoredPosition = new Vector2(0f, -70f);
         circle = MakeCircle();
         transform.Find("Header").gameObject.SetActive(false);
         transform.Find("Info").gameObject.SetActive(false);
@@ -124,7 +117,6 @@ public class AccountScreen : MonoBehaviour
         signOut.anchoredPosition = new Vector2(-210f, -350f);
         back.anchoredPosition = new Vector2(210f, -350f);
 
-        // Top: identity.
         var top = Box(panel, new Vector2(0f, 300f), new Vector2(1480f, 130f), Card);
         var ringBack = Img(top, new Vector2(-660f, 0f), new Vector2(100f, 100f), Pink, circle);
         avatar = Img(ringBack.rectTransform, Vector2.zero, new Vector2(88f, 88f), Cyan, circle);
@@ -139,7 +131,6 @@ public class AccountScreen : MonoBehaviour
         HoloSkin.Bar(rankBar, rankFill, Gold);
         rankNext = Txt(top, "", new Vector2(380f, -48f), 15, TextAnchor.MiddleLeft, 560f, Dim);
 
-        // Cards.
         string[] titles = { "MATCHES", "WINS", "LOSSES", "", "STREAK" };
         Color[] tints = { Cyan, Win, Loss, Cyan, Color.white };
         for (int i = 0; i < 5; i++)
@@ -159,7 +150,6 @@ public class AccountScreen : MonoBehaviour
             }
         }
 
-        // Left: win rates, then career totals.
         var left = Box(panel, new Vector2(-372f, -112f), new Vector2(736f, 360f), Card);
         Txt(left, "WIN RATE", new Vector2(-52f, 156f), 18, TextAnchor.MiddleLeft, 600f, Pink, FontStyle.Bold);
         for (int i = 0; i < bars.Length; i++)
@@ -180,7 +170,6 @@ public class AccountScreen : MonoBehaviour
             Txt(left, totalNames[i], pos + new Vector2(0f, -14f), 12, TextAnchor.MiddleCenter, 220f, Dim);
         }
 
-        // Right: recent matches.
         var right = Box(panel, new Vector2(372f, -112f), new Vector2(736f, 360f), Card);
         Txt(right, "RECENT MATCHES", new Vector2(-52f, 156f), 18, TextAnchor.MiddleLeft, 600f, Pink, FontStyle.Bold);
         noMatches = Txt(right, "No matches yet.\nFinish a skirmish or multiplayer game and it shows up here.", Vector2.zero, 18, TextAnchor.MiddleCenter, 600f, Dim);
@@ -199,7 +188,6 @@ public class AccountScreen : MonoBehaviour
         note = Txt(panel, "", new Vector2(0f, -310f), 14, TextAnchor.MiddleCenter, 1200f, new Color(0.45f, 0.5f, 0.65f));
     }
 
-    // A stat box: Panel_Inset (Holo kit).
     RectTransform Box(Transform parent, Vector2 pos, Vector2 size, Color fill)
     {
         var img = Img(parent, pos, size, fill, null);
@@ -219,7 +207,6 @@ public class AccountScreen : MonoBehaviour
         return img;
     }
 
-    // A bar's fill: grows from the left as its anchorMax.x goes 0..1.
     static Image Fill(RectTransform bar, Color color)
     {
         var f = Img(bar, Vector2.zero, Vector2.zero, color, null);
@@ -235,7 +222,7 @@ public class AccountScreen : MonoBehaviour
         t.fontStyle = style;
         t.supportRichText = true;
         t.horizontalOverflow = HorizontalWrapMode.Overflow;
-        t.verticalOverflow = VerticalWrapMode.Overflow; // big numbers are taller than the label box
+        t.verticalOverflow = VerticalWrapMode.Overflow;
         return t;
     }
 
@@ -255,7 +242,6 @@ public class AccountScreen : MonoBehaviour
         return Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f);
     }
 
-    // ---- formatting ----
 
     static string Clock(float s) => $"{(int)s / 60}:{(int)s % 60:00}";
     static string Hours(float s) => s >= 3600f ? $"{s / 3600f:0.0}h" : $"{Mathf.RoundToInt(s / 60f)}m";

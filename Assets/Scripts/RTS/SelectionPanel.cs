@@ -2,11 +2,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Selected units, grouped by type: icon, count and average health. Click a type to keep only those.
 public class SelectionPanel : MonoBehaviour
 {
     [SerializeField] GoodSelectionManager manager;
-    [SerializeField] Button cellTemplate; // disabled; children "Count" (Text) and "Health" (filled Image)
+    [SerializeField] Button cellTemplate;
 
     readonly List<Button> cells = new();
     readonly List<UnitData> order = new();

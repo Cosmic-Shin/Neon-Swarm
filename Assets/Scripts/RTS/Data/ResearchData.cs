@@ -1,28 +1,23 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// One node of the research tree (Research Lab). Each can be researched once per match.
 [CreateAssetMenu(menuName = "RTS/Research Data", fileName = "NewResearch")]
 public class ResearchData : ScriptableObject
 {
     public enum Branch { Econ, Assault, Heavy, Support, Defense, Elite }
 
-    public string id;                     // "E1", used by saves
+    public string id;
     public string displayName;
-    [TextArea] public string description; // the effect, shown in the shop tooltip
+    [TextArea] public string description;
     public Sprite icon;
     public Branch branch;
-    [Range(1, 3)] public int tier = 1;    // needs the Core Nexus at this Mk level
+    [Range(1, 3)] public int tier = 1;
     public int cost = 1000;
     public float researchTime = 30f;
-    public ResearchData requires;         // must be researched first
-    public StatMod[] effects;             // empty = no gameplay mechanic for it yet
+    public ResearchData requires;
+    public StatMod[] effects;
 }
 
-// Research per team: what's done, and what each lab is working on. Team 0 is you; single-player AIs
-// research for their own team. One project per lab, labs run in parallel, the same node can't run in
-// two of a team's labs. The lab's own queue (Building) pays and counts the time; a lab destroyed
-// mid-project loses it.
 public static class ResearchManager
 {
     static readonly Dictionary<int, List<ResearchData>> done = new();
@@ -33,17 +28,14 @@ public static class ResearchManager
     static List<ResearchData> List(int team) => done.TryGetValue(team, out var l) ? l : done[team] = new();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void Reset() => Clear(); // fresh each play session
+    static void Reset() => Clear();
 
-    // A new match (MatchManager.Start); a loaded save puts its research back after.
     public static void Clear() { done.Clear(); running.Clear(); }
 
     public static bool IsDone(ResearchData r, int team = 0) => List(team).Contains(r);
 
-    // Mk level of the player's best Core Nexus (1 without an upgraded one): gates research tiers and elite units.
     public static int CoreLevel => CoreLevelOf(0);
 
-    // Any team's (single-player AIs upgrade their own Core Nexus).
     public static int CoreLevelOf(int team)
     {
         int best = 1;
@@ -52,7 +44,6 @@ public static class ResearchManager
         return best;
     }
 
-    // Why it can't start yet (null = it can).
     public static string Blocker(ResearchData r, Building lab)
     {
         int team = lab.Team;
@@ -64,7 +55,6 @@ public static class ResearchManager
     }
 
     public static void Started(ResearchData r, Building lab) => running[(lab.Team, r)] = lab;
-    // By lab, not team: also called while the lab is being destroyed.
     public static void Stopped(ResearchData r, Building lab)
     {
         foreach (var k in new List<(int, ResearchData)>(running.Keys)) if (k.Item2 == r && running[k] == lab) running.Remove(k);
@@ -79,7 +69,6 @@ public static class ResearchManager
         Stats.Refresh();
     }
 
-    // Saves: put back what was done without the alerts.
     public static void Restore(IEnumerable<ResearchData> list, int team = 0)
     {
         var mine = List(team);

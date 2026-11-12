@@ -1,20 +1,16 @@
 using System.Collections;
 using UnityEngine;
 
-// Procedural recoil for shooters without an authored Attack clip. Kick() shoves `target` back from the shot
-// and tilts it up (or shakes it), easing back to rest over `returnTime`. The offset is added in LateUpdate on
-// top of whatever the Animator or aiming code wrote, and taken off again at the end of the frame, so it never
-// builds up or fights them.
 public class RecoilKick : MonoBehaviour
 {
-    public Transform target;          // the part that kicks (body, torso, tower head)
-    public float distance = 0.15f;    // metres back at full kick
-    public float angle = 6f;          // degrees of muzzle climb
-    public float returnTime = 0.12f;  // seconds to settle
-    public bool shake;                // ArcCoil: a jitter instead of a kick
+    public Transform target;
+    public float distance = 0.15f;
+    public float angle = 6f;
+    public float returnTime = 0.12f;
+    public bool shake;
 
-    float k;                          // 1 = just fired, 0 = at rest
-    Vector3 dir = Vector3.forward;    // shot direction, flat
+    float k;
+    Vector3 dir = Vector3.forward;
     Vector3 restPos;
     Quaternion restRot;
     bool applied, restoring;
@@ -34,13 +30,13 @@ public class RecoilKick : MonoBehaviour
         restPos = target.localPosition;
         restRot = target.localRotation;
         applied = true;
-        float e = k * k; // snaps back fast, settles gently
+        float e = k * k;
         if (shake) target.position += Random.insideUnitSphere * distance * e;
         else
         {
             target.position -= dir * distance * e;
             Vector3 right = Vector3.Cross(Vector3.up, dir);
-            target.rotation = Quaternion.AngleAxis(-angle * e, right) * target.rotation; // muzzle climbs
+            target.rotation = Quaternion.AngleAxis(-angle * e, right) * target.rotation;
         }
         k = Mathf.Max(0f, k - Time.deltaTime / Mathf.Max(0.01f, returnTime));
     }
@@ -51,7 +47,7 @@ public class RecoilKick : MonoBehaviour
         var endOfFrame = new WaitForEndOfFrame();
         do
         {
-            yield return endOfFrame; // after rendering: put it back before the Animator / aiming run again
+            yield return endOfFrame;
             if (applied && target != null) { target.localPosition = restPos; target.localRotation = restRot; }
             applied = false;
         } while (k > 0f);

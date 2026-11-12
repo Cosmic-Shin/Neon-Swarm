@@ -2,40 +2,32 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-// The whole offline game in one of 5 JSON slots (Esc menu / skirmish lobby slot list; F5 quick-saves to the
-// last slot, F9 loads the newest): credits, ore, every unit and finished building (ours, AIs', creeps), research,
-// upgrades, construction in progress, outposts, veterancy, the skirmish setup and the match clock.
-// Loading restarts the scene and lays the save over it: scene objects are matched by where the scene put
-// them, things built during play are made again from Resources/PrefabList.
 [System.Serializable]
 public class SaveData
 {
     public int version = 2;
-    // Shown in the slot list.
-    public long savedAt;                           // UTC ticks
-    public float elapsed;                          // seconds of play in this match
-    public string summary;                         // "SKIRMISH  ·  vs 2 AI: Hard, Normal"
-    // The skirmish lobby setup, so loading rebuilds the same match (AIs, teams, colours, bases, time limit).
+    public long savedAt;
+    public float elapsed;
+    public string summary;
     public bool skirmish;
     public int startCredits, minutes, playerSide, playerColor, playerBase;
-    public string map; // the map's scene name (empty in old saves = the big map)
+    public string map;
     public List<Skirmish.Opponent> opponents = new();
-    public List<TeamResearch> teamResearch = new(); // AI research (yours is `research`)
-    public int[] matchStats;                       // MatchStats.Values, for the end screen and your career stats
+    public List<TeamResearch> teamResearch = new();
+    public int[] matchStats;
 
-    public List<string> research = new();          // completed research ids
-    public List<LabSave> labs = new();             // project running in each lab
-    public List<UpgradeSave> upgrades = new();     // building upgrade levels (Mk II / III)
-    public List<SiteSave> sites = new();           // construction sites in progress
+    public List<string> research = new();
+    public List<LabSave> labs = new();
+    public List<UpgradeSave> upgrades = new();
+    public List<SiteSave> sites = new();
     public List<OutpostSave> outposts = new();
     public List<VeterancySave> veterans = new();
     public int credits = -1;
-    public List<int> aiCredits = new();            // skirmish: AI teams 1..7
-    public List<EntitySave> entities = new();      // every unit and finished building, ours and theirs
+    public List<int> aiCredits = new();
+    public List<EntitySave> entities = new();
     public List<OreSave> ores = new();
 }
 
-// origin: scene objects ("Chromejaw (2)@45.0,-30.0", where the scene put it); empty = made during play.
 [System.Serializable] public class EntitySave { public string prefab; public string origin; public Vector3 position; public Quaternion rotation; public float health; public int team; }
 [System.Serializable] public class OreSave { public string ore; public float amount; }
 
@@ -46,7 +38,6 @@ public class SaveData
 [System.Serializable] public class OutpostSave { public string outpost; public int owner; public int capturing; public float progress; public float holdTimeLeft; public List<string> garrison = new(); }
 [System.Serializable] public class VeterancySave { public string unit; public int kills; }
 
-// Runs SaveSystem.Apply over a few frames after a load restarts the scene, then goes away.
 public class SaveLoader : MonoBehaviour
 {
     public void Run(SaveData d) => StartCoroutine(Go(d));
@@ -55,21 +46,18 @@ public class SaveLoader : MonoBehaviour
 
 public static class SaveSystem
 {
-    // ---- slots: save_1.json .. save_5.json ----
     public const int Slots = 5;
 
     public static string SlotPath(int slot) => Path.Combine(Application.persistentDataPath, $"save_{slot}.json");
     public static bool HasSave(int slot) => File.Exists(SlotPath(slot));
     public static bool HasAnySave { get { for (int s = 1; s <= Slots; s++) if (HasSave(s)) return true; return false; } }
 
-    // The slot F5 saves to: the last one used (slot 1 at first).
     public static int LastSlot
     {
         get => Mathf.Clamp(PlayerPrefs.GetInt("save.lastSlot", 1), 1, Slots);
         set { PlayerPrefs.SetInt("save.lastSlot", value); PlayerPrefs.Save(); }
     }
 
-    // The newest save (F9), 0 = none.
     public static int NewestSlot
     {
         get
@@ -87,7 +75,6 @@ public static class SaveSystem
         LastSlot = slot;
     }
 
-    // What the slot list shows (the whole save; they're small). Null = empty or unreadable.
     public static SaveData Info(int slot)
     {
         if (!HasSave(slot)) return null;
@@ -97,9 +84,8 @@ public static class SaveSystem
 
     public static void Delete(int slot) { if (HasSave(slot)) File.Delete(SlotPath(slot)); }
 
-    // Load a whole game, from the map or the main menu: the skirmish setup goes back first so the map
-    // starts as the same match, then the save is laid over it (Hook -> SaveLoader -> Apply).
     static SaveData pending;
+    public static bool Loaded { get; private set; }
 
     public static bool LoadGame(int slot)
     {
@@ -127,27 +113,25 @@ public static class SaveSystem
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Hook()
     {
-        // The old single save becomes slot 1.
         string old = Path.Combine(Application.persistentDataPath, "save.json");
         if (File.Exists(old) && !File.Exists(SlotPath(1))) File.Move(old, SlotPath(1));
         pending = null;
         UnityEngine.SceneManagement.SceneManager.sceneLoaded += (_, _) =>
         {
+            Loaded = pending != null;
             if (pending == null) return;
             new GameObject("LoadingSave").AddComponent<SaveLoader>().Run(pending);
             pending = null;
         };
     }
 
-    // Frame 1 (everything has started): units and buildings, credits, ore.
-    // Frame 2 (replaced objects are gone): research, upgrades, sites, outposts, veterancy, then health.
     public static System.Collections.IEnumerator Apply(SaveData d)
     {
         yield return null;
         RestoreWorld(d);
         yield return null;
         Restore(d);
-        yield return null; // max health refreshed by research / upgrades / ranks
+        yield return null;
         foreach (var (h, f) in healthToSet) if (h != null) h.SetFraction(f);
         healthToSet.Clear();
         Alerts.Show("Game loaded", Alerts.Good);
@@ -175,10 +159,10 @@ public static class SaveSystem
     {
         if (ResourceBank.Instance != null) d.credits = ResourceBank.Instance.Credits;
         for (int t = 1; t <= 7; t++) d.aiCredits.Add(TeamEconomy.Credits(t));
-        foreach (var h in Object.FindObjectsByType<Health>(FindObjectsInactive.Include, FindObjectsSortMode.None)) // garrisoned units are inactive
+        foreach (var h in Object.FindObjectsByType<Health>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
-            if (!IsEntity(h) || h.IsDead || h.TryGetComponent(out Construction _)) continue; // sites are saved on their own
-            if (h.transform.position.y < -10f) continue; // ponytail: riders inside a Wasp aren't saved; save the Wasp's cargo if it matters
+            if (!IsEntity(h) || h.IsDead || h.TryGetComponent(out Construction _)) continue;
+            if (h.transform.position.y < -10f) continue;
             d.entities.Add(new EntitySave
             {
                 prefab = PrefabName(h), origin = Origin(h), position = h.transform.position,
@@ -197,7 +181,6 @@ public static class SaveSystem
         }
         for (int i = 0; i < d.aiCredits.Count; i++) TeamEconomy.Set(i + 1, d.aiCredits[i]);
 
-        // Scene objects still alive in the save are moved to where they were; the rest are gone.
         var byOrigin = new Dictionary<string, EntitySave>();
         foreach (var e in d.entities) if (!string.IsNullOrEmpty(e.origin)) byOrigin[e.origin] = e;
         foreach (var h in Object.FindObjectsByType<Health>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -207,7 +190,6 @@ public static class SaveSystem
             else Object.Destroy(h.gameObject);
         }
 
-        // Things made during play are made again.
         foreach (var e in d.entities)
         {
             if (!string.IsNullOrEmpty(e.origin)) continue;
@@ -226,14 +208,13 @@ public static class SaveSystem
         if (h.TryGetComponent(out SelectableUnit u)) Attacker.SetTeam(u, e.team);
         else h.team = e.team;
         if (h.TryGetComponent(out UnityEngine.AI.NavMeshAgent agent) && agent.enabled && agent.isOnNavMesh) agent.Warp(e.position);
-        h.transform.position = e.position; // flyers move themselves, not through the agent
+        h.transform.position = e.position;
         h.transform.rotation = e.rotation;
         healthToSet.Add((h, e.health));
     }
 
     public static string ToJson() => JsonUtility.ToJson(Capture(), true);
 
-    // ---- what goes in ----
     public static SaveData Capture()
     {
         var d = new SaveData { savedAt = System.DateTime.UtcNow.Ticks, elapsed = Skirmish.Elapsed, skirmish = Skirmish.Active, map = GameMaps.Current.scene, matchStats = (int[])MatchStats.Values.Clone() };
@@ -273,17 +254,16 @@ public static class SaveSystem
             d.outposts.Add(s);
         }
 
-        foreach (var v in Object.FindObjectsByType<Veterancy>(FindObjectsInactive.Include, FindObjectsSortMode.None)) // garrisoned units are inactive
+        foreach (var v in Object.FindObjectsByType<Veterancy>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             if (v.Kills > 0) d.veterans.Add(new VeterancySave { unit = Key(v), kills = v.Kills });
         CaptureWorld(d);
         return d;
     }
 
-    // ---- and back out ----
     public static void Restore(SaveData d)
     {
         var all = new Dictionary<string, ResearchData>();
-        foreach (var r in Resources.FindObjectsOfTypeAll<ResearchData>()) all[r.id] = r; // loaded via the Research Lab prefab
+        foreach (var r in Resources.FindObjectsOfTypeAll<ResearchData>()) all[r.id] = r;
         var done = new List<ResearchData>();
         foreach (var id in d.research) if (all.TryGetValue(id, out var r)) done.Add(r);
         ResearchManager.Restore(done);
@@ -307,7 +287,7 @@ public static class SaveSystem
             var data = placer != null ? System.Array.Find(placer.Buildings, b => b.prefab.name == s.prefab) : null;
             if (data == null) { Debug.LogWarning($"Save: no building called {s.prefab}"); continue; }
             var b = Object.Instantiate(data.prefab, s.position, s.rotation);
-            b.GetComponent<Health>().team = s.team; // before Start, like the AI's own sites: colours, power, build slots
+            b.GetComponent<Health>().team = s.team;
             if (b.TryGetComponent(out TeamMember tm)) tm.team = s.team;
             var c = b.AddComponent<Construction>();
             c.duration = data.buildTime;
@@ -332,17 +312,15 @@ public static class SaveSystem
             }
     }
 
-    // ponytail: objects are matched by prefab name + position (no saved world yet); give them saved ids once units/buildings are saved too.
     const float MatchRadius = 3f;
 
     static string Key(Component c)
     {
         Vector3 p = c.transform.position;
-        var inv = System.Globalization.CultureInfo.InvariantCulture; // "12.5", not "12,5", whatever the PC's language
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
         return $"{PrefabName(c)}@{p.x.ToString("0.0", inv)},{p.z.ToString("0.0", inv)}";
     }
 
-    // "Chromejaw (2)" placed in the scene and "Chromejaw(Clone)" are both the Chromejaw prefab.
     static string PrefabName(Component c)
     {
         string n = c.gameObject.name.Replace("(Clone)", "").Trim();

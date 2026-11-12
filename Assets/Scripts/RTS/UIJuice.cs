@@ -4,10 +4,6 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// Every button in every scene, including ones made at runtime (lives on the Sfx "Audio" object):
-//  - grows a little while hovered, springs back when left
-//  - Flash(): a glow sweep and a pop, e.g. a unit button when that unit is done
-//  - clicking a shop button you can't afford pulses the credits counter red
 public class UIJuice : MonoBehaviour
 {
     const float Hover = 1.06f;
@@ -26,7 +22,7 @@ public class UIJuice : MonoBehaviour
         I.Get(button.transform).now = 1.18f;
         var glow = new GameObject("Flash", typeof(RectTransform)).AddComponent<Image>();
         glow.transform.SetParent(button.transform, false);
-        HoloUI.SetSliced(glow, "Fill_White"); // the kit's chamfered shape, tinted below
+        HoloUI.SetSliced(glow, "Fill_White");
         glow.raycastTarget = false;
         var rt = glow.rectTransform;
         rt.anchorMin = Vector2.zero;
@@ -57,7 +53,7 @@ public class UIJuice : MonoBehaviour
             if (button != null && !button.IsInteractable() && mouse.leftButton.wasPressedThisFrame && CantAfford(button)) CreditsDisplay.Deny();
         }
         if (hovered != null) Get(hovered);
-        if (hovered != lastHovered && hovered != null) Sfx.Play(Snd.Hover, 0.25f); // a soft tick as the mouse lands on a button
+        if (hovered != lastHovered && hovered != null) Sfx.Play(Snd.Hover, 0.25f);
         lastHovered = hovered;
 
         settled.Clear();
@@ -75,7 +71,6 @@ public class UIJuice : MonoBehaviour
         foreach (var t in settled) scaled.Remove(t);
     }
 
-    // Its price is shown in red (LockBadge does that while you're short of credits).
     static bool CantAfford(Button b)
     {
         var cost = b.transform.Find("Cost");

@@ -1,21 +1,17 @@
 using UnityEngine;
 
-// Look of a factory at work: a hologram of the unit being made (or the icon of the research project) is
-// printed bottom-up above the roof (scan ring at the print line), a light pulses and sparks spray at the exit.
-// Flashes when it is done.
-// Fed by Building.Update on the owner's PC and by NetEntity.Render everywhere else.
 public class ProductionFX : MonoBehaviour
 {
     const float HoloSize = 5f, SpinSpeed = 40f, FlashTime = 0.5f, SparksPerSecond = 25f;
     static readonly Color Cyan = new(0.3f, 1f, 1f);
 
-    public Transform exit; // the door: sparks + light here
-    public Transform titanDock; // Hive Aerie Mk III: titans are printed full size here instead of above the roof
+    public Transform exit;
+    public Transform titanDock;
 
-    Object shown;   // the unit prefab or research icon on show
-    bool picture;   // research icon: a flat card that faces the camera
-    float boost;    // brightness: a flat card has no rim glow, so it needs more
-    Vector3 mid; // centre of the body, on the ground
+    Object shown;
+    bool picture;
+    float boost;
+    Vector3 mid;
     float progress, holoBase, holoHeight, roof, sparkDebt, flash;
     Transform holo;
     Material holoMat;
@@ -24,18 +20,17 @@ public class ProductionFX : MonoBehaviour
     Light glow;
     Color color;
     Vector3 glowHome;
-    bool titan;           // printing a titan at the mooring mast
+    bool titan;
     float titanRadius;
-    Vector3 titanHead;    // the mast top the projector beam rises from
+    Vector3 titanHead;
     readonly System.Collections.Generic.List<Transform> tips = new();
     readonly System.Collections.Generic.List<LineRenderer> welds = new();
 
-    // what = the unit prefab or research icon in production (null = nothing), progress 0..1.
     public void Show(Object what, float progress01)
     {
         if (what != shown)
         {
-            if (shown != null && holo != null) flash = FlashTime; // finished (or cancelled): flash the old one out
+            if (shown != null && holo != null) flash = FlashTime;
             else Clear();
             shown = what;
             if (what != null) { Clear(); flash = 0f; Build(what); }
@@ -45,7 +40,6 @@ public class ProductionFX : MonoBehaviour
 
     void Start()
     {
-        // Top of the main body (the collider), not of the tallest antenna.
         mid = new Vector3(transform.position.x, 0f, transform.position.z);
         if (TryGetComponent(out Collider body)) { roof = body.bounds.max.y; mid = new Vector3(body.bounds.center.x, 0f, body.bounds.center.z); }
         else foreach (var r in GetComponentsInChildren<Renderer>()) roof = Mathf.Max(roof, r.bounds.max.y);
@@ -62,7 +56,6 @@ public class ProductionFX : MonoBehaviour
         ring.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         ring.enabled = false;
 
-        // Projector cone from the roof up to the hologram.
         beam = new GameObject("ProjectorBeam").AddComponent<LineRenderer>();
         beam.transform.SetParent(transform, false);
         beam.gameObject.layer = layer;
@@ -79,7 +72,6 @@ public class ProductionFX : MonoBehaviour
         glowHome = glow.transform.position;
     }
 
-    // Falling, stretched sparks that the caller Emit()s by hand (also used by UpgradeFX).
     public static ParticleSystem MakeSparks(Transform parent, int layer)
     {
         var ps = new GameObject("Sparks").AddComponent<ParticleSystem>();
@@ -114,7 +106,6 @@ public class ProductionFX : MonoBehaviour
         return l;
     }
 
-    // Hologram colour for this building: its team's (cyan for your own side offline, like TeamLook).
     public static Color HoloColor(GameObject go)
     {
         int team = go.TryGetComponent(out Health h) ? h.team : 0;
@@ -149,7 +140,6 @@ public class ProductionFX : MonoBehaviour
         r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         r.sharedMaterial = holoMat;
 
-        // Just this sprite's part of its texture.
         Texture tex = icon.texture;
         Rect px = icon.textureRect;
         holoMat.mainTexture = tex;
@@ -166,7 +156,6 @@ public class ProductionFX : MonoBehaviour
     void BuildModel(SelectableUnit unit)
     {
         var model = unit.transform.Find("Model");
-        // Copied under an inactive parent so none of its scripts wake up, then stripped to just the looks.
         var hold = new GameObject();
         hold.SetActive(false);
         holo = Instantiate(model != null ? model.gameObject : unit.gameObject, hold.transform).transform;
@@ -184,7 +173,6 @@ public class ProductionFX : MonoBehaviour
             r.gameObject.layer = gameObject.layer;
         }
 
-        // Fit it to HoloSize, standing on a spot just above the roof.
         holo.localRotation = Quaternion.identity;
         holo.position = Vector3.zero;
         holo.localScale = Vector3.one;
@@ -196,7 +184,6 @@ public class ProductionFX : MonoBehaviour
         holo.position += new Vector3(mid.x - b.center.x, holoBase - b.min.y, mid.z - b.center.z);
     }
 
-    // Titan print: a beam up the mast to the print line, welding arcs from each clamp tip to it, sparks raining off.
     void WeldAndBeam(float cut, float radius)
     {
         beam.SetPosition(0, titanHead);
@@ -224,7 +211,6 @@ public class ProductionFX : MonoBehaviour
         }
     }
 
-    // Titan: real size, in the mast clamps, facing the way it will leave, so the finished titan appears right where it was printed.
     void PlaceAtDock()
     {
         holo.SetParent(transform, false);
@@ -273,19 +259,19 @@ public class ProductionFX : MonoBehaviour
 
     void LateUpdate()
     {
-        if (ring == null) return; // before Start
+        if (ring == null) return;
         bool working = holo != null && (shown != null || flash > 0f);
         ring.enabled = beam.enabled = glow.enabled = working;
-        foreach (var w in welds) w.enabled = working && titan && shown != null && Random.value > 0.2f; // crackle
+        foreach (var w in welds) w.enabled = working && titan && shown != null && Random.value > 0.2f;
         if (!working) return;
 
-        if (titan) { } // moored: no spin
+        if (titan) { }
         else if (!picture) holo.RotateAround(mid, Vector3.up, SpinSpeed * Time.deltaTime);
-        else if (Camera.main != null) // the card turns to face the camera (upright)
+        else if (Camera.main != null)
             holo.rotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(holo.position - Camera.main.transform.position, Vector3.up));
         float flicker = Random.value < 0.05f ? 0.4f : 1f;
 
-        if (shown == null) // done: whole hologram flashes bright and fades
+        if (shown == null)
         {
             flash -= Time.deltaTime;
             float k = Mathf.Clamp01(flash / FlashTime);
@@ -302,7 +288,6 @@ public class ProductionFX : MonoBehaviour
         holoMat.SetFloat("_CutY", cut);
         holoMat.SetColor("_Color", color * boost * flicker);
 
-        // Ring at the print line.
         float radius = titan ? titanRadius : HoloSize * 0.55f;
         for (int i = 0; i < ring.positionCount; i++)
         {
@@ -323,7 +308,7 @@ public class ProductionFX : MonoBehaviour
         var p = new ParticleSystem.EmitParams { startColor = Color.Lerp(color, new Color(1f, 0.8f, 0.4f), 0.5f), startSize = 0.08f, startLifetime = 0.6f };
         Vector3 outward = Vector3.ProjectOnPlane(sparks.transform.position - mid, Vector3.up).normalized;
         Vector3 from = sparks.transform.position;
-        from.y = Random.Range(0.3f, Mathf.Max(from.y, 2f)); // anywhere up the doorway
+        from.y = Random.Range(0.3f, Mathf.Max(from.y, 2f));
         for (; sparkDebt >= 1f; sparkDebt--)
         {
             p.position = from;

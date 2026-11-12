@@ -1,25 +1,21 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// A player's career: every finished match adds to it (MatchManager.End -> ProfileService.Record).
-// Plain data with a few read-only helpers; ProfileService stores it as JSON in Unity Cloud Save.
 [System.Serializable]
 public class PlayerProfile
 {
-    // One finished match, newest first in PlayerProfile.recent.
     [System.Serializable]
     public class MatchRecord
     {
         public bool won;
-        public bool online;       // multiplayer room, else skirmish
-        public string opponents;  // "2 AI: Hard, Normal" / "3 players"
-        public int difficulty;    // skirmish: hardest enemy AI (Skirmish.Difficulty), -1 online
+        public bool online;
+        public string opponents;
+        public int difficulty;
         public float seconds;
         public int kills, unitsLost;
-        public long when;         // UTC ticks
+        public long when;
     }
 
-    // Wins / games per mode and per AI difficulty.
     [System.Serializable]
     public class Tally
     {
@@ -29,10 +25,10 @@ public class PlayerProfile
     }
 
     public Tally all = new(), skirmish = new(), online = new();
-    public Tally[] vsAI = { new(), new(), new() }; // Easy, Normal, Hard
-    public int streak, bestStreak;                 // current: + wins in a row, - losses in a row
-    public float secondsPlayed, fastestWin;        // fastestWin 0 = none yet
-    public int[] totals = new int[MatchStats.Headers.Length]; // MatchStats.Kind order
+    public Tally[] vsAI = { new(), new(), new() };
+    public int streak, bestStreak;
+    public float secondsPlayed, fastestWin;
+    public int[] totals = new int[MatchStats.Headers.Length];
     public List<MatchRecord> recent = new();
 
     public const int RecentKept = 10;
@@ -56,7 +52,6 @@ public class PlayerProfile
 
     public int Total(MatchStats.Kind k) => totals != null && (int)k < totals.Length ? totals[(int)k] : 0;
 
-    // Rank by wins: name, wins needed.
     public static readonly (string name, int wins)[] Ranks =
         { ("RECRUIT", 0), ("OPERATIVE", 3), ("NETRUNNER", 10), ("VANGUARD", 25), ("WARLORD", 50), ("LEGEND", 100) };
 
@@ -65,7 +60,6 @@ public class PlayerProfile
         get { int r = 0; for (int i = 0; i < Ranks.Length; i++) if (all.wins >= Ranks[i].wins) r = i; return r; }
     }
 
-    // 0..1 towards the next rank (1 at the top rank).
     public float RankProgress
     {
         get

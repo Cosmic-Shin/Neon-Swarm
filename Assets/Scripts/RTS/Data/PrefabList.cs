@@ -1,7 +1,5 @@
 using UnityEngine;
 
-// Every unit and building prefab, so a save can turn "Skitter" back into a Skitter.
-// One asset: Resources/PrefabList (refill it when adding units or buildings).
 [CreateAssetMenu(menuName = "RTS/Prefab List", fileName = "PrefabList")]
 public class PrefabList : ScriptableObject
 {

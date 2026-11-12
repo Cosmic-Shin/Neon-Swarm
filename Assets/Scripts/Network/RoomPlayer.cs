@@ -1,21 +1,19 @@
 using System.Collections.Generic;
 using Fusion;
 
-// One per player in a room. The owner writes their username (and, in a match, whether they are low on power
-// and their match stats).
 public class RoomPlayer : NetworkBehaviour
 {
     public static readonly List<RoomPlayer> All = new();
 
     [Networked] public NetworkString<_32> Username { get; set; }
-    [Networked] public NetworkString<_64> PlayerId { get; set; } // Unity account ID: others can send a friend request
-    [Networked] public NetworkBool LowPower { get; set; } // in a match: other PCs read it for our cloak fields and reveal rings
-    [Networked, Capacity(8)] public NetworkArray<int> Stats => default; // in a match: our MatchStats, for the end screen
+    [Networked] public NetworkString<_64> PlayerId { get; set; }
+    [Networked] public NetworkBool LowPower { get; set; }
+    [Networked, Capacity(8)] public NetworkArray<int> Stats => default;
 
     public override void Spawned()
     {
         All.Add(this);
-        Runner.MakeDontDestroyOnLoad(gameObject); // keep the roster when the match scene loads
+        Runner.MakeDontDestroyOnLoad(gameObject);
         if (HasStateAuthority)
         {
             Username = AccountService.Username ?? "Player";
@@ -36,7 +34,6 @@ public class RoomPlayer : NetworkBehaviour
         return null;
     }
 
-    // Everyone else here we could still send a friend request to.
     public static List<(string name, string id)> Strangers()
     {
         var list = new List<(string, string)>();

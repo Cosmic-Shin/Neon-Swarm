@@ -1,8 +1,6 @@
 using UnityEditor;
 using UnityEditor.SceneManagement;
 
-// Play in the editor starts from the main menu (build scene 0), like the real game, whatever scene is open.
-// Tools > GD5 > Play From Lobby turns it off to test the open scene directly.
 [InitializeOnLoad]
 static class PlayFromLobby
 {
@@ -11,7 +9,7 @@ static class PlayFromLobby
     static PlayFromLobby()
     {
         EditorApplication.delayCall += Apply;
-        EditorApplication.playModeStateChanged += s => { if (s == PlayModeStateChange.ExitingEditMode) Apply(); }; // set again right before Play
+        EditorApplication.playModeStateChanged += s => { if (s == PlayModeStateChange.ExitingEditMode) Apply(); };
     }
 
     static bool On => EditorPrefs.GetBool(Key, true);

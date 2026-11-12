@@ -1,20 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Paints a unit or building in its owner's colour: the cyan neon accent every model shares is swapped
-// for a copy in the team colour (one copy per colour, shared). Health.Start calls it, once the team is known.
-// Your own side keeps the original cyan in single player, unless you picked another colour in the skirmish lobby.
 public static class TeamLook
 {
     const string Accent = "Skitter_NeonCyan";
     static readonly Dictionary<(Material, Color), Material> tinted = new();
-    static readonly Dictionary<Material, Material> original = new(); // tinted copy -> the shared accent
+    static readonly Dictionary<Material, Material> original = new();
 
     public static void Apply(GameObject go, int team)
     {
-        if (!Net.Online && team == 0 && Net.ColorOf(0) == TeamMember.TeamColors[0]) return; // keeps the model's own cyan unless you picked another colour
+        if (!Net.Online && team == 0 && Net.ColorOf(0) == TeamMember.TeamColors[0]) return;
         Color c = Net.ColorOf(team);
-        if (c == Color.white) return; // no colour for this side
+        if (c == Color.white) return;
         foreach (var r in go.GetComponentsInChildren<Renderer>(true))
         {
             if (r is LineRenderer || r is ParticleSystemRenderer || r is SpriteRenderer) continue;

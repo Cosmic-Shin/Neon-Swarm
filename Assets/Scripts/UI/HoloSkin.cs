@@ -1,14 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// Neon Swarm's use of the Chamfered Holo kit (HoloUI). Our widgets are a dark Image plus an old neon "Frame"
-// child; these helpers hide that frame and put the kit sprite on a "HoloBG" child drawn behind the content.
-// HoloBG reaches past the rect by the sprite's glow margin, so the visible edge stays where the old frame was
-// and padding inside doesn't shrink. Used by the scene bake (Tools > GD5 > Apply Holo Skin) and by every
-// screen built in code, so both look the same. Safe to call twice on the same element.
 public static class HoloSkin
 {
-    // Transparent glow outside each sprite's visible edge, in 1x pixels (README_HoloUI.md).
     public static float Glow(string sprite) => sprite switch
     {
         "Panel_Modal" => 12f,
@@ -20,7 +14,6 @@ public static class HoloSkin
         _ => 0f,
     };
 
-    // The kit sprite behind rt's content. rt's own Image (if any) turns invisible but still catches clicks.
     public static Image Back(RectTransform rt, string sprite)
     {
         var old = rt.Find("Frame");
@@ -30,7 +23,7 @@ public static class HoloSkin
         {
             bgT = new GameObject("HoloBG", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
             bgT.SetParent(rt, false);
-            bgT.gameObject.AddComponent<LayoutElement>().ignoreLayout = true; // fine inside layout groups
+            bgT.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
         }
         bgT.SetAsFirstSibling();
         bgT.anchorMin = Vector2.zero;
@@ -44,7 +37,6 @@ public static class HoloSkin
         return bg;
     }
 
-    // Menu windows and modals: Panel_Modal, two cyan corner brackets and the full HoloFX (opens with a fade).
     public static Image Modal(RectTransform rt)
     {
         var bg = Back(rt, "Panel_Modal");
@@ -55,7 +47,6 @@ public static class HoloSkin
         return bg;
     }
 
-    // Scanlines, light sweep, breathing glow (HoloFX). HUD panels use a lower strength and no intro.
     public static HoloFX FX(RectTransform rt, Color tint, bool intro = true, float strength = 1f, bool aura = true)
     {
         if (rt == null) return null;
@@ -64,13 +55,11 @@ public static class HoloSkin
         return fx;
     }
 
-    // ---- fonts: Oxanium (SIL OFL), the kit's suggested face ----
 
     static Font regular, bold;
     public static Font Font => regular != null ? regular : regular = Resources.Load<Font>("HoloUI/Oxanium-Medium");
     public static Font BoldFont => bold != null ? bold : bold = Resources.Load<Font>("HoloUI/Oxanium-Bold");
 
-    // Every Text under root: Oxanium; bold text gets the real bold face instead of a faked one.
     public static void ApplyFont(Transform root)
     {
         if (Font == null) return;
@@ -98,21 +87,19 @@ public static class HoloSkin
         _ => "Btn_Normal",
     };
 
-    // Default / Danger / Gold / Small buttons: kit sprite swaps on HoloBG, label colour from HoloLabelColor.
     public static void Button(Selectable b, HoloUI.ButtonStyle style = HoloUI.ButtonStyle.Default)
     {
         if (b == null) return;
         b.targetGraphic = Back((RectTransform)b.transform, Normal(style));
         HoloUI.StyleButton(b, style);
-        if (style != HoloUI.ButtonStyle.Small && ((RectTransform)b.transform).rect.height >= 40f) // full-size buttons only
+        if (style != HoloUI.ButtonStyle.Small && ((RectTransform)b.transform).rect.height >= 40f)
         {
             if (!b.TryGetComponent(out HoloButtonFX fx)) fx = b.gameObject.AddComponent<HoloButtonFX>();
             fx.accent = style switch { HoloUI.ButtonStyle.Danger => HoloUI.Pink, HoloUI.ButtonStyle.Gold => HoloUI.Yellow, _ => HoloUI.Cyan };
         }
-        else if (b.TryGetComponent(out HoloButtonFX extra)) Object.DestroyImmediate(extra); // restyled to Small
+        else if (b.TryGetComponent(out HoloButtonFX extra)) Object.DestroyImmediate(extra);
     }
 
-    // A small toggle that is ON shows Btn_Small_On with dark text.
     public static void SetOn(Selectable b, bool on)
     {
         if (b == null || b.targetGraphic is not Image img) return;
@@ -122,7 +109,6 @@ public static class HoloSkin
         if (b.TryGetComponent(out HoloLabelColor label)) { label.normal = on ? HoloUI.TextOnBright : HoloUI.Text; label.Refresh(); }
     }
 
-    // List rows and save slots: Panel_Inset, Btn_Hover while hovered.
     public static void Row(Selectable b)
     {
         if (b == null) return;
@@ -138,7 +124,6 @@ public static class HoloSkin
         };
     }
 
-    // InputField: its own Image becomes the field (no glow margin); the old frame goes.
     public static void Input(InputField f)
     {
         if (f == null) return;
@@ -149,14 +134,12 @@ public static class HoloSkin
         if (f.placeholder != null) f.placeholder.color = HoloUI.Muted;
     }
 
-    // Bars: Bar_BG behind, Bar_Fill_White tinted. Callers keep setting fill colour and size as before.
     public static void Bar(Image back, Image fill, Color fillColor)
     {
         if (back == null || fill == null) return;
         HoloUI.StyleBar(back, fill, fillColor);
     }
 
-    // Panel title: a pink tick left of the text and a cyan rule under it (kept in place as the text changes).
     public static void Title(Text t, float ruleWidth)
     {
         if (t == null) return;
@@ -165,10 +148,7 @@ public static class HoloSkin
         title.Build();
     }
 
-    // ---- build cards ----
 
-    // A shop button whose own Image used to be the unit icon: the icon moves to an "Icon" child, the card frame
-    // goes on HoloBG behind it, and the "Progress" child becomes a Card_ProgressFill along the bottom.
     public static void Card(Button b)
     {
         if (b == null) return;
@@ -188,7 +168,7 @@ public static class HoloSkin
             icon.offsetMax = new Vector2(-8f, -8f);
         }
         b.targetGraphic = Back(rt, "Card_Normal");
-        icon.SetSiblingIndex(1); // just above the card frame, under every label
+        icon.SetSiblingIndex(1);
         b.transition = Selectable.Transition.SpriteSwap;
         SetCard(b, HoloUI.CardState.Normal, true);
 
@@ -204,7 +184,6 @@ public static class HoloSkin
         }
     }
 
-    // The card's sprite for its state. Disabled (can't afford) keeps the state's sprite; only Normal glows on hover.
     public static void SetCard(Button b, HoloUI.CardState state, bool force = false)
     {
         if (b == null || b.targetGraphic is not Image img) return;
@@ -223,7 +202,6 @@ public static class HoloSkin
         if (stripes != null && state != HoloUI.CardState.Locked) stripes.gameObject.SetActive(false);
     }
 
-    // Production progress 0..1 as the height of the card's Card_ProgressFill.
     public static void SetProgress(Image fill, float progress)
     {
         if (fill == null) return;

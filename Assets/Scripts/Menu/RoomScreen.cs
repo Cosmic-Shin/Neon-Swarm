@@ -1,21 +1,18 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// Inside a room, C&C skirmish style: numbered, coloured players, the map with the 8 bases, starting
-// credits and time limit. Only the host changes things: click a player, then a base (whoever had
-// that base swaps with them). Leave is wired by MultiplayerMenu.
 public class RoomScreen : MonoBehaviour
 {
     public Text title, waiting, hint;
     public Button startGame;
-    public Button playerTemplate;   // inactive row: Swatch (Button), Name (Text), Team (Button), Base (Text)
-    public RectTransform map;       // the map picture; base circles are placed on it
-    public Button baseTemplate;     // inactive circle with a Label (Text)
-    public Button credits, minutes; // host cycles through the options
-    public InputField customCredits; // host: type any amount, Enter
-    public InputField chatInput;     // Enter sends
+    public Button playerTemplate;
+    public RectTransform map;
+    public Button baseTemplate;
+    public Button credits, minutes;
+    public InputField customCredits;
+    public InputField chatInput;
     public Text chatLog;
-    public Button friends;           // INVITE friends (removed from the skirmish copy)
+    public Button friends;
     const int ChatLines = 14;
     readonly System.Collections.Generic.List<string> chat = new();
 
@@ -26,12 +23,11 @@ public class RoomScreen : MonoBehaviour
 
     readonly Button[] rows = new Button[RoomService.MaxPlayers];
     readonly Button[] bases = new Button[RoomService.MaxPlayers];
-    int picked = -1; // host: the player slot chosen in the list
-    bool starting;   // host clicked START
+    int picked = -1;
+    bool starting;
 
     void Awake()
     {
-        // Host: start (once everyone is ready). Everyone else: the same button toggles READY.
         startGame.onClick.AddListener(() =>
         {
             var room = RoomState.Instance;
@@ -52,7 +48,6 @@ public class RoomScreen : MonoBehaviour
             int slot = i;
             rows[i] = Instantiate(playerTemplate, playerTemplate.transform.parent);
             rows[i].onClick.AddListener(() => picked = picked == slot ? -1 : slot);
-            // Your own row: click the colour swatch or the team to change them (C&C style).
             rows[i].transform.Find("Swatch").GetComponent<Button>().onClick.AddListener(() => RoomState.Instance?.NextColor());
             rows[i].transform.Find("Team").GetComponent<Button>().onClick.AddListener(() => RoomState.Instance?.NextTeam());
         }
@@ -69,7 +64,6 @@ public class RoomScreen : MonoBehaviour
             });
             bases[b] = btn;
         }
-        // The status line used to share the button's spot (only one showed); now both show, so it sits just above.
         var status = (RectTransform)waiting.transform;
         status.anchoredPosition = ((RectTransform)startGame.transform).anchoredPosition + Vector2.up * 44f;
         status.sizeDelta = new Vector2(status.sizeDelta.x, 28f);
@@ -81,9 +75,7 @@ public class RoomScreen : MonoBehaviour
         mapButton.onClick.AddListener(() => RoomState.Instance?.NextMap());
     }
 
-    // ---- shared with the skirmish screen (a copy of this panel) ----
 
-    // The MAP header becomes a button (styled like `style`) that names the map; clicking it picks the next one.
     public static Button MapButton(Transform panel, Button style)
     {
         var header = panel.Find("MapHeader");
@@ -100,7 +92,6 @@ public class RoomScreen : MonoBehaviour
         return b;
     }
 
-    // Picture and base circles for map m (circles past its base count hide).
     public static void ShowMap(RectTransform map, Button[] bases, GameMap m)
     {
         if (map.TryGetComponent(out Image picture)) picture.sprite = GameMaps.Preview(m);
@@ -174,7 +165,6 @@ public class RoomScreen : MonoBehaviour
                   : picked >= 0 ? $"Now click a base for player {picked + 1}."
                   : "Click your colour or team to change it. Click a player, then a base to move them.";
 
-        // The host can change if the creator leaves, so check every frame.
         startGame.gameObject.SetActive(true);
         waiting.gameObject.SetActive(true);
         bool allReady = room.EveryoneReady();
@@ -189,7 +179,6 @@ public class RoomScreen : MonoBehaviour
 
     void OnDestroy() => RoomState.ChatReceived -= AddChat;
 
-    // "15000", "$15,000" and "15k" all work.
     void SetCustomCredits(string text)
     {
         text = text.Trim().ToLower().Replace("$", "").Replace(",", "");
@@ -204,14 +193,14 @@ public class RoomScreen : MonoBehaviour
         text = text.Trim();
         if (text.Length > 0 && RoomState.Instance != null) RoomState.Instance.SendChat(text);
         chatInput.text = "";
-        chatInput.ActivateInputField(); // keep typing
+        chatInput.ActivateInputField();
     }
 
     void AddChat(int slot, string text, bool toAll)
     {
         string name = RoomState.Instance != null ? RoomState.Instance.NameOf(slot) : "?";
         string colour = ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(slot));
-        chat.Add($"<color=#{colour}><b>{(toAll ? "" : "(Team) ")}{name}:</b></color> {text.Replace("<", "<​")}"); // no rich-text tricks from players
+        chat.Add($"<color=#{colour}><b>{(toAll ? "" : "(Team) ")}{name}:</b></color> {text.Replace("<", "<​")}");
         if (chat.Count > ChatLines) chat.RemoveAt(0);
         chatLog.text = string.Join("\n", chat);
     }

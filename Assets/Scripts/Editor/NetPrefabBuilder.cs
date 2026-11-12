@@ -4,14 +4,10 @@ using Fusion;
 using UnityEditor;
 using UnityEngine;
 
-// Tools > GD5 > Build Network Prefabs: a network variant of every unit and building prefab
-// (NetworkObject + NetEntity, units also NetworkTransform) in Assets/Prefabs/Net, the lookup table
-// Resources/NetPrefabs, and Fusion's prefab table. Variants follow later edits to the originals;
-// re-run only when a unit or building prefab is added.
 public static class NetPrefabBuilder
 {
     const string NetDir = "Assets/Prefabs/Net";
-    static readonly string[] Skip = { "DerelictOutpost" }; // outposts aren't networked yet
+    static readonly string[] Skip = { "DerelictOutpost" };
 
     [MenuItem("Tools/GD5/Build Network Prefabs")]
     public static void Build()
@@ -51,7 +47,7 @@ public static class NetPrefabBuilder
 
         var no = root.GetComponent<NetworkObject>();
         if (no == null) no = root.AddComponent<NetworkObject>();
-        no.Flags |= NetworkObjectFlags.DestroyWhenStateAuthorityLeaves; // a player who quits takes their army along
+        no.Flags |= NetworkObjectFlags.DestroyWhenStateAuthorityLeaves;
         if (root.GetComponent<NetEntity>() == null) root.AddComponent<NetEntity>();
         if (isUnit && root.GetComponent<NetworkTransform>() == null) root.AddComponent<NetworkTransform>();
 
@@ -63,7 +59,7 @@ public static class NetPrefabBuilder
         }
         else
         {
-            saved = PrefabUtility.SaveAsPrefabAsset(root, path); // instance of the original -> variant
+            saved = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);
         }
         return saved.GetComponent<NetworkObject>();

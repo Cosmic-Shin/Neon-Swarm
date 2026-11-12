@@ -1,15 +1,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Short-lived effect (shockwave, flash, scorch, bolt...): scales from scaleFrom to scaleTo over its lifetime,
-// fades its glow near the end, then goes back to the pool. Spawn through Fx.Spawn so effects are reused.
 public class Fx : MonoBehaviour
 {
     [SerializeField] float lifetime = 0.5f;
     [SerializeField] float scaleFrom = 1f;
     [SerializeField] float scaleTo = 1f;
-    [SerializeField, Range(0f, 1f)] float fadeStart = 0.5f; // fraction of the lifetime when fading begins
-    [SerializeField] bool randomRoll;                         // spin a random amount around its forward axis (flashes)
+    [SerializeField, Range(0f, 1f)] float fadeStart = 0.5f;
+    [SerializeField] bool randomRoll;
 
     static readonly int ColorId = Shader.PropertyToID("_Color");
     static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
@@ -35,7 +33,6 @@ public class Fx : MonoBehaviour
         block = new MaterialPropertyBlock();
     }
 
-    // size: multiplies the prefab's scale (e.g. blast radius, or (1,1,length) for a bolt).
     public static Fx Spawn(GameObject prefab, Vector3 position, Quaternion rotation, Vector3 size)
     {
         if (prefab == null) return null;
@@ -75,11 +72,10 @@ public class Fx : MonoBehaviour
     }
 }
 
-// Reuses effect and projectile objects instead of creating and destroying them all the time.
 public static class FxPool
 {
-    static readonly Dictionary<GameObject, Stack<GameObject>> free = new(); // prefab -> parked copies
-    static readonly Dictionary<GameObject, GameObject> prefabOf = new();    // copy -> prefab
+    static readonly Dictionary<GameObject, Stack<GameObject>> free = new();
+    static readonly Dictionary<GameObject, GameObject> prefabOf = new();
     static Transform root;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -90,7 +86,7 @@ public static class FxPool
         if (root == null) root = new GameObject("FxPool").transform;
         GameObject go = null;
         if (free.TryGetValue(prefab, out var stack))
-            while (stack.Count > 0 && go == null) go = stack.Pop(); // skip any destroyed with the scene
+            while (stack.Count > 0 && go == null) go = stack.Pop();
         if (go == null)
         {
             go = Object.Instantiate(prefab, root);
@@ -103,7 +99,7 @@ public static class FxPool
 
     public static void Despawn(GameObject go)
     {
-        if (!prefabOf.TryGetValue(go, out var prefab)) { Object.Destroy(go); return; } // not from the pool
+        if (!prefabOf.TryGetValue(go, out var prefab)) { Object.Destroy(go); return; }
         go.SetActive(false);
         if (!free.TryGetValue(prefab, out var stack)) free[prefab] = stack = new Stack<GameObject>();
         stack.Push(go);

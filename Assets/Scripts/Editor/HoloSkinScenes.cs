@@ -5,9 +5,6 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Style = HoloUI.ButtonStyle;
 
-// Tools > GD5 > Apply Holo Skin: restyles the scene-built UI of Login and RTSSelection (whichever are open) with
-// the Chamfered Holo kit, through the same HoloSkin helpers the code-built screens use. Frames and backgrounds
-// only: no layout, text or behaviour changes. Safe to run again.
 public static class HoloSkinScenes
 {
     [MenuItem("Tools/GD5/Apply Holo Skin")]
@@ -19,12 +16,12 @@ public static class HoloSkinScenes
             if (!scene.isLoaded) continue;
             var canvas = Find(scene, "Canvas");
             if (canvas == null) continue;
-            canvas.GetComponent<CanvasScaler>().referencePixelsPerUnit = 100f; // the 2x sprites show at 1x
+            canvas.GetComponent<CanvasScaler>().referencePixelsPerUnit = 100f; 
             if (scene.name == "Login") Login(canvas);
             else if (scene.name == "RTSSelection") Hud(canvas);
             else continue;
             HoloSkin.ApplyFont(canvas);
-            foreach (var t in canvas.GetComponentsInChildren<HoloTitle>(true)) t.Build(); // titles back to the bold face
+            foreach (var t in canvas.GetComponentsInChildren<HoloTitle>(true)) t.Build();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("[HoloSkin] styled " + scene.name);
@@ -54,7 +51,6 @@ public static class HoloSkinScenes
     static void Title(Transform t, string path, float rule) { var r = R(t, path); if (r != null) HoloSkin.Title(r.GetComponent<Text>(), rule); }
     static void Inset(Transform t, string path) { var r = R(t, path); if (r != null) HoloSkin.Back(r, "Panel_Inset"); }
 
-    // ---------------- menus (Login scene) ----------------
 
     static void Login(Transform c)
     {
@@ -73,7 +69,7 @@ public static class HoloSkinScenes
         for (int i = 0; i < entries.Length; i++)
         {
             Btn(lobby, entries[i]);
-            if (R(lobby, entries[i]).TryGetComponent(out HoloButtonFX fx)) fx.index = (i + 1).ToString("00"); // "01".."06"
+            if (R(lobby, entries[i]).TryGetComponent(out HoloButtonFX fx)) fx.index = (i + 1).ToString("00");
         }
 
         var account = R(c, "AccountPanel");
@@ -95,7 +91,6 @@ public static class HoloSkinScenes
         var menu = mp.GetComponent<MultiplayerMenu>();
         HoloSkin.Row(menu.roomTemplate);
 
-        // Lobby (and the skirmish setup, which copies it at runtime).
         var room = R(c, "RoomPanel");
         HoloSkin.Back(room, "Panel_Frame_Pink");
         HoloSkin.FX(room, HoloUI.Pink);
@@ -113,7 +108,6 @@ public static class HoloSkinScenes
         MapFrame(R(room, "Map"));
     }
 
-    // The map preview is a picture, so its Panel_Minimap frame goes behind it, a frame's width bigger.
     static void MapFrame(RectTransform map)
     {
         var parent = map.parent;
@@ -130,7 +124,6 @@ public static class HoloSkinScenes
         HoloUI.SetSliced(frame.GetComponent<Image>(), "Panel_Minimap").raycastTarget = false;
     }
 
-    // ---------------- in-match HUD (RTSSelection scene) ----------------
 
     static void Hud(Transform c)
     {
@@ -144,7 +137,7 @@ public static class HoloSkinScenes
         foreach (var panel in new[] { "BuildingPanel", "BuildMenuPanel" })
         {
             HoloSkin.Back(R(c, panel), "Panel_BuildBar");
-            HoloSkin.FX(R(c, panel), HoloUI.Cyan, intro: true, strength: 0.6f); // a quick fade-in each time it opens
+            HoloSkin.FX(R(c, panel), HoloUI.Cyan, intro: true, strength: 0.6f);
         }
         HoloSkin.Card(R(c, "BuildingPanel/Viewport/Content/UnitButtonTemplate").GetComponent<Button>());
         HoloSkin.Card(R(c, "BuildMenuPanel/Viewport/Content/BuildingButtonTemplate").GetComponent<Button>());
@@ -157,7 +150,7 @@ public static class HoloSkinScenes
         Btn(bar, "RepairButton", Style.Danger);
         var upFill = R(bar, "UpgradeButton/Fill").GetComponent<Image>();
         HoloUI.SetSliced(upFill, "Fill_White", new Color(HoloUI.Yellow.r, HoloUI.Yellow.g, HoloUI.Yellow.b, 0.3f));
-        upFill.type = Image.Type.Filled; // StructureBar fills it left to right while upgrading
+        upFill.type = Image.Type.Filled; 
         upFill.fillMethod = Image.FillMethod.Horizontal;
 
         HoloSkin.Back(R(c, "TooltipBox"), "Tooltip");
@@ -167,7 +160,7 @@ public static class HoloSkinScenes
         if (old != null) old.gameObject.SetActive(false);
         var progressFill = R(progress, "Fill").GetComponent<Image>();
         HoloSkin.Bar(progress.GetComponent<Image>(), progressFill, HoloUI.Cyan);
-        progressFill.type = Image.Type.Filled; // Construction sets fillAmount
+        progressFill.type = Image.Type.Filled; 
         progressFill.fillMethod = Image.FillMethod.Horizontal;
 
         var menu = R(c, "GameMenu");

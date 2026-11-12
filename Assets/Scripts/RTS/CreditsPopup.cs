@@ -1,6 +1,5 @@
 using UnityEngine;
 
-// Floating "+$250" in the world: rises, faces the camera, fades out. Used when a harvester's load lands.
 public class CreditsPopup : MonoBehaviour
 {
     const float Life = 1.6f, Rise = 2.5f;
@@ -11,12 +10,10 @@ public class CreditsPopup : MonoBehaviour
 
     public float Age => Time.time - born;
 
-    // Damage numbers: the same popup counts up while the target keeps getting hit (HitFX), popping again
-    // each time, instead of a new number stacking on top every quarter second.
     public void Restart(string message)
     {
         text.text = message;
-        born = Time.time - 0.05f; // keeps it from snapping back to the bottom of its pop
+        born = Time.time - 0.05f;
     }
 
     public static CreditsPopup Show(Vector3 at, string message, Color color)
@@ -44,11 +41,11 @@ public class CreditsPopup : MonoBehaviour
         float age = Time.time - born;
         if (age >= Life) { Destroy(gameObject); return; }
         transform.position += Vector3.up * Rise * Time.deltaTime * (1f - age / Life);
-        if (Camera.main != null) transform.rotation = Camera.main.transform.rotation; // face the screen
+        if (Camera.main != null) transform.rotation = Camera.main.transform.rotation;
         float pop = age < 0.15f ? Mathf.Lerp(0.5f, 1.2f, age / 0.15f) : Mathf.Lerp(1.2f, 1f, Mathf.Clamp01((age - 0.15f) / 0.2f));
         transform.localScale = Vector3.one * pop;
         var c = color;
-        c.a = Mathf.Clamp01((Life - age) / 0.5f); // fade over the last half second
+        c.a = Mathf.Clamp01((Life - age) / 0.5f);
         text.color = c;
     }
 }

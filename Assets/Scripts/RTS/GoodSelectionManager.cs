@@ -6,17 +6,17 @@ using UnityEngine.InputSystem;
 
 public class GoodSelectionManager : MonoBehaviour
 {
-    public event Action<List<Vector3>> OnMoveCommand; // one slot per selected unit
+    public event Action<List<Vector3>> OnMoveCommand;
     public event Action<Building> OnBuildingSelected;
-    public event Action<Structure> OnStructureSelected; // any of our buildings (null = none)
-    public event Action<OreNode> OnHarvestCommand; // right-clicked ore: workers go mine it
-    public event Action<Health> OnAttackCommand;   // right-clicked an enemy: armed units attack it
-    public event Action<OutpostCapture> OnGarrisonCommand; // right-clicked our outpost: armed units go inside
-    public event Action<Transport> OnBoardCommand;        // right-clicked our Wasp: units that fit climb aboard
-    public event Action<List<Vector3>> OnAttackMoveCommand; // A + click: walk there, fighting anything met on the way
-    public event Action<List<Vector3>> OnPatrolCommand; // P + click: back and forth between here and there, fighting
-    public event Action OnStopCommand; // S
-    public event Action OnHoldCommand; // H: stay put, shoot only what's in range
+    public event Action<Structure> OnStructureSelected;
+    public event Action<OreNode> OnHarvestCommand;
+    public event Action<Health> OnAttackCommand;
+    public event Action<OutpostCapture> OnGarrisonCommand;
+    public event Action<Transport> OnBoardCommand;
+    public event Action<List<Vector3>> OnAttackMoveCommand;
+    public event Action<List<Vector3>> OnPatrolCommand;
+    public event Action OnStopCommand;
+    public event Action OnHoldCommand;
 
     public enum Formation { Circle, Line, Box }
 
@@ -36,24 +36,22 @@ public class GoodSelectionManager : MonoBehaviour
     [SerializeField] float markerDuration = 1f;
 
     [Header("Formation")]
-    [SerializeField] float formationSpacing = 2f; // gap between rings
-    [SerializeField] float minRadius = 1.5f;      // first ring radius
-    [SerializeField] float slotSpacing = 2.5f;    // line/box: gap between units
-    [SerializeField] int lineWidth = 10;          // line: units per row
-    [SerializeField] Formation formation = Formation.Circle; // F cycles it
+    [SerializeField] float formationSpacing = 2f;
+    [SerializeField] float minRadius = 1.5f;
+    [SerializeField] float slotSpacing = 2.5f;
+    [SerializeField] int lineWidth = 10;
+    [SerializeField] Formation formation = Formation.Circle;
 
     readonly List<SelectableUnit> selected = new();
-    public static bool UnitsSelected { get; private set; } // A/S/H are orders then, so the camera ignores WASD
-    public Vector3 Facing { get; private set; } // which way the last move's formation faces (zero = don't turn)
-    bool attackMoveArmed; // A pressed: next left-click is an attack-move
-    bool patrolArmed;     // P pressed: next left-click is a patrol
-    // Shift held while ordering: units add it to their queue of orders instead of replacing it.
+    public static bool UnitsSelected { get; private set; }
+    public Vector3 Facing { get; private set; }
+    bool attackMoveArmed;
+    bool patrolArmed;
     public bool Queueing => Chat.Keys is Keyboard kb && (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed);
     bool rightPressing, rightDragging;
     Vector2 rightStart;
-    LineRenderer dragLine; // preview of a right-drag formation line
+    LineRenderer dragLine;
     public IReadOnlyList<SelectableUnit> SelectedUnits => selected;
-    // For CursorContext: the same camera, layers and reach the orders use.
     public Camera Cam => cam;
     public LayerMask SelectableLayer => selectableLayer;
     public LayerMask GroundLayer => groundLayer;
@@ -67,7 +65,7 @@ public class GoodSelectionManager : MonoBehaviour
     Structure selectedStructure;
     public Structure SelectedStructure => selectedStructure;
 
-    readonly List<SelectableUnit>[] groups = new List<SelectableUnit>[10]; // Ctrl+1..9 saves, 1..9 recalls
+    readonly List<SelectableUnit>[] groups = new List<SelectableUnit>[10];
     float lastClickTime = -1f;
     UnitData lastClickType;
 
@@ -83,10 +81,9 @@ public class GoodSelectionManager : MonoBehaviour
         dragLine.widthMultiplier = 0.3f;
         dragLine.positionCount = 2;
         dragLine.enabled = false;
-        if (!TryGetComponent(out CursorContext _)) gameObject.AddComponent<CursorContext>(); // the mouse cursor follows what a click would do
+        if (!TryGetComponent(out CursorContext _)) gameObject.AddComponent<CursorContext>();
     }
 
-    // Disabled while a building is being placed.
     void OnDisable()
     {
         UnitsSelected = rightPressing = rightDragging = attackMoveArmed = patrolArmed = false;
@@ -100,14 +97,13 @@ public class GoodSelectionManager : MonoBehaviour
         Vector2 mousePos = mouse.position.ReadValue();
 
         bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
-        UnitsSelected = selected.Exists(u => u != null); // keep dead slots: units remember their index
+        UnitsSelected = selected.Exists(u => u != null);
 
         OrderKeys();
 
-        // Attack-move armed: this click is the order, not a selection.
         if (attackMoveArmed && mouse.leftButton.wasPressedThisFrame && !overUI)
         {
-            attackMoveArmed = Queueing; // Shift: stay armed to queue more
+            attackMoveArmed = Queueing;
             IssueAttackMove(mousePos);
         }
         else if (patrolArmed && mouse.leftButton.wasPressedThisFrame && !overUI)
@@ -115,7 +111,7 @@ public class GoodSelectionManager : MonoBehaviour
             patrolArmed = false;
             if (GroundAt(mousePos, out Vector3 p)) { OnPatrolCommand?.Invoke(GetFormation(p)); ShowMarker(p, Juice.Gold); }
         }
-        else if (mouse.leftButton.wasPressedThisFrame && !overUI && !(Net.Online && Ping.AltHeld)) // Alt+click = ping
+        else if (mouse.leftButton.wasPressedThisFrame && !overUI && !(Net.Online && Ping.AltHeld))
         {
             dragStart = mousePos;
             isPressing = true;
@@ -148,10 +144,9 @@ public class GoodSelectionManager : MonoBehaviour
             if (selected.Exists(u => u != null) || selectedStructure != null) Sfx.Play(Snd.Select, 0.45f);
         }
 
-        // Right-click: move. Right-drag: units line up along the dragged line, facing forward.
         if (mouse.rightButton.wasPressedThisFrame && !overUI)
         {
-            if (attackMoveArmed || patrolArmed) attackMoveArmed = patrolArmed = false; // right-click cancels A / P
+            if (attackMoveArmed || patrolArmed) attackMoveArmed = patrolArmed = false;
             else { rightPressing = true; rightDragging = false; rightStart = mousePos; }
         }
         if (rightPressing && mouse.rightButton.isPressed && selected.Count > 0 &&
@@ -188,7 +183,6 @@ public class GoodSelectionManager : MonoBehaviour
             if (hit.collider.TryGetComponent(out SelectableUnit unit))
             {
                 if (unit.IsEnemy) return;
-                // Double-click: every unit of this type on screen.
                 bool doubleClick = Time.unscaledTime - lastClickTime < 0.35f && lastClickType == unit.Data;
                 lastClickTime = Time.unscaledTime;
                 lastClickType = unit.Data;
@@ -202,12 +196,11 @@ public class GoodSelectionManager : MonoBehaviour
             }
             else if (hit.collider.TryGetComponent(out OutpostCapture outpost) && outpost.ownerTeam == 0)
             {
-                // Click our outpost: everyone inside comes out, selected.
                 var inside = new List<TeamMember>(outpost.Garrison);
                 outpost.EjectAll();
                 foreach (var t in inside) if (t != null && t.TryGetComponent(out SelectableUnit u)) SelectUnit(u);
             }
-            else if (hit.collider.TryGetComponent(out Structure structure) && structure.enabled && structure.Health.team == 0) // disabled = still under construction
+            else if (hit.collider.TryGetComponent(out Structure structure) && structure.enabled && structure.Health.team == 0)
             {
                 selectedStructure = structure;
                 structure.IsSelected = true;
@@ -232,7 +225,7 @@ public class GoodSelectionManager : MonoBehaviour
         foreach (var unit in FindObjectsByType<SelectableUnit>(FindObjectsSortMode.None))
         {
             Vector3 sp = cam.WorldToScreenPoint(Flyer.Center(unit));
-            if (sp.z > 0f && screenRect.Contains(sp) && !unit.IsEnemy) // z > 0: ignore units behind the camera
+            if (sp.z > 0f && screenRect.Contains(sp) && !unit.IsEnemy)
                 SelectUnit(unit);
         }
     }
@@ -257,7 +250,6 @@ public class GoodSelectionManager : MonoBehaviour
         return hit;
     }
 
-    // A = attack-move (then click), S = stop, H = hold position, F = next formation.
     void OrderKeys()
     {
         var kb = Chat.Keys;
@@ -272,7 +264,6 @@ public class GoodSelectionManager : MonoBehaviour
         if (kb.hKey.wasPressedThisFrame) HoldOrder();
     }
 
-    // ---- orders, also used by the HUD's command buttons ----
     public Formation CurrentFormation => formation;
     public bool AttackMoveArmed => attackMoveArmed;
     public bool PatrolArmed => patrolArmed;
@@ -290,10 +281,8 @@ public class GoodSelectionManager : MonoBehaviour
     public List<SelectableUnit> Group(int i) => groups[i];
     public void SelectGroup(int i) { if (groups[i] != null) SelectOnly(groups[i]); }
 
-    // Just this one unit (HUD: idle button, selection grid).
     public void SelectOne(SelectableUnit u) { DeselectAll(); if (u != null) SelectUnit(u); }
 
-    // A building, as if clicked (HUD: production overview).
     public void SelectStructure(Structure structure)
     {
         DeselectAll();
@@ -304,7 +293,6 @@ public class GoodSelectionManager : MonoBehaviour
         if (structure.TryGetComponent(out Building building) && building.enabled) { selectedBuilding = building; OnBuildingSelected?.Invoke(building); }
     }
 
-    // Our units doing nothing: no order, no fight, harvesters not mining.
     public static bool IsIdle(SelectableUnit u)
     {
         if (u == null || !u.isActiveAndEnabled || u.IsEnemy || u.IsRemote || !u.TryGetComponent(out Health h) || !h.enabled) return false;
@@ -315,7 +303,6 @@ public class GoodSelectionManager : MonoBehaviour
 
     int idleCursor;
 
-    // "." or the HUD's IDLE button: select the next idle unit and look at it.
     public void NextIdle()
     {
         var idle = new List<SelectableUnit>();
@@ -332,7 +319,7 @@ public class GoodSelectionManager : MonoBehaviour
         if (Physics.Raycast(ray, out RaycastHit target, maxRayDistance, selectableLayer) &&
             target.collider.TryGetComponent(out Health enemy) && enemy.enabled && !Net.Allied(enemy.team, 0))
         {
-            OnAttackCommand?.Invoke(enemy); // clicked right on an enemy: plain attack
+            OnAttackCommand?.Invoke(enemy);
             Juice.TargetLock(enemy);
             return;
         }
@@ -341,7 +328,6 @@ public class GoodSelectionManager : MonoBehaviour
         ShowMarker(point, Juice.Danger);
     }
 
-    // Right-drag: units spread along a..b (extra rows behind), facing away from where they stand now.
     void LineMove(Vector3 a, Vector3 b)
     {
         Vector3 along = b - a; along.y = 0f;
@@ -354,8 +340,6 @@ public class GoodSelectionManager : MonoBehaviour
         ShowMarker(mid);
     }
 
-    // Room each unit needs in a formation: the widest selected unit plus a little air (big units are 5 m across;
-    // slots closer than that overlap, and the units shove each other off their spots forever).
     float Gap()
     {
         float widest = 0f;
@@ -372,7 +356,6 @@ public class GoodSelectionManager : MonoBehaviour
         return n > 0 ? sum / n : Vector3.zero;
     }
 
-    // Slots for the current formation around center, facing from the group toward it. Sets Facing.
     List<Vector3> GetFormation(Vector3 center)
     {
         Vector3 facing = center - Centroid(); facing.y = 0f;
@@ -387,8 +370,6 @@ public class GoodSelectionManager : MonoBehaviour
         };
     }
 
-    // Rows of `cols` units centred on center, front row first. Units are matched to slots so paths don't cross:
-    // the front-most units take the front row, and go left-to-right within each row.
     List<Vector3> Rows(Vector3 center, Vector3 facing, int cols, float colSpacing)
     {
         int count = selected.Count;
@@ -396,8 +377,6 @@ public class GoodSelectionManager : MonoBehaviour
         int rows = Mathf.CeilToInt(count / (float)cols);
         float rowGap = Gap();
         float Along(int i, Vector3 axis) => selected[i] != null ? Vector3.Dot(selected[i].transform.position, axis) : 0f;
-        // Same kind together: each type fills its own rows (tanks up front, support at the back),
-        // and within a type the front-most units take the front.
         var order = ByKind();
         order.Sort((x, y) =>
         {
@@ -410,7 +389,7 @@ public class GoodSelectionManager : MonoBehaviour
         {
             int n = Mathf.Min(cols, count - start);
             var row = order.GetRange(start, n);
-            row.Sort((x, y) => { int k = KindOrder(x, y); return k != 0 ? k : Along(x, right).CompareTo(Along(y, right)); }); // a shared row: still side by side with their own kind
+            row.Sort((x, y) => { int k = KindOrder(x, y); return k != 0 ? k : Along(x, right).CompareTo(Along(y, right)); });
             float back = (r - (rows - 1) * 0.5f) * rowGap;
             for (int c = 0; c < n; c++)
                 slots[row[c]] = center + right * ((c - (n - 1) * 0.5f) * colSpacing) - facing * back;
@@ -422,7 +401,6 @@ public class GoodSelectionManager : MonoBehaviour
     {
         Ray ray = cam.ScreenPointToRay(screenPos);
 
-        // Only a production building selected: right-click sets where its new units go.
         if (selected.Count == 0)
         {
             if (selectedBuilding != null && Physics.Raycast(ray, out RaycastHit ground, maxRayDistance, groundLayer)) MoveSelectedTo(ground.point);
@@ -432,15 +410,13 @@ public class GoodSelectionManager : MonoBehaviour
 
         if (Physics.Raycast(ray, out RaycastHit target, maxRayDistance, selectableLayer))
         {
-            // Our outpost? Walk over and garrison it.
             if (target.collider.TryGetComponent(out OutpostCapture outpost) && outpost.ownerTeam == 0)
             {
                 Facing = Vector3.zero;
                 OnMoveCommand.Invoke(GetCircleFormation(outpost.transform.position, selected.Count));
-                if (!Net.Online) OnGarrisonCommand?.Invoke(outpost); // online: just stand guard (no garrison)
+                if (!Net.Online) OnGarrisonCommand?.Invoke(outpost);
                 return;
             }
-            // Our Wasp? Walk under it and climb aboard (whoever fits; the rest just go there).
             if (target.collider.TryGetComponent(out Transport wasp) && target.collider.TryGetComponent(out SelectableUnit waspUnit) && !waspUnit.IsEnemy)
             {
                 Facing = Vector3.zero;
@@ -448,10 +424,9 @@ public class GoodSelectionManager : MonoBehaviour
                 OnBoardCommand?.Invoke(wasp);
                 return;
             }
-            // An enemy (disabled Health = neutral outpost, just walk there)? Attack it instead of moving.
             if (target.collider.TryGetComponent(out Health enemy) && enemy.enabled && !Net.Allied(enemy.team, 0))
             {
-                OnAttackCommand?.Invoke(enemy); // unarmed units (harvesters) ignore it
+                OnAttackCommand?.Invoke(enemy);
                 Juice.TargetLock(enemy);
                 return;
             }
@@ -461,14 +436,12 @@ public class GoodSelectionManager : MonoBehaviour
 
         OnMoveCommand.Invoke(GetFormation(hit.point));
 
-        // Clicked on ore? Workers switch from the move to mining it.
         if (Physics.Raycast(ray, out RaycastHit any, maxRayDistance) && any.collider.GetComponentInParent<OreNode>() is OreNode ore)
             OnHarvestCommand?.Invoke(ore);
 
         ShowMarker(hit.point);
     }
 
-    // Plain move to a ground point (also used by the minimap): units go there, or it becomes the building's rally point.
     public void MoveSelectedTo(Vector3 point)
     {
         if (selected.Count > 0) OnMoveCommand?.Invoke(GetFormation(point));
@@ -481,21 +454,20 @@ public class GoodSelectionManager : MonoBehaviour
 
     void ShowMarker(Vector3 point, Color? color = null)
     {
-        Sfx.Play(Snd.Ack, 0.5f); // every move order ends here
+        Sfx.Play(Snd.Ack, 0.5f);
         Color c = color ?? MoveColor;
         Juice.MoveMarker(point, c);
         foreach (var u in selected) if (u != null) Juice.OrderLine(Flyer.Center(u), point, c);
         if (targetMarker == null) return;
-        targetMarker.transform.position = point + Vector3.up * 0.05f; // avoid z-fighting
+        targetMarker.transform.position = point + Vector3.up * 0.05f;
         targetMarker.SetActive(true);
         markerHideTime = Time.time + markerDuration;
     }
 
-    // Ctrl+1..9 saves the selection; 1..9 brings it back.
     void ControlGroups()
     {
         var kb = Chat.Keys;
-        if (kb == null || BuildingPlacer.MenuOpen) return; // digits pick buildings then
+        if (kb == null || BuildingPlacer.MenuOpen) return;
         bool ctrl = kb.leftCtrlKey.isPressed || kb.rightCtrlKey.isPressed;
         for (int i = 1; i <= 9; i++)
         {
@@ -505,7 +477,6 @@ public class GoodSelectionManager : MonoBehaviour
         }
     }
 
-    // Replace the selection with these units (skips dead and garrisoned ones).
     public void SelectOnly(List<SelectableUnit> units)
     {
         var keep = units.FindAll(u => u != null && u.isActiveAndEnabled);
@@ -513,10 +484,8 @@ public class GoodSelectionManager : MonoBehaviour
         foreach (var u in keep) SelectUnit(u);
     }
 
-    // Selection panel: click a unit type to keep only those.
     public void SelectOnly(UnitData type) => SelectOnly(selected.FindAll(u => u != null && u.Data == type));
 
-    // Formation rank of a unit type: who stands in front. Same type = same rank and name, so they end up together.
     static int Rank(UnitData d) => d == null ? 9 : d.role switch
     {
         UnitData.Role.Heavy => 0, UnitData.Role.Elite => 1, UnitData.Role.Infantry => 2,
@@ -537,12 +506,10 @@ public class GoodSelectionManager : MonoBehaviour
         return r != 0 ? r : string.CompareOrdinal(a != null ? a.name : "", b != null ? b.name : "");
     }
 
-    // Circle: each type gets its own wedge, like slices of a pie. Slots are handed out going round the circle
-    // (the center one first), to the units grouped by kind - within a type, by where they stand, so paths cross less.
     List<Vector3> GetCircleFormation(Vector3 center, int count)
     {
         var raw = RingSlots(center, count);
-        if (count != selected.Count) return raw; // e.g. garrison/board circles sized for something else
+        if (count != selected.Count) return raw;
         float SlotAngle(Vector3 p) => (p - center).sqrMagnitude < 0.01f ? -10f : Mathf.Atan2(p.z - center.z, p.x - center.x);
         raw.Sort((p, q) => SlotAngle(p).CompareTo(SlotAngle(q)));
         var order = ByKind();
@@ -553,7 +520,6 @@ public class GoodSelectionManager : MonoBehaviour
         return new List<Vector3>(slots);
     }
 
-    // One unit in the center, then rings of 6, 12, 18... growing outward.
     List<Vector3> RingSlots(Vector3 center, int count)
     {
         var slots = new List<Vector3>(count);
@@ -564,7 +530,7 @@ public class GoodSelectionManager : MonoBehaviour
         while (remaining > 0)
         {
             float radius = ring == 0 ? 0f : Mathf.Max(minRadius, gap) + (ring - 1) * Mathf.Max(formationSpacing, gap);
-            int fits = ring == 0 ? 1 : Mathf.Max(1, Mathf.FloorToInt(2f * Mathf.PI * radius / gap)); // as many as the ring has room for
+            int fits = ring == 0 ? 1 : Mathf.Max(1, Mathf.FloorToInt(2f * Mathf.PI * radius / gap));
             int onThisRing = Mathf.Min(fits, remaining);
 
             for (int i = 0; i < onThisRing; i++)
@@ -582,15 +548,15 @@ public class GoodSelectionManager : MonoBehaviour
     void SelectUnit(SelectableUnit unit)
     {
         if (selected.Contains(unit)) return;
-        if (unit.TryGetComponent(out Health h) && !h.enabled) return; // dead, or riding in a Wasp
-        unit.Select(this, selected.Count); // its slot index in the formation
+        if (unit.TryGetComponent(out Health h) && !h.enabled) return;
+        unit.Select(this, selected.Count);
         selected.Add(unit);
     }
 
     void DeselectAll()
     {
         foreach (var unit in selected)
-            if (unit != null) unit.Deselect(); // Unit unsubscribes itself. Skip destroyed units.
+            if (unit != null) unit.Deselect();
         selected.Clear();
 
         if (selectedBuilding != null)

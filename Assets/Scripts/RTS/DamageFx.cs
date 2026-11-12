@@ -1,14 +1,12 @@
 using UnityEngine;
 
-// Building damage you can see: below half health it smokes and throws sparks, below a quarter it burns.
-// Effects sit in the world (not parented, the building's scale would stretch them) and the smoke lingers over the wreck.
 [RequireComponent(typeof(Health))]
 public class DamageFx : MonoBehaviour
 {
-    [SerializeField] GameObject smoke; // looping particles
-    [SerializeField] GameObject fire;  // looping particles
-    [SerializeField] GameObject spark; // short Fx flash, spawned through the pool
-    [SerializeField] float smokeLinger = 10f; // seconds the smoke stays after the building dies
+    [SerializeField] GameObject smoke;
+    [SerializeField] GameObject fire;
+    [SerializeField] GameObject spark;
+    [SerializeField] float smokeLinger = 10f;
 
     Health health;
     Collider col;
@@ -33,7 +31,6 @@ public class DamageFx : MonoBehaviour
         }
     }
 
-    // Spawned on first need, then just switched on/off (repairs put it out). side: where on the roof, -0.5..0.5 of the width.
     void Toggle(ref GameObject obj, GameObject prefab, bool on, float side)
     {
         if (prefab == null) return;
@@ -41,7 +38,7 @@ public class DamageFx : MonoBehaviour
         {
             Bounds b = col.bounds;
             obj = Instantiate(prefab, PointOnRoof(side, side * 0.5f, 0.9f), Quaternion.identity);
-            obj.transform.localScale *= Mathf.Clamp(Mathf.Max(b.size.x, b.size.z) / 8f, 0.8f, 3f); // bigger buildings, bigger plume
+            obj.transform.localScale *= Mathf.Clamp(Mathf.Max(b.size.x, b.size.z) / 8f, 0.8f, 3f);
         }
         if (obj != null && obj.activeSelf != on) obj.SetActive(on);
     }

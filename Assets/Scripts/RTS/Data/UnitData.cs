@@ -1,34 +1,33 @@
 using UnityEngine;
 
-// Tunable stats for one unit type, shared by every copy of it (like the course's ItemData).
 [CreateAssetMenu(menuName = "RTS/Unit Data", fileName = "NewUnit")]
 public class UnitData : ScriptableObject
 {
-    public enum Role { Worker, Scout, Infantry, Heavy, Support, Elite } // research targets roles; Elite needs Core Nexus Mk III
+    public enum Role { Worker, Scout, Infantry, Heavy, Support, Elite }
 
     public string displayName;
     public Role role = Role.Infantry;
-    [TextArea] public string description; // shown in the shop tooltip
+    [TextArea] public string description;
     public Sprite icon;
-    public int cost = 300;          // credits, paid when queued
-    public float buildTime = 5f;    // seconds to produce
-    [Min(1)] public int squadSize = 1; // C&C squads: one purchase brings this many (cost and time are per squad)
+    public int cost = 300;
+    public float buildTime = 5f;
+    [Min(1)] public int squadSize = 1;
     public float maxHealth = 100f;
 
     [Header("Combat")]
-    public float damage = 10f;         // per shot; 0 = can't attack
-    public float range = 10f;          // metres
-    public float attackCooldown = 1f;  // seconds between shots
-    public bool hitsGround = true;     // can shoot ground units and buildings
-    public bool hitsAir;               // can shoot flyers (anti-air)
+    public float damage = 10f;
+    public float range = 10f;
+    public float attackCooldown = 1f;
+    public bool hitsGround = true;
+    public bool hitsAir;
 
     [Header("Role")]
-    public float moveSpeed;            // 0 = the prefab's agent speed
-    public float sight;                // fog-of-war sight; 0 = default
-    public float splash;               // > 0: every enemy this close to the target is hit too
-    public float stunOnHit;            // seconds the target can't move or shoot
-    public float slowOnHit;            // seconds the target moves at half speed
-    public float buildingDamage = 1f;  // damage multiplier against buildings
+    public float moveSpeed;
+    public float sight;
+    public float splash;
+    public float stunOnHit;
+    public float slowOnHit;
+    public float buildingDamage = 1f;
 
     [Header("Counters (DamageTable)")]
     public DamageTable.Armor armor = DamageTable.Armor.Light;
@@ -41,8 +40,8 @@ public class UnitData : ScriptableObject
     [Header("Look")]
     public WeaponVisual visual = new();
     public enum WeaponStyle { Shot, FlameStream, PodDrop, ShockPulse }
-    public WeaponStyle style;          // FlameStream: Burner; PodDrop: Moth drops Skitters; ShockPulse: Jellyfish zaps all under it
+    public WeaponStyle style;
     [Tooltip("Regex for model parts the shots leave from (all of them fire; damage is split). Empty = any part named *Muzzle*.")]
     public string muzzles;
-    public GameObject extra;           // ShockPulse: the lightning bolt; PodDrop: the unit dropped
+    public GameObject extra;
 }

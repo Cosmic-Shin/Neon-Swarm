@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Uplink Tower: while one of ours is built and powered, every enemy unit shows on the minimap, even in fog.
-// Working towers show it: a radar beam sweeps round from the top and a scan ring pulses out every few seconds.
 public class Radar : MonoBehaviour
 {
     static readonly List<Radar> active = new();
@@ -29,24 +27,24 @@ public class Radar : MonoBehaviour
         sweep.enabled = false;
     }
 
-    void OnEnable() => active.Add(this);   // off while under construction (Construction disables root scripts)
+    void OnEnable() => active.Add(this);
     void OnDisable() { active.Remove(this); sweep.enabled = false; }
 
-    public static bool Active => !Structure.LowPower && active.Exists(r => r.health.team == 0); // multiplayer: not other players' towers
+    public static bool Active => !Structure.LowPower && active.Exists(r => r.health.team == 0);
 
     void Update()
     {
         bool on = health.enabled && !Net.LowPower(health.team);
         sweep.enabled = on;
         if (!on) return;
-        sweep.gameObject.layer = gameObject.layer; // fog of war hides it with the tower
+        sweep.gameObject.layer = gameObject.layer;
         if (top < 0f) top = ConstructionSite.RendererBounds(gameObject).max.y;
 
         angle += SweepSpeed * Time.deltaTime;
         Vector3 from = new(transform.position.x, top, transform.position.z);
         Vector3 dir = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
         sweep.SetPosition(0, from);
-        sweep.SetPosition(1, from + dir * SweepLength + Vector3.down * (top - 0.5f)); // slopes down to the ground
+        sweep.SetPosition(1, from + dir * SweepLength + Vector3.down * (top - 0.5f));
 
         if (Time.time < nextPulse || !Juice.Seen(from)) return;
         nextPulse = Time.time + PulseEvery;

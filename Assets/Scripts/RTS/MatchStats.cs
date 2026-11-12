@@ -1,7 +1,5 @@
 using UnityEngine;
 
-// Your own numbers for the end-of-match screen, counted where things happen.
-// Online, RoomPlayer publishes them so every PC can show everyone's.
 public static class MatchStats
 {
     public enum Kind { UnitsBuilt, UnitsLost, BuildingsBuilt, BuildingsLost, Kills, Earned, Research }

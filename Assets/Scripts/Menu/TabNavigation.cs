@@ -3,8 +3,6 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// Tab = next field/button, Shift+Tab = previous, on every menu form (it follows the UI's own
-// navigation order, i.e. what's below / above). Enter is handled by each form's onSubmit.
 public class TabNavigation : MonoBehaviour
 {
     void Update()
@@ -24,7 +22,6 @@ public class TabNavigation : MonoBehaviour
         if (next is InputField field) field.ActivateInputField();
     }
 
-    // Nothing selected yet: the top field of whatever form is showing.
     static InputField FirstField()
     {
         InputField best = null;

@@ -3,12 +3,8 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
-using static SettingsPanel; // Label, Button, Stretch, colours
+using static SettingsPanel;
 
-// Friends overlay (opened from the main menu, room browser and room screen), built in code:
-//   your tag + COPY, add by tag, incoming requests, friends (online first) with JOIN / INVITE / VIEW, sent requests.
-//   VIEW opens a friend's card: their public stats, a chat with them, REMOVE and BLOCK.
-// Also shows the invite pop-up when a friend invites you while you're in the menus.
 public class FriendsPanel : MonoBehaviour
 {
     public static bool IsOpen { get; private set; }
@@ -16,15 +12,14 @@ public class FriendsPanel : MonoBehaviour
     const float RowH = 64f, Width = 700f;
 
     RectTransform content;
-    int strangersShown = -1; // redraw when someone joins or leaves the room
+    int strangersShown = -1;
     Text myTag, status;
     InputField addBox;
-    RectTransform box, card;  // card: one friend's stats + chat, over the list
-    string cardId, cardName;  // whose card is open
-    GameObject[] underCard;   // hidden while a card is open (the card's frame is see-through)
+    RectTransform box, card;
+    string cardId, cardName;
+    GameObject[] underCard;
     Text cardChat, cardStatus;
 
-    // A menu button that opens the panel; its label shows pending requests.
     public static void Hook(Button b)
     {
         var label = b.GetComponentInChildren<Text>();
@@ -119,7 +114,6 @@ public class FriendsPanel : MonoBehaviour
                 ("ACCEPT", () => FriendsHub.Accept(id)), ("DECLINE", () => FriendsHub.Decline(id)), ("BLOCK", () => FriendsHub.Block(id)));
         }
 
-        // People in your room you aren't friends with yet: one click sends a request.
         var strangers = FriendsHub.CurrentRoom != null ? RoomPlayer.Strangers() : new();
         strangersShown = strangers.Count;
         if (strangers.Count > 0) Header(ref y, "IN THIS ROOM");
@@ -166,7 +160,6 @@ public class FriendsPanel : MonoBehaviour
         content.sizeDelta = new Vector2(0f, -y);
     }
 
-    // ---- list pieces ----
 
     void Header(ref float y, string text)
     {
@@ -183,7 +176,6 @@ public class FriendsPanel : MonoBehaviour
         y -= 44f;
     }
 
-    // name + one line of detail, a status dot, and buttons on the right. REMOVE/DECLINE/CANCEL need a 2nd click.
     void Row(ref float y, string name, string sub, Color dot, params (string label, Func<Task<string>> act)[] buttons)
     {
         var row = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
@@ -225,7 +217,6 @@ public class FriendsPanel : MonoBehaviour
         y -= RowH;
     }
 
-    // ---- a friend's card: stats, chat, REMOVE / BLOCK ----
 
     async void OpenCard(Unity.Services.Friends.Models.Member m)
     {
@@ -249,7 +240,7 @@ public class FriendsPanel : MonoBehaviour
         cardChat = Label(card, "", new Vector2(0f, 0f), 19, TextAnchor.LowerLeft, Width - 60f);
         cardChat.rectTransform.sizeDelta = new Vector2(Width - 60f, 240f);
         cardChat.color = Color.white;
-        var chatBox = new GameObject("ChatBox", typeof(RectTransform)).GetComponent<RectTransform>(); // inset behind the chat
+        var chatBox = new GameObject("ChatBox", typeof(RectTransform)).GetComponent<RectTransform>();
         chatBox.SetParent(card, false);
         chatBox.anchoredPosition = cardChat.rectTransform.anchoredPosition;
         chatBox.sizeDelta = cardChat.rectTransform.sizeDelta + new Vector2(24f, 16f);
@@ -270,7 +261,6 @@ public class FriendsPanel : MonoBehaviour
         cardStatus = Label(card, "", new Vector2(0f, -205f), 18, TextAnchor.MiddleCenter, Width);
         cardStatus.color = Dim;
 
-        // Two clicks each, like the list.
         Risky(Danger(Button(card, "REMOVE FRIEND", new Vector2(-150f, -290f), new Vector2(250f, 48f))), async () => { await FriendsHub.Remove(id); CloseCard(); });
         Risky(Danger(Button(card, "BLOCK", new Vector2(150f, -290f), new Vector2(250f, 48f))), async () => { await FriendsHub.Block(id); CloseCard(); });
 
@@ -321,7 +311,6 @@ public class FriendsPanel : MonoBehaviour
         b.onClick.AddListener(() => { if (text.text != "SURE?") { text.text = "SURE?"; return; } b.interactable = false; act(); });
     }
 
-    // Results screen: "+ ADD NAME" for each player from the match you aren't friends with yet.
     public static void AddButtons(Transform parent, Vector2 center)
     {
         var list = RoomPlayer.Strangers();
@@ -342,14 +331,13 @@ public class FriendsPanel : MonoBehaviour
 
     static void Top(RectTransform r) { r.anchorMin = r.anchorMax = new Vector2(0.5f, 1f); }
 
-    // ---- widgets ----
 
     static RectTransform Box(Transform parent, Vector2 size, string sprite)
     {
         var box = new GameObject("Box", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
         box.SetParent(parent, false);
         box.sizeDelta = size;
-        HoloSkin.Back(box, sprite); // the box's own Image stays as an invisible click blocker
+        HoloSkin.Back(box, sprite);
         return box;
     }
 
@@ -364,7 +352,7 @@ public class FriendsPanel : MonoBehaviour
         rt.anchoredPosition = pos; rt.sizeDelta = size;
         f.textComponent.fontSize = 22;
         var ph = (Text)f.placeholder;
-        f.textComponent.font = ph.font = font; // the default control has no font in Unity 6
+        f.textComponent.font = ph.font = font;
         ph.text = hint; ph.fontSize = 20;
         HoloSkin.Input(f);
         return f;
@@ -386,9 +374,8 @@ public class FriendsPanel : MonoBehaviour
         return view.content;
     }
 
-    // ---- invite pop-up ----
 
-    static (string from, string room)? waiting; // an invite that came during a match
+    static (string from, string room)? waiting;
 
     [RuntimeInitializeOnLoadMethod]
     static void HookInvites()
@@ -396,14 +383,14 @@ public class FriendsPanel : MonoBehaviour
         FriendsHub.Invited += ShowInvite;
         FriendsHub.Messaged += (from, text) =>
         {
-            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != 0) Alerts.Show(from + ": " + text, Alerts.Info); // mid-match
-            else Sfx.Play(Snd.Info); // menus: the FRIENDS button counts it
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != 0) Alerts.Show(from + ": " + text, Alerts.Info);
+            else Sfx.Play(Snd.Info);
         };
         UnityEngine.SceneManagement.SceneManager.activeSceneChanged += (old, scene) =>
         {
             if (scene.buildIndex != 0 || waiting is not var (from, room)) return;
             waiting = null;
-            ShowInvite(from, room); // back in the menus: offer it now
+            ShowInvite(from, room);
         };
     }
 
@@ -411,7 +398,7 @@ public class FriendsPanel : MonoBehaviour
     {
         if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != 0)
         {
-            waiting = (from, room); // mid-match: say so, offer JOIN once back in the menus
+            waiting = (from, room);
             Alerts.Show(from + " invited you to " + room + " (join from the menu)", Alerts.Info);
             return;
         }
@@ -437,7 +424,6 @@ public class FriendsPanel : MonoBehaviour
         box.SetAsLastSibling();
         Destroy(go, 30f);
 #if DEVELOPMENT_BUILD
-        // Test builds: "-acceptinvites" clicks JOIN by itself.
         if (System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-acceptinvites") >= 0)
             box.GetComponentsInChildren<Button>()[0].onClick.Invoke();
 #endif

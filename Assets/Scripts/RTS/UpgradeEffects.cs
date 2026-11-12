@@ -1,10 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// What a building's Mk II / Mk III upgrade does. The pack's BuildingUpgrade pays, waits and shows the
-// add-on models; this holds the bonuses for the reached levels, which Stats adds to this building.
-// Effects that aren't plain numbers (second refinery dock, bigger pylon ring, reveal ring, research
-// tiers) read the level or the shown add-on models directly.
 [RequireComponent(typeof(BuildingUpgrade))]
 public class UpgradeEffects : MonoBehaviour
 {
@@ -12,8 +8,8 @@ public class UpgradeEffects : MonoBehaviour
     public class Level
     {
         [Range(2, 3)] public int level = 2;
-        public string displayName;              // "Core Nexus Mk II"
-        [TextArea] public string description;   // the effect, shown in the tooltip
+        public string displayName;
+        [TextArea] public string description;
         public StatMod[] mods;
     }
 

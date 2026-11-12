@@ -1,16 +1,15 @@
 using UnityEngine;
 
-// Data Siphon: a slow, steady trickle of credits. Half rate while low on power. Each payout pulses and pops "+$N".
 public class Siphon : MonoBehaviour
 {
     [SerializeField] int amount = 20;
     [SerializeField] float interval = 4f;
 
     float next;
-    public float Progress01 => 1f - Mathf.Clamp01((next - Time.time) / interval); // towards the next payout (BuildingLife fills the capsules)
+    public float Progress01 => 1f - Mathf.Clamp01((next - Time.time) / interval);
     public float LastPayout { get; private set; } = -99f;
 
-    void OnEnable() => next = Time.time + interval; // starts counting once construction finishes
+    void OnEnable() => next = Time.time + interval;
 
     void Update()
     {
@@ -20,10 +19,9 @@ public class Siphon : MonoBehaviour
         int team = TeamEconomy.TeamOf(this);
         int earned = Structure.LowPowerOf(team) ? amount / 2 : amount;
         TeamEconomy.Earn(team, earned);
-        if (team != 0) return; // an AI's: no popup
+        if (team != 0) return;
         MatchStats.Add(MatchStats.Kind.Earned, earned);
 
-        // The payout: a pulse from the roof and "+$N" floating up.
         var b = ConstructionSite.RendererBounds(gameObject);
         Vector3 roof = new(b.center.x, b.max.y, b.center.z);
         Juice.Ring(roof, Juice.Gold, 0.5f, Mathf.Max(b.extents.x, b.extents.z) + 1.5f, 0.6f, 0.15f);

@@ -1,14 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Set dressing for the map, all built at runtime (CameraPan adds it next to Ambience). Purely visual:
-// no colliders, nothing on the navmesh, and the fog of war still draws over all of it.
-//  - ground detail: glowing panel seams with pulse waves, cracks, neon puddles (GD5/GroundDetail)
-//  - neon roads: a ring between the 8 bases and spokes to the centre, light flowing inward
-//  - flying traffic: lanes of glowing cars with light trails above the city
-//  - hologram billboards flickering on the tallest ruins, searchlights sweeping the sky
-//  - ore fields: a glow pool under each field that dims as it's mined
-//  - empty base spots: a hologram landing pad with its number, gone once someone builds there
 public class MapDressing : MonoBehaviour
 {
     static float MapHalf => GameMaps.Current.Half;
@@ -41,7 +33,6 @@ public class MapDressing : MonoBehaviour
         BasePads();
     }
 
-    // ---- helpers ----
 
     Material Glow(Texture tex, Color c, float hdr)
     {
@@ -50,7 +41,6 @@ public class MapDressing : MonoBehaviour
         return m;
     }
 
-    // A flat quad lying on the ground (no collider).
     Transform FlatQuad(string name, Vector3 at, float size, Material m, float yaw = 0f)
     {
         var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -74,7 +64,7 @@ public class MapDressing : MonoBehaviour
             for (int x = 0; x < w; x++)
             {
                 byte a = (byte)(Mathf.Clamp01(alpha((x + 0.5f) / w, (y + 0.5f) / h)) * 255);
-                px[y * w + x] = new Color32(a, a, a, a); // additive: brightness is the colour
+                px[y * w + x] = new Color32(a, a, a, a);
             }
         t.SetPixels32(px);
         t.Apply(true);
@@ -91,16 +81,15 @@ public class MapDressing : MonoBehaviour
         lr.widthMultiplier = width;
         lr.positionCount = points.Length;
         lr.SetPositions(points);
-        lr.alignment = LineAlignment.TransformZ; // lies flat (the object faces up)
+        lr.alignment = LineAlignment.TransformZ;
         lr.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
         lr.textureMode = LineTextureMode.Tile;
-        lr.textureScale = new Vector2(width / 6f, 1f); // Tile repeats once per line width: one dash every 6 m instead
+        lr.textureScale = new Vector2(width / 6f, 1f);
         lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         lr.receiveShadows = false;
         return lr;
     }
 
-    // ---- ground ----
 
     void Ground()
     {
@@ -110,19 +99,16 @@ public class MapDressing : MonoBehaviour
         q.GetComponent<MeshRenderer>().sortingOrder = -10;
     }
 
-    // Ring road through the 8 base spots, spokes to the middle; dashes of light flow towards the centre.
     void Roads()
     {
         var spots = GameObject.Find("BaseSpots");
         if (spots == null || spots.transform.childCount == 0) return;
-        var glowTex = Tex(8, 32, (x, y) => Mathf.Pow(1f - Mathf.Abs(y - 0.5f) * 2f, 2f));                       // soft across the road
-        var dashTex = Tex(128, 16, (x, y) => (x < 0.12f ? 1f : 0f) * (1f - Mathf.Abs(y - 0.5f) * 2f), TextureWrapMode.Repeat); // short dashes, long gaps
+        var glowTex = Tex(8, 32, (x, y) => Mathf.Pow(1f - Mathf.Abs(y - 0.5f) * 2f, 2f));
+        var dashTex = Tex(128, 16, (x, y) => (x < 0.12f ? 1f : 0f) * (1f - Mathf.Abs(y - 0.5f) * 2f), TextureWrapMode.Repeat);
         var bed = Glow(glowTex, new Color(0.35f, 0.1f, 0.7f, 0.5f), 1f);
-        var dash = Glow(dashTex, new Color(0.3f, 0.85f, 1f, 0.5f), 1.1f); // bright enough to bloom a little, not to shine through fog
-        flowing.Add((dash, -1.2f)); // ~7 m/s towards the centre
+        var dash = Glow(dashTex, new Color(0.3f, 0.85f, 1f, 0.5f), 1.1f);
+        flowing.Add((dash, -1.2f));
 
-        // The ring runs inside the bases (83% of the nearest one's distance), so roads never cross a base.
-        // Two bases (duel) make no ring, just the spokes.
         float near = float.MaxValue;
         foreach (Transform s in spots.transform) near = Mathf.Min(near, new Vector2(s.position.x, s.position.z).magnitude);
         float RingRadius = near * 0.83f, Inner = Mathf.Min(40f, near * 0.3f);
@@ -132,7 +118,7 @@ public class MapDressing : MonoBehaviour
         var ring = new List<Vector3>();
         foreach (var d in dirs) ring.Add(d * RingRadius + Vector3.up * 0.08f);
         ring.Add(ring[0]);
-        bool ringClear = true; // no ring road over a chasm (map features)
+        bool ringClear = true;
         for (int i = 1; i < ring.Count; i++) if (ChasmAlong(ring[i - 1], ring[i]) < float.MaxValue) ringClear = false;
         if (dirs.Count > 2 && ringClear)
         {
@@ -141,8 +127,8 @@ public class MapDressing : MonoBehaviour
         }
         foreach (var d in dirs)
         {
-            Vector3 outer = d * RingRadius + Vector3.up * 0.08f, inner = d * Inner + Vector3.up * 0.08f; // stop short of the centre zone
-            float stop = ChasmAlong(outer, inner); // the road ends at a chasm's edge
+            Vector3 outer = d * RingRadius + Vector3.up * 0.08f, inner = d * Inner + Vector3.up * 0.08f;
+            float stop = ChasmAlong(outer, inner);
             if (stop < float.MaxValue) inner = outer + (inner - outer).normalized * Mathf.Max(0f, stop - 3f);
             if ((inner - outer).sqrMagnitude < 25f) continue;
             Line("Spoke", bed, 5f, outer, inner);
@@ -150,7 +136,6 @@ public class MapDressing : MonoBehaviour
         }
     }
 
-    // Distance from a to the first chasm or bridge on the way to b (MaxValue = none).
     static float ChasmAlong(Vector3 a, Vector3 b)
     {
         Vector3 from = new(a.x, 0.1f, a.z), d = new(b.x - a.x, 0f, b.z - a.z);
@@ -160,7 +145,6 @@ public class MapDressing : MonoBehaviour
         return best;
     }
 
-    // ---- sky ----
 
     void Traffic()
     {
@@ -197,7 +181,6 @@ public class MapDressing : MonoBehaviour
         }
     }
 
-    // Holo ads on the tallest ruins: a flickering panel of glyph rows, facing the camera.
     void Billboards()
     {
         var city = GameObject.Find("City");
@@ -218,7 +201,7 @@ public class MapDressing : MonoBehaviour
         {
             if (billboards.Count >= 14) break;
             Vector3 c = r.bounds.center;
-            if (used.Exists(u => (u - c).sqrMagnitude < 40f * 40f)) continue; // spread them out
+            if (used.Exists(u => (u - c).sqrMagnitude < 40f * 40f)) continue;
             used.Add(c);
             Color col = Neon[rng.Next(Neon.Length)];
             var m = Glow(textures[rng.Next(textures.Length)], col, 1.8f);
@@ -228,7 +211,7 @@ public class MapDressing : MonoBehaviour
             q.transform.SetParent(root, false);
             float w = Mathf.Clamp(r.bounds.size.x * 0.8f, 4f, 9f);
             q.transform.position = new Vector3(c.x, h + w * 0.35f, c.z);
-            q.transform.rotation = Quaternion.Euler(20f, yaw, 0f); // tipped back a little towards the camera
+            q.transform.rotation = Quaternion.Euler(20f, yaw, 0f);
             q.transform.localScale = new Vector3(w, w * 0.55f, 1f);
             q.GetComponent<MeshRenderer>().sharedMaterial = m;
             q.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -240,18 +223,18 @@ public class MapDressing : MonoBehaviour
     {
         const int W = 128, H = 72;
         var rows = new float[6];
-        for (int i = 0; i < rows.Length; i++) rows[i] = 0.3f + (float)rng.NextDouble() * 0.65f; // each text row's length
+        for (int i = 0; i < rows.Length; i++) rows[i] = 0.3f + (float)rng.NextDouble() * 0.65f;
         int seed = rng.Next();
         return Tex(W, H, (x, y) =>
         {
             bool frame = x < 0.03f || x > 0.97f || y < 0.05f || y > 0.95f;
             if (frame) return 0.9f;
-            int row = Mathf.FloorToInt((1f - y) * 7f) - 1;               // a big "logo" row on top, text rows below
+            int row = Mathf.FloorToInt((1f - y) * 7f) - 1;
             if (row < 0) return (Mathf.Sin(x * 40f + seed) > 0.2f && y < 0.9f && y > 0.78f) ? 1f : 0.08f;
             if (row >= rows.Length) return 0.08f;
             float inRow = (1f - y) * 7f % 1f;
             bool glyph = inRow > 0.25f && inRow < 0.75f && x > 0.08f && x < 0.08f + rows[row] * 0.84f && Mathf.Sin(x * 90f + row * 7f + seed) > -0.4f;
-            float scan = 0.85f + 0.15f * Mathf.Sin(y * H * 3.14f); // scanlines
+            float scan = 0.85f + 0.15f * Mathf.Sin(y * H * 3.14f);
             return (glyph ? 0.75f : 0.06f) * scan;
         });
     }
@@ -259,7 +242,7 @@ public class MapDressing : MonoBehaviour
     void Searchlights()
     {
         var beamTex = Tex(16, 64, (x, y) => (1f - Mathf.Abs(x - 0.5f) * 2f) * Mathf.Pow(1f - y, 1.5f));
-        var m = Glow(beamTex, new Color(0.6f, 0.8f, 1f, 0.07f), 1f); // faint: from above, a beam lies across the map
+        var m = Glow(beamTex, new Color(0.6f, 0.8f, 1f, 0.07f), 1f);
         Vector3[] at = { new(-280, 0, 280), new(280, 0, 280), new(-280, 0, -280), new(280, 0, -280), new(0, 0, 290), new(-290, 0, 0), new(290, 0, 0) };
         var rng = new System.Random(3);
         foreach (var p in at)
@@ -274,7 +257,7 @@ public class MapDressing : MonoBehaviour
             beam.sharedMaterial = m;
             beam.positionCount = 2;
             beam.SetPosition(0, Vector3.zero);
-            beam.SetPosition(1, new Vector3(0f, 140f, 90f)); // up and out, leaning over the map
+            beam.SetPosition(1, new Vector3(0f, 140f, 90f));
             beam.startWidth = 1.5f; beam.endWidth = 14f;
             beam.textureMode = LineTextureMode.Stretch;
             beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -282,7 +265,6 @@ public class MapDressing : MonoBehaviour
         }
     }
 
-    // ---- ore and bases ----
 
     void OrePools()
     {
@@ -314,9 +296,9 @@ public class MapDressing : MonoBehaviour
         {
             Vector2 p = new(x - 0.5f, y - 0.5f);
             float r = p.magnitude * 2f;
-            float hex = Mathf.Max(Mathf.Abs(p.x) * 1.732f + Mathf.Abs(p.y), Mathf.Abs(p.y) * 2f) * 1.15f; // hexagon distance
+            float hex = Mathf.Max(Mathf.Abs(p.x) * 1.732f + Mathf.Abs(p.y), Mathf.Abs(p.y) * 2f) * 1.15f;
             float edge = Mathf.Clamp01(1f - Mathf.Abs(hex - 0.95f) * 30f);
-            float inner = Mathf.Clamp01(1f - Mathf.Abs(r - 0.55f) * 40f) * (Mathf.Sin(Mathf.Atan2(p.y, p.x) * 12f) > 0f ? 1f : 0f); // dashed ring
+            float inner = Mathf.Clamp01(1f - Mathf.Abs(r - 0.55f) * 40f) * (Mathf.Sin(Mathf.Atan2(p.y, p.x) * 12f) > 0f ? 1f : 0f);
             float fill = hex < 0.95f ? 0.06f : 0f;
             return Mathf.Max(edge, inner * 0.8f, fill);
         });
@@ -325,7 +307,7 @@ public class MapDressing : MonoBehaviour
         {
             n++;
             var m = Glow(padTex, new Color(0.3f, 0.9f, 1f, 0.6f), 1.4f);
-            var pad = new GameObject("BasePad").transform; // holds the spinning hexagon and the still label
+            var pad = new GameObject("BasePad").transform;
             pad.SetParent(root, false);
             var hex = FlatQuad("Hex", new Vector3(s.position.x, 0.09f, s.position.z), 26f, m);
             hex.SetParent(pad, true);
@@ -343,7 +325,6 @@ public class MapDressing : MonoBehaviour
         }
     }
 
-    // ---- every frame ----
 
     void Update()
     {
@@ -356,19 +337,18 @@ public class MapDressing : MonoBehaviour
         {
             car.t.position += car.dir * car.speed * dt;
             Vector3 p = car.t.position;
-            if (Mathf.Abs(p.x) > MapHalf + 20f || Mathf.Abs(p.z) > MapHalf + 20f) // round again from the other side
+            if (Mathf.Abs(p.x) > MapHalf + 20f || Mathf.Abs(p.z) > MapHalf + 20f)
             {
                 if (Mathf.Abs(p.x) > MapHalf + 20f) p.x = -Mathf.Sign(p.x) * (MapHalf + 15f);
                 if (Mathf.Abs(p.z) > MapHalf + 20f) p.z = -Mathf.Sign(p.z) * (MapHalf + 15f);
                 car.t.position = p;
                 car.t.GetComponent<TrailRenderer>().Clear();
             }
-            car.t.GetChild(0).rotation = face; // the glow dot faces the camera
+            car.t.GetChild(0).rotation = face;
         }
 
         foreach (var (tr, m, phase, c) in billboards)
         {
-            // Mostly steady, with quick glitch flickers now and then.
             float flick = Mathf.PerlinNoise(t * 3f + phase, phase) > 0.78f ? Random.Range(0.1f, 0.6f) : 1f;
             m.SetColor("_TintColor", new Color(c.r * 1.8f, c.g * 1.8f, c.b * 1.8f, 0.55f * flick));
         }

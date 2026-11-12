@@ -1,11 +1,10 @@
 using UnityEngine;
 
-// Panel hugs its buttons but never gets wider than the screen; past that its ScrollRect scrolls.
 public class FitWidth : MonoBehaviour
 {
     [SerializeField] RectTransform content;
-    [SerializeField] float padding = 12f; // frame around the buttons
-    [SerializeField] float margin = 24f;  // gap to each screen edge
+    [SerializeField] float padding = 12f;
+    [SerializeField] float margin = 24f;
 
     void LateUpdate()
     {

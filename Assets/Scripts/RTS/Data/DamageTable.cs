@@ -1,7 +1,5 @@
 using UnityEngine;
 
-// Counters, C&C style: how hard each kind of weapon hits each kind of armour.
-// One asset, Resources/DamageTable; edit the numbers there.
 [CreateAssetMenu(menuName = "RTS/Damage Table", fileName = "DamageTable")]
 public class DamageTable : ScriptableObject
 {
@@ -38,7 +36,6 @@ public class DamageTable : ScriptableObject
     public static Armor ArmorOf(Health h) =>
         h.TryGetComponent(out SelectableUnit u) && u.Data != null ? u.Data.armor : Armor.Structure;
 
-    // Tooltip line: "Gun: strong vs Light, weak vs Heavy, Structure".
     public static string Describe(Weapon w)
     {
         var table = Instance;

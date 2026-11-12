@@ -4,20 +4,16 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
 
-// Wasp Dropship: carries ground units. Right-click it with units selected: they walk under it and get
-// pulled up a tractor beam. Select it and press U (or the UNLOAD button): it sinks low and drops them.
-// Carried units are parked far below the map with their agent, health and collider off, so nothing can
-// see or shoot them, and it works online without hiding network objects. If the Wasp dies, so do they.
 [RequireComponent(typeof(Flyer))]
 public class Transport : MonoBehaviour
 {
     public int capacity = 5;
-    public GameObject beamPrefab; // FX_TractorBeam: hangs 1 m down from its origin
+    public GameObject beamPrefab;
     const float Below = 60f, LoadRange = 3.5f, DropHover = 2f;
 
     readonly List<SelectableUnit> carried = new();
     public int Carried => carried.Count;
-    readonly HashSet<SelectableUnit> inside = new(); // fully aboard (not still being beamed up)
+    readonly HashSet<SelectableUnit> inside = new();
     public int Count => carried.Count;
     public bool Full => carried.Count >= capacity;
     public bool Busy { get; private set; }
@@ -28,7 +24,6 @@ public class Transport : MonoBehaviour
     float beamUntil;
     Health health;
 
-    // Ground units that fit: infantry, support and ground scouts (no vehicles, workers, titans or flyers).
     public static bool CanCarry(SelectableUnit u) =>
         u != null && !Flyer.IsAir(u) && u.Data.role is UnitData.Role.Infantry or UnitData.Role.Support or UnitData.Role.Scout;
 
@@ -68,7 +63,7 @@ public class Transport : MonoBehaviour
         Juice.Ring(u.transform.position + Vector3.up * 0.2f, c, 0.5f, 2.5f, 0.4f, 0.2f);
         beamUntil = Time.time + 1f;
         Vector3 from = u.transform.position, scale = u.transform.localScale;
-        for (float t = 0f; t < 0.6f && u != null; t += Time.deltaTime) // lifted and shrunk into the hull
+        for (float t = 0f; t < 0.6f && u != null; t += Time.deltaTime)
         {
             float k = t / 0.6f;
             u.transform.position = Vector3.Lerp(from, Flyer.Center(this), k * k);
@@ -81,11 +76,10 @@ public class Transport : MonoBehaviour
         Alerts.Show($"Wasp loaded {carried.Count}/{capacity}", Alerts.Info);
     }
 
-    // Off: no agent, health, collider or brain; parked out of sight under the Wasp (and moved with it).
     static void Stow(SelectableUnit u)
     {
         if (u.TryGetComponent(out NavMeshAgent a)) a.enabled = false;
-        if (u.TryGetComponent(out Health h)) h.enabled = false; // leaves Health.All: nobody targets it
+        if (u.TryGetComponent(out Health h)) h.enabled = false;
         if (u.TryGetComponent(out Collider col)) col.enabled = false;
         if (u.TryGetComponent(out Attacker at)) { at.Stop(); at.enabled = false; }
     }
@@ -111,7 +105,7 @@ public class Transport : MonoBehaviour
         var agent = GetComponent<NavMeshAgent>();
         if (agent.isOnNavMesh) agent.ResetPath();
         float high = flyer.hover;
-        for (float t = 0f; t < 0.6f; t += Time.deltaTime) { flyer.hover = Mathf.Lerp(high, DropHover, t / 0.6f); yield return null; } // sink low
+        for (float t = 0f; t < 0.6f; t += Time.deltaTime) { flyer.hover = Mathf.Lerp(high, DropHover, t / 0.6f); yield return null; }
         flyer.hover = DropHover;
         Color c = ProductionFX.HoloColor(gameObject);
         int n = 0;
@@ -121,7 +115,6 @@ public class Transport : MonoBehaviour
             carried.RemoveAt(0);
             inside.Remove(u);
             if (u == null) continue;
-            // Around the spot under the Wasp, on solid ground (it may be hovering over a building).
             Vector3 spot = transform.position + Quaternion.Euler(0f, n++ * 72f, 0f) * Vector3.forward * (1.5f + flyer.size * 0.5f);
             if (NavMesh.SamplePosition(spot, out NavMeshHit hit, 20f, NavMesh.AllAreas)) spot = hit.position;
             Unstow(u, spot);
@@ -130,14 +123,13 @@ public class Transport : MonoBehaviour
             Juice.Burst(spot + Vector3.up * 0.5f, c, 12, 4f, 0.12f, 0.5f);
             yield return new WaitForSeconds(0.25f);
         }
-        for (float t = 0f; t < 0.8f; t += Time.deltaTime) { flyer.hover = Mathf.Lerp(DropHover, high, t / 0.8f); yield return null; } // back up
+        for (float t = 0f; t < 0.8f; t += Time.deltaTime) { flyer.hover = Mathf.Lerp(DropHover, high, t / 0.8f); yield return null; }
         flyer.hover = high;
         Busy = false;
     }
 
     void Update()
     {
-        // Carried units ride along, out of sight.
         if (health.IsDead) { SinkWithShip(); return; }
         foreach (var u in inside) if (u != null) u.transform.position = transform.position - Vector3.up * Below;
         if (beam != null)
@@ -154,7 +146,6 @@ public class Transport : MonoBehaviour
         if (self != null && self.IsSelected && carried.Count > 0 && Keyboard.current != null && Keyboard.current.uKey.wasPressedThisFrame) Unload();
     }
 
-    // Shot down: the passengers go down with it.
     void SinkWithShip()
     {
         if (beam != null) beam.gameObject.SetActive(false);

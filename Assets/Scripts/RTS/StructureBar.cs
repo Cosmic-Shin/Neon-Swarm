@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// Info bar for the selected building: name, health, power, SELL, REPAIR, and UPGRADE (Mk II / III) when it has one.
 public class StructureBar : MonoBehaviour
 {
     [SerializeField] GoodSelectionManager manager;
@@ -10,12 +9,12 @@ public class StructureBar : MonoBehaviour
     [SerializeField] Text stats;
     [SerializeField] Button sellButton;
     [SerializeField] Button repairButton;
-    [SerializeField] Button upgradeButton; // "Fill" child = progress bar while upgrading
-    [SerializeField] float upgradeRowHeight = 54f; // the bar grows by this when the building can upgrade
+    [SerializeField] Button upgradeButton;
+    [SerializeField] float upgradeRowHeight = 54f;
 
     Text sellText, repairText, upgradeText;
     Image upgradeFill;
-    RectTransform hpFill; // green HP bar under the stats line
+    RectTransform hpFill;
     Tooltip upgradeTip;
     RectTransform panelRect;
     float baseHeight;
@@ -31,7 +30,7 @@ public class StructureBar : MonoBehaviour
         baseHeight = panelRect.sizeDelta.y;
         sellButton.onClick.AddListener(() => manager.SelectedStructure?.Sell());
         repairButton.onClick.AddListener(() => manager.SelectedStructure?.ToggleRepair());
-        upgradeButton.onClick.AddListener(() => Upgrades(manager.SelectedStructure)?.Upgrade.Upgrade()); // pays from the ResourceBank
+        upgradeButton.onClick.AddListener(() => Upgrades(manager.SelectedStructure)?.Upgrade.Upgrade());
         hpFill = HpBar();
         panel.SetActive(false);
     }
@@ -42,7 +41,7 @@ public class StructureBar : MonoBehaviour
         back.transform.SetParent(panel.transform, false);
         back.raycastTarget = false;
         var r = back.rectTransform;
-        r.anchorMin = r.anchorMax = r.pivot = new Vector2(0f, 1f); // from the top, so it stays put when the upgrade row grows the bar
+        r.anchorMin = r.anchorMax = r.pivot = new Vector2(0f, 1f);
         r.anchoredPosition = new Vector2(14f, -60f);
         r.sizeDelta = new Vector2(352f, 6f);
         var fill = new GameObject("Fill", typeof(RectTransform), typeof(Image)).GetComponent<Image>();

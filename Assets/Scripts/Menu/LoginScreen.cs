@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Sign in / create account screen. On success it hands over to the lobby.
 public class LoginScreen : MonoBehaviour
 {
     public InputField username, password;
@@ -14,12 +13,10 @@ public class LoginScreen : MonoBehaviour
     {
         signIn.onClick.AddListener(() => Submit(false));
         signUp.onClick.AddListener(() => Submit(true));
-        // Enter in the username box: on to the password (or sign in if it is already filled).
         username.onSubmit.AddListener(_ => { if (password.text.Length == 0) { password.Select(); password.ActivateInputField(); } else Submit(false); });
-        password.onSubmit.AddListener(_ => Submit(false)); // Enter in the password box = Sign In
+        password.onSubmit.AddListener(_ => Submit(false));
         Show();
 #if DEVELOPMENT_BUILD
-        // Test builds only: "GD5.exe -signin user pass" signs in at start (a second player for friends tests).
         var args = Environment.GetCommandLineArgs();
         int i = Array.IndexOf(args, "-signin");
         if (i >= 0 && i + 2 < args.Length && !AccountService.SignedIn) { username.text = args[i + 1]; password.text = args[i + 2]; Submit(false); }
@@ -28,7 +25,7 @@ public class LoginScreen : MonoBehaviour
 
     async void Submit(bool isNew)
     {
-        if (!signIn.interactable) return; // request already running
+        if (!signIn.interactable) return;
         string error = AccountService.Validate(username.text.Trim(), password.text, isNew);
         if (error != null) { status.text = error; return; }
 
@@ -56,7 +53,7 @@ public class LoginScreen : MonoBehaviour
         signInPanel.SetActive(!inside);
         lobbyPanel.SetActive(inside);
         if (inside) _ = FriendsHub.Init();
-        if (inside && RoomService.Again != null) MultiplayerMenu.PlayAgain(); // back from a match with PLAY AGAIN
+        if (inside && RoomService.Again != null) MultiplayerMenu.PlayAgain();
     }
 
     void SetBusy(bool busy) => signIn.interactable = signUp.interactable = !busy;

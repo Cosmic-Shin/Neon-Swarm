@@ -2,10 +2,6 @@ using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
-// Outposts in multiplayer: the host runs every outpost (capture, shooting, its health) and publishes
-// the owner, capture progress and health; everyone else shows that. Their shots at an outpost go to the
-// host, and the host's outpost lasers are replayed on the other PCs. Garrisoning is off online.
-// Owners are stored as player slot + 1 (0 = neutral), since teams are relative on each PC.
 public partial class RoomState
 {
     const int MaxOutposts = 16;
@@ -14,17 +10,16 @@ public partial class RoomState
     [Networked, Capacity(MaxOutposts)] NetworkArray<float> OutProgress => default;
     [Networked, Capacity(MaxOutposts)] NetworkArray<float> OutHp => default;
     [Networked] NetworkBool OutpostsReady { get; set; }
-    const int MaxBarriers = 64; // destructible walls (map feature): the host runs their health too
+    const int MaxBarriers = 64;
     [Networked, Capacity(MaxBarriers)] NetworkArray<float> WallHp => default;
-    static readonly List<Barrier> barriers = new(); // keeps destroyed ones (null) so the numbers stay put
+    static readonly List<Barrier> barriers = new();
     static bool barriersFound;
 
     static readonly List<OutpostCapture> outposts = new();
 
-    // Numbered by position, the same on every PC (they are fixed scene objects).
     static void FindOutposts()
     {
-        if (!barriersFound) // once per match, numbered by position like the outposts
+        if (!barriersFound)
         {
             barriersFound = true;
             barriers.AddRange(FindObjectsByType<Barrier>(FindObjectsSortMode.None));
@@ -50,7 +45,7 @@ public partial class RoomState
         if (!Net.InMatch) return;
         FindOutposts();
         int n = Mathf.Min(outposts.Count, MaxOutposts);
-        bool host = HasStateAuthority; // can change: the next player becomes host if this one leaves
+        bool host = HasStateAuthority;
 
         Outpost.ShotHook = host ? (o, target) =>
         {
@@ -66,7 +61,6 @@ public partial class RoomState
             return false;
         };
 
-        // Walls: the host publishes health (0 = broken); everyone else follows and breaks theirs.
         for (int w = 0; w < barriers.Count && w < MaxBarriers; w++)
         {
             var b = barriers[w];

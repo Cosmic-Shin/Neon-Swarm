@@ -1,14 +1,13 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-// Hover a shop button to see what it does. Enter/Exit don't eat scroll or drag, so the strip still scrolls.
 public class Tooltip : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     public string text;
 
     public void OnPointerEnter(PointerEventData e) { if (TooltipView.Instance != null) TooltipView.Instance.Show(text, (RectTransform)transform); }
     public void OnPointerExit(PointerEventData e) => Hide();
-    void OnDisable() => Hide(); // button rebuilt or panel closed while hovered
+    void OnDisable() => Hide();
 
     void Hide() { if (TooltipView.Instance != null) TooltipView.Instance.Hide(); }
 

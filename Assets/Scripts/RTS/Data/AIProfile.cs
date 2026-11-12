@@ -1,7 +1,5 @@
 using UnityEngine;
 
-// How an AI opponent plays: its build order, the units it likes, when and how big it attacks, how fast it thinks.
-// One asset per difficulty in Resources/AI (Easy, Normal, Hard). Tune the AI here, not in code.
 [CreateAssetMenu(menuName = "RTS/AI Profile", fileName = "AIProfile")]
 public class AIProfile : ScriptableObject
 {
@@ -9,7 +7,7 @@ public class AIProfile : ScriptableObject
     public class UnitPick
     {
         public UnitData unit;
-        [Min(0f)] public float weight = 1f; // how often it's picked compared to the others
+        [Min(0f)] public float weight = 1f;
     }
 
     [Header("Thinking")]

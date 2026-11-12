@@ -1,8 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// "POWER used/made" next to the credits, with a meter along the bottom of the box: how much of the power made
-// is used. Green with room to spare, yellow near the limit, flashing pink when low (towers offline, production at half speed).
 public class PowerDisplay : MonoBehaviour
 {
     [SerializeField] Text label;

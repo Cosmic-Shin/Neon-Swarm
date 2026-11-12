@@ -3,13 +3,10 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
-// Map pings (multiplayer): Alt+click the ground or the minimap to flash a spot for your allies:
-// a pulsing ring and light beam in your colour, a pulse on the minimap and a line in the alerts.
-// RoomState sends it (RPC_Ping); allies' PCs call Show.
 public class Ping : MonoBehaviour
 {
     const float Life = 4f, Cooldown = 1f;
-    public static readonly List<(Vector3 at, Color color, float born)> Active = new(); // the minimap draws these
+    public static readonly List<(Vector3 at, Color color, float born)> Active = new();
 
     [SerializeField] LayerMask groundLayer;
     static Material material;
@@ -24,7 +21,7 @@ public class Ping : MonoBehaviour
         Active.RemoveAll(p => Time.time - p.born > Life);
         var mouse = Mouse.current;
         if (!Net.Online || mouse == null || !AltHeld || !mouse.leftButton.wasPressedThisFrame) return;
-        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return; // the minimap sends its own
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
         var ray = Camera.main.ScreenPointToRay(mouse.position.ReadValue());
         if (Physics.Raycast(ray, out RaycastHit hit, 1000f, groundLayer)) Send(hit.point);
     }
@@ -36,14 +33,13 @@ public class Ping : MonoBehaviour
         RoomState.Instance.SendPing(at);
     }
 
-    // who = null: just the marker (an alert already says why, e.g. an ally under attack).
     public static void Show(Vector3 at, Color color, string who)
     {
         Active.Add((at, color, Time.time));
         Sfx.Play(Snd.Ping, 0.8f);
         Debug.Log($"[GD5] ping from {who} at {at}");
         if (who != null) Alerts.Show($"{who} pinged the map", color, 2f);
-        if (material == null) material = Resources.Load<Material>("HarvestFX"); // additive glow
+        if (material == null) material = Resources.Load<Material>("HarvestFX");
         var go = new GameObject("Ping");
         go.transform.position = at;
         go.AddComponent<PingMarker>().Init(color, material);
@@ -51,7 +47,6 @@ public class Ping : MonoBehaviour
     }
 }
 
-// The world marker: three expanding rings and a beam of light.
 class PingMarker : MonoBehaviour
 {
     const int Points = 40;
@@ -84,7 +79,7 @@ class PingMarker : MonoBehaviour
     void Update()
     {
         float age = Time.time - born;
-        float pulse = (age % 1f);                    // a new ring every second
+        float pulse = (age % 1f);
         float radius = Mathf.Lerp(1f, 7f, pulse);
         Color c = color; c.a = (1f - pulse) * Mathf.Clamp01(4f - age);
         ring.startColor = ring.endColor = c;

@@ -1,16 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Where new buildings may go: inside a Power Pylon's ring or near the Core Nexus.
-// Pylons read the radius from the model's "*_BuildRadius" rings (Mk II shows a 50% bigger one);
-// the Nexus has no ring in its model, so it draws one. Rings only show while placing a building.
-// Construction keeps this off until the building is finished, so half-built pylons don't count.
 [RequireComponent(typeof(Health))]
 public class BuildRadius : MonoBehaviour
 {
     public static readonly List<BuildRadius> All = new();
 
-    [SerializeField] float radius; // 0 = use the model's rings
+    [SerializeField] float radius;
     [SerializeField] Color ringColor = new(0.3f, 1f, 0.6f, 0.6f);
 
     readonly List<(Renderer r, float radius)> rings = new();
@@ -20,7 +16,6 @@ public class BuildRadius : MonoBehaviour
 
     public int Team => health.team;
 
-    // Biggest ring currently switched on (the Mk II ring sits in an upgrade group that starts hidden).
     public float Radius
     {
         get
@@ -53,14 +48,12 @@ public class BuildRadius : MonoBehaviour
         if (drawn) drawn.enabled = on;
     }
 
-    // BuildingPlacer: rings on while placing.
     public static void ShowAll(bool on)
     {
         shown = on;
         foreach (var b in All) b.Show(on && b.Team == 0);
     }
 
-    // Does a footprint of this size (largest side) at p touch one of the team's build circles?
     public static bool Covers(Vector3 p, float footprint, int team)
     {
         foreach (var b in All)

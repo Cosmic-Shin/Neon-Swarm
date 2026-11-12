@@ -7,16 +7,16 @@ public class BuildingPanel : MonoBehaviour
 {
     [SerializeField] GoodSelectionManager manager;
     [SerializeField] RectTransform panel;
-    [SerializeField] Button buttonTemplate; // disabled template, cloned per unit
+    [SerializeField] Button buttonTemplate;
 
     Building building;
-    Building watched; // production state from last frame, for the "done" flash
+    Building watched;
     int wasProducing = -1;
     float wasProgress;
-    readonly List<Image> sweeps = new(); // per button: Card_ProgressFill rising from the card's bottom while it's being built
-    readonly List<Text> counts = new();  // per button: "x2" when queued
+    readonly List<Image> sweeps = new();
+    readonly List<Text> counts = new();
     readonly List<Button> buttons = new();
-    readonly List<string> blockers = new(); // per button: why it can't be queued, as last shown in its tooltip
+    readonly List<string> blockers = new();
 
     void Awake()
     {
@@ -34,14 +34,13 @@ public class BuildingPanel : MonoBehaviour
         if (b != null) Rebuild();
     }
 
-    // One button per unit the building can summon.
     void Rebuild()
     {
         Transform list = buttonTemplate.transform.parent;
         for (int i = list.childCount - 1; i >= 0; i--)
         {
             var child = list.GetChild(i);
-            if (child != buttonTemplate.transform && child.GetComponent<Button>()) Destroy(child.gameObject); // keep the panel's frame
+            if (child != buttonTemplate.transform && child.GetComponent<Button>()) Destroy(child.gameObject);
         }
 
         sweeps.Clear();
@@ -50,7 +49,7 @@ public class BuildingPanel : MonoBehaviour
         blockers.Clear();
         for (int i = 0; i < building.OptionCount; i++)
         {
-            int index = i; // captured per button
+            int index = i;
             Button btn = Instantiate(buttonTemplate, list);
             btn.gameObject.SetActive(true);
             btn.transform.Find("Text").GetComponent<Text>().text = building.NameOf(i) + (building.SquadOf(i) > 1 ? $" x{building.SquadOf(i)}" : "");
@@ -58,9 +57,8 @@ public class BuildingPanel : MonoBehaviour
             btn.transform.Find("Cost").GetComponent<Text>().text = $"${building.CostOf(i)}";
             buttons.Add(btn);
             if (building.IconOf(i) != null) btn.transform.Find("Icon").GetComponent<Image>().sprite = building.IconOf(i);
-            btn.onClick.AddListener(() => building.Enqueue(index)); // left-click (Button ignores right)
+            btn.onClick.AddListener(() => building.Enqueue(index));
 
-            // Not EventTrigger: it swallows scroll/drag, so the row couldn't scroll over the buttons.
             btn.gameObject.AddComponent<RightClick>().action = () => building.CancelOne(index);
             btn.gameObject.AddComponent<Tooltip>().text = building.TooltipOf(i);
             blockers.Add(building.Blocker(i));
@@ -71,10 +69,8 @@ public class BuildingPanel : MonoBehaviour
 
     void LateUpdate()
     {
-        // Panel is docked at the bottom of the screen; just hide it if the building is gone.
         if (building == null) { if (panel.gameObject.activeSelf) panel.gameObject.SetActive(false); return; }
 
-        // Finished one: its button flashes (production moved on, or the bar restarted for the next in the queue).
         int now = building.Producing;
         float progress = building.Progress01;
         if (building == watched && wasProducing >= 0 && wasProducing < buttons.Count && wasProgress > 0.8f && (now != wasProducing || progress < wasProgress - 0.5f))
@@ -89,15 +85,14 @@ public class BuildingPanel : MonoBehaviour
             string needs = building.Needs(i);
             HoloSkin.SetCard(buttons[i], needs != null ? HoloUI.CardState.Locked : active || n > 0 ? HoloUI.CardState.Building : HoloUI.CardState.Normal);
             counts[i].text = building.IsResearched(i) ? "DONE" : n > 0 ? $"x{n}" : "";
-            buttons[i].interactable = building.CanQueue(i); // red frame when short on credits (or already researched)
+            buttons[i].interactable = building.CanQueue(i);
             LockBadge.Set(buttons[i], needs, building.IsResearched(i) || ResourceBank.GetOrCreate().Credits >= building.CostOf(i));
             string why = building.Blocker(i);
-            if (why != blockers[i]) { blockers[i] = why; buttons[i].GetComponent<Tooltip>().text = building.TooltipOf(i); } // red reason line
+            if (why != blockers[i]) { blockers[i] = why; buttons[i].GetComponent<Tooltip>().text = building.TooltipOf(i); }
         }
     }
 }
 
-// Right-click only; ignores scroll/drag so they reach the ScrollRect.
 public class RightClick : MonoBehaviour, IPointerClickHandler
 {
     public System.Action action;

@@ -1,32 +1,26 @@
 using Fusion;
 using UnityEngine;
 
-// The room's shared setup, owned by the host (master client; passes to the next one if the host leaves):
-// who sits in which player slot (= player number), each player's colour and team, which base each slot starts at,
-// starting credits and the time limit. Only the host writes it (players ask for their colour/team by RPC);
-// everyone reads it, in the room and in the match.
-public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outposts.cs
+public partial class RoomState : NetworkBehaviour
 {
     public static RoomState Instance { get; private set; }
 
     public static readonly int[] CreditOptions = { 2500, 5000, 10000, 20000 };
-    public static readonly int[] MinuteOptions = { 0, 15, 30, 45, 60 }; // 0 = no limit
+    public static readonly int[] MinuteOptions = { 0, 15, 30, 45, 60 };
 
 
     [Networked, Capacity(RoomService.MaxPlayers)] public NetworkArray<PlayerRef> Slots => default;
-    [Networked, Capacity(RoomService.MaxPlayers)] public NetworkArray<int> Bases => default; // slot -> base 0..7
+    [Networked, Capacity(RoomService.MaxPlayers)] public NetworkArray<int> Bases => default;
     [Networked] public int Credits { get; set; }
     [Networked] public int Minutes { get; set; }
-    [Networked] public int Map { get; set; } // GameMaps.All index
+    [Networked] public int Map { get; set; }
     public GameMap MapInfo => GameMaps.At(Map);
-    [Networked] public float MatchStart { get; set; } // Runner.SimulationTime when the map loaded; 0 = not yet
-    [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> Colors => default; // slot -> TeamMember.TeamColors index
-    [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> Teams => default;  // slot -> 0 = no team, 1..TeamCount
-    [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<NetworkBool> Ready => default; // slot -> clicked READY in the lobby
+    [Networked] public float MatchStart { get; set; }
+    [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> Colors => default;
+    [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> Teams => default;
+    [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<NetworkBool> Ready => default;
     public const int TeamCount = 4;
 
-    // Ore: the host owns every patch's amount (and its regrowth); everyone else mirrors it and sends what
-    // their harvesters mine. Patches are numbered by position, which is the same on every PC.
     const int MaxOre = 192;
     [Networked, Capacity(MaxOre)] NetworkArray<float> Ore => default;
     [Networked] NetworkBool OreReady { get; set; }
@@ -37,7 +31,7 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
     public override void Spawned()
     {
         Instance = this;
-        Runner.MakeDontDestroyOnLoad(gameObject); // carries the setup into the match
+        Runner.MakeDontDestroyOnLoad(gameObject);
         if (HasStateAuthority && Credits == 0)
         {
             Credits = 5000;
@@ -54,7 +48,6 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
         ClearOutposts();
     }
 
-    // ---- ore ----
     static int OreIndex(OreNode node)
     {
         if (ores.Count != OreNode.All.Count)
@@ -88,20 +81,16 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
             for (int i = 0; i < n; i++) if (ores[i]) ores[i].SetFromNet(Ore[i]);
     }
 
-    // ponytail: the miner keeps what it took right away; if two players drain the last ore at once both get it.
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     void RPC_TakeOre(int index, float amount)
     {
         if (index < ores.Count && ores[index]) ores[index].Take(amount);
     }
 
-    // ---- chat ----
-    // toAll = everyone; otherwise only the sender's allies (lobby team) read it.
     public void SendChat(string text, bool toAll = true) => RPC_Chat(SlotOf(Runner.LocalPlayer), text, toAll);
 
-    public static event System.Action<int, string, bool> ChatReceived; // (sender slot, text, to all): room screen log, match alerts
+    public static event System.Action<int, string, bool> ChatReceived;
 
-    // ponytail: team messages still reach every PC and are dropped there; target allies' PlayerRefs if that ever matters.
     [Rpc(RpcSources.All, RpcTargets.All)]
     void RPC_Chat(int slot, string text, NetworkBool toAll)
     {
@@ -110,7 +99,6 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
         ChatReceived?.Invoke(slot, text, toAll);
     }
 
-    // Do I have anyone to team-chat with?
     public bool HasAllies()
     {
         int me = SlotOf(Runner.LocalPlayer);
@@ -124,7 +112,6 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
         if (!HasStateAuthority) { SyncOre(); SyncOutposts(); }
     }
 
-    // Host: seat newcomers in the first free slot, free the slots of players who left.
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority) return;
@@ -182,7 +169,6 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
     public bool IsReady(int slot) => Valid(slot) && Ready[slot];
     public bool IsHostSlot(int slot) => Valid(slot) && Slots[slot] == Object.StateAuthority;
 
-    // Everyone but the host has clicked READY (the host starts the game instead).
     public bool EveryoneReady()
     {
         for (int i = 0; i < RoomService.MaxPlayers; i++)
@@ -195,10 +181,8 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     void RPC_ToggleReady(int slot) { if (Valid(slot)) Ready.Set(slot, !Ready[slot]); }
 
-    // Host changed the setup: everyone confirms again.
     void Unready() { for (int i = 0; i < RoomService.MaxPlayers; i++) Ready.Set(i, false); }
 
-    // ---- colour and team: each player picks their own (C&C style); the host applies it ----
     public void NextColor() => RPC_NextColor(SlotOf(Runner.LocalPlayer));
     public void NextTeam() => RPC_NextTeam(SlotOf(Runner.LocalPlayer));
 
@@ -207,7 +191,7 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
     {
         if (!Valid(slot)) return;
         int n = TeamMember.TeamColors.Length;
-        for (int step = 1; step < n; step++) // the next colour nobody else has
+        for (int step = 1; step < n; step++)
         {
             int c = (Colors[slot] + step) % n;
             if (!ColorTaken(slot, c)) { Colors.Set(slot, c); return; }
@@ -217,15 +201,12 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     void RPC_NextTeam(int slot) { if (Valid(slot)) Teams.Set(slot, (Teams[slot] + 1) % (TeamCount + 1)); }
 
-    // ---- map pings (Alt+click): shown to the sender's allies ----
     public void SendPing(Vector3 at) => RPC_Ping(SlotOf(Runner.LocalPlayer), at);
 
     [Rpc(RpcSources.All, RpcTargets.All)]
     void RPC_Ping(int slot, Vector3 at) { if (Net.Allied(Net.ToTeam(slot), 0)) Ping.Show(at, TeamMember.ColorOf(slot), NameOf(slot)); }
 
-    // ---- host only ----
 
-    // Move a player to a base; whoever had it takes theirs (bases stay one per slot).
     public void MoveToBase(int slot, int baseIndex)
     {
         if (!IsHost) return;
@@ -237,7 +218,6 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
         Unready();
     }
 
-    // The next map that fits everyone in the room; bases start over (base 1, then across the map).
     public void NextMap()
     {
         if (!IsHost) return;
@@ -262,7 +242,6 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
         for (int i = 0; i < b.Length; i++) Bases.Set(i, b[i]);
     }
 
-    // Host, every tick: a seated player on a base the map doesn't have swaps with an empty seat that has one.
     void KeepPlayersOnMap()
     {
         int cap = MapInfo.Players;
@@ -274,7 +253,6 @@ public partial class RoomState : NetworkBehaviour // outposts: RoomState.Outpost
         }
     }
 
-    // More players than bases (someone joined a small map): the host must pick a bigger map.
     public bool TooManyPlayers
     {
         get
