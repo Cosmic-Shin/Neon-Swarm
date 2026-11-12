@@ -174,6 +174,9 @@ public static class MenuDioramaBuilder
         }
         if (GameObject.Find("Canvas") is GameObject canvas)
         {
+            if (!canvas.TryGetComponent(out GlitchSplash splash)) splash = canvas.AddComponent<GlitchSplash>();
+            splash.image = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/CyberpunkRTS/UI/Splash/CosmicShin_Lockup.png");
+            EditorUtility.SetDirty(splash);
             foreach (var n in new[] { "SignInPanel", "LobbyPanel" })
                 if (canvas.transform.Find(n) is RectTransform rt) { rt.anchoredPosition = new Vector2(-600f, -60f); EditorUtility.SetDirty(rt); }
             if (canvas.transform.Find("Title") is RectTransform title)
