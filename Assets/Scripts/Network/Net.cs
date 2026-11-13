@@ -9,12 +9,26 @@ public static class Net
     static bool InRoom => Runner != null && Runner.IsRunning && RoomState.Instance != null;
 
     public static int LocalSlot => InRoom ? Mathf.Max(0, RoomState.Instance.SlotOf(Runner.LocalPlayer)) : 0;
+    public static bool Watching => InRoom && RoomState.Instance.SlotOf(Runner.LocalPlayer) < 0;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Reset() { InMatch = false; table = null; }
 
-    public static int ToTeam(int slot) => InRoom && slot >= 0 && slot < RoomService.MaxPlayers ? (slot - LocalSlot + RoomService.MaxPlayers) % RoomService.MaxPlayers : slot;
-    public static int ToSlot(int team) => InRoom && team >= 0 && team < RoomService.MaxPlayers ? (team + LocalSlot) % RoomService.MaxPlayers : team;
+    static bool IsSlot(int slot) => slot >= 0 && slot < RoomService.MaxPlayers;
+
+    public static int ToTeam(int slot)
+    {
+        if (!InRoom || !IsSlot(slot)) return slot;
+        return Watching ? slot + 1 : (slot - LocalSlot + RoomService.MaxPlayers) % RoomService.MaxPlayers;
+    }
+
+    public static int ToSlot(int team)
+    {
+        if (!InRoom) return team;
+        if (Watching) return team >= 1 && team <= RoomService.MaxPlayers ? team - 1 : team;
+        return IsSlot(team) ? (team + LocalSlot) % RoomService.MaxPlayers : team;
+    }
+
     public static Color ColorOf(int team) => team == Creep.Team ? CreepColor : team < 0 ? Color.white : TeamMember.ColorOf(ToSlot(team));
     public static readonly Color CreepColor = new(1f, 0.55f, 0.1f);
 
@@ -22,20 +36,22 @@ public static class Net
     {
         if (a == b) return true;
         if (!InRoom) return Skirmish.Allied(a, b);
-        if (a < 0|| b < 0 || a >= RoomService.MaxPlayers || b >= RoomService.MaxPlayers) return false;
-        int ta = RoomState.Instance.TeamOf(ToSlot(a));
-        return ta != 0 && ta == RoomState.Instance.TeamOf(ToSlot(b));
+        int sa = ToSlot(a), sb = ToSlot(b);
+        if (!IsSlot(sa) || !IsSlot(sb)) return false;
+        int ta = RoomState.Instance.TeamOf(sa);
+        return ta != 0 && ta == RoomState.Instance.TeamOf(sb);
     }
 
     public static bool LowPower(int team)
     {
-        if (team == 0) return Structure.LowPower;
+        if (team == 0 && !Watching) return Structure.LowPower;
         if (!InRoom) return Structure.LowPowerOf(team);
-        if (team < 0|| team >= RoomService.MaxPlayers) return false;
-        var p = RoomState.Instance.Slots[ToSlot(team)];
-        foreach (var rp in RoomPlayer.All) if (rp != null && rp.Object.StateAuthority == p) return rp.LowPower;
-        return false;
+        int slot = ToSlot(team);
+        if (!IsSlot(slot)) return false;
+        var rp = RoomState.Instance.IsAway(slot) ? null : RoomPlayer.Of(RoomState.Instance.Slots[slot]);
+        return rp != null ? rp.LowPower : Structure.LowPowerOf(team);
     }
+
     public static string NameOf(int team) => RoomState.Instance != null ? RoomState.Instance.NameOf(ToSlot(team)) : $"Player {team + 1}";
 
     static NetPrefabs table;
@@ -56,6 +72,11 @@ public static class Net
 
     public static T Spawn<T>(T prefab, Vector3 pos, Quaternion rot) where T : Component =>
         Spawn(prefab.gameObject, pos, rot).GetComponent<T>();
+
+    public static GameObject SpawnFor(int team, GameObject prefab, Vector3 pos, Quaternion rot) => Spawn(prefab, pos, rot, ToSlot(team));
+
+    public static T SpawnFor<T>(int team, T prefab, Vector3 pos, Quaternion rot) where T : Component =>
+        SpawnFor(team, prefab.gameObject, pos, rot).GetComponent<T>();
 
     public static void Destroy(GameObject go)
     {

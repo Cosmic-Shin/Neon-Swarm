@@ -41,6 +41,7 @@ public class FriendsPanel : MonoBehaviour
         var canvas = anyUI.GetComponentInParent<Canvas>().rootCanvas;
         var root = new GameObject("Friends", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
         root.SetParent(canvas.transform, false);
+        HoloSkin.Layer(root, HoloSkin.LayerPopup);
         Stretch(root);
         root.GetComponent<Image>().color = Back;
         root.gameObject.AddComponent<FriendsPanel>().Build(root);

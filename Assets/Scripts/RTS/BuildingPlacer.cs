@@ -72,6 +72,7 @@ public class BuildingPlacer : MonoBehaviour
         {
             int index = i;
             Button btn = Instantiate(optionTemplate, optionTemplate.transform.parent);
+            HoloSkin.SquareCard(btn);
             btn.gameObject.SetActive(true);
             btn.transform.Find("Text").GetComponent<Text>().text = buildings[i].displayName;
             btn.transform.Find("Time").GetComponent<Text>().text = $"{buildings[i].buildTime:0}s";

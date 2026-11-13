@@ -86,6 +86,7 @@ public class MultiplayerMenu : MonoBehaviour
         string error;
         try { error = await go(); }
         catch (System.Exception e) { Debug.LogException(e); error = "Something went wrong. Try again."; await RoomService.Instance.EnterLobby(); }
+        if (!this) return;
         SetBusy(false);
         if (error != null) { status.text = error; return; }
         gameObject.SetActive(false);
@@ -121,14 +122,25 @@ public class MultiplayerMenu : MonoBehaviour
             if (child != roomTemplate.transform) Destroy(child.gameObject);
 
         int shown = 0;
-        var rooms = RoomService.Instance.Rooms.FindAll(r => r.IsOpen && r.IsVisible);
-        rooms.Sort((a, b) => FriendsIn(b.Name).Length.CompareTo(FriendsIn(a.Name).Length));
+        string rejoin = RoomService.RejoinRoom;
+        var all = RoomService.Instance.Rooms;
+        if (rejoin.Length > 0 && !all.Exists(r => r.Name == rejoin && r.IsOpen && r.IsVisible))
+        {
+            var rb = Instantiate(roomTemplate, roomList);
+            rb.gameObject.SetActive(true);
+            rb.GetComponentInChildren<Text>().text = "<color=#FFB040>REJOIN</color>    " + rejoin;
+            rb.onClick.AddListener(() => Enter(false, rejoin));
+            shown++;
+        }
+        var rooms = all.FindAll(r => r.IsOpen && r.IsVisible);
+        rooms.Sort((a, b) => (b.Name == rejoin).CompareTo(a.Name == rejoin) * 100 + FriendsIn(b.Name).Length.CompareTo(FriendsIn(a.Name).Length));
         foreach (var room in rooms)
         {
             var b = Instantiate(roomTemplate, roomList);
             b.gameObject.SetActive(true);
             string host = RoomService.HostOf(room), pals = FriendsIn(room.Name);
-            b.GetComponentInChildren<Text>().text = room.Name + "    " + room.PlayerCount + "/" + room.MaxPlayers
+            string state = room.Name == rejoin ? "<color=#FFB040>REJOIN</color>    " : RoomService.IsLive(room) ? "<color=#FFB040>IN GAME · WATCH</color>    " : "";
+            b.GetComponentInChildren<Text>().text = state + room.Name + "    " + room.PlayerCount + "/" + room.MaxPlayers
                 + (pals.Length > 0 ? "    <color=#60FF90>" + pals + "</color>"
                    : host != null ? "    <color=#8A96B0>host " + host + "</color>" : "");
             string name = room.Name;

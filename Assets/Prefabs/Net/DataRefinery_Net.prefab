@@ -83,7 +83,7 @@ MonoBehaviour:
   SortKey: 3603879606
   SendPriority: 1
   EnableInterpolation: 1
-  Flags: 262146
+  Flags: 524290
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 8047902534671186197}

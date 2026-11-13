@@ -36,7 +36,7 @@ public class Brood : MonoBehaviour
         Vector3 from = transform.position + transform.forward * 1.5f;
         Vector3 to = from + Quaternion.Euler(0f, Random.Range(-60f, 60f), 0f) * transform.forward * 5f;
         if (NavMesh.SamplePosition(to, out NavMeshHit hit, 6f, NavMesh.AllAreas)) to = hit.position;
-        var hatchling = Net.Spawn(unit.Data.extra, from, transform.rotation).GetComponent<SelectableUnit>();
+        var hatchling = Net.SpawnFor(health.team, unit.Data.extra, from, transform.rotation).GetComponent<SelectableUnit>();
         Attacker.SetTeam(hatchling, health.team);
         hatchling.GetComponent<Health>().onDeath = () =>
         {

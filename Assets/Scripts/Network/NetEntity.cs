@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(Health))]
-public class NetEntity : NetworkBehaviour
+public class NetEntity : NetworkBehaviour, IStateAuthorityChanged
 {
     public static readonly List<NetEntity> All = new();
 
@@ -62,10 +62,8 @@ public class NetEntity : NetworkBehaviour
     public override void Spawned()
     {
         All.Add(this);
-        Health.team = Net.ToTeam(OwnerSlot);
-        if (TryGetComponent(out TeamMember tm)) tm.team = Health.team;
-        if (TryGetComponent(out SelectableUnit unit)) unit.ApplyTeamLook();
-        if (!HasStateAuthority) MakeRemote();
+        RefreshTeam();
+        if (!HasStateAuthority) { transform.SetPositionAndRotation(SpawnPos, SpawnRot); MakeRemote(); }
         else if (TryGetComponent(out NavMeshAgent agent) && agent.enabled)
             agent.Warp(SpawnPos);
 
@@ -82,14 +80,55 @@ public class NetEntity : NetworkBehaviour
         if (hasState && !HasStateAuthority && !Dead && Net.InMatch && TryGetComponent(out Structure _)) Juice.Sell(gameObject, 0);
     }
 
+    public void RefreshTeam()
+    {
+        Health.team = Net.ToTeam(OwnerSlot);
+        if (TryGetComponent(out TeamMember tm)) tm.team = Health.team;
+        if (TryGetComponent(out SelectableUnit unit)) unit.ApplyTeamLook();
+    }
+
+    bool remoteMode;
+
     void MakeRemote()
     {
-        transform.SetPositionAndRotation(SpawnPos, SpawnRot);
+        remoteMode = true;
+        if (construction != null && !construction.remote) { construction.Complete(); construction = null; }
         foreach (var type in OwnerOnly)
             if (TryGetComponent(type, out var c)) ((UnityEngine.Behaviour)c).enabled = false;
         if (TryGetComponent(out NavMeshAgent agent)) agent.enabled = false;
         if (TryGetComponent(out SelectableUnit unit)) unit.IsRemote = true;
     }
+
+    void MakeLocal()
+    {
+        remoteMode = false;
+        if (Dead) return;
+        if (construction != null) { construction.FinishRemote(); construction = null; built = true; }
+        Health.SetFromNet(Hp, MaxHp);
+        foreach (var type in OwnerOnly)
+            if (TryGetComponent(type, out var c)) ((UnityEngine.Behaviour)c).enabled = true;
+        if (TryGetComponent(out SelectableUnit unit)) unit.IsRemote = false;
+        if (TryGetComponent(out NavMeshAgent agent))
+        {
+            agent.enabled = true;
+            if (NavMesh.SamplePosition(transform.position, out var hit, 6f, NavMesh.AllAreas)) agent.Warp(hit.position);
+        }
+        if (Rank > 0)
+        {
+            if (!TryGetComponent(out Veterancy vet)) vet = gameObject.AddComponent<Veterancy>();
+            var ranks = VeterancyData.Get.ranks;
+            vet.SetKills(ranks[Mathf.Min(Rank, ranks.Length - 1)].kills, false);
+        }
+    }
+
+    public void StateAuthorityChanged()
+    {
+        if (HasStateAuthority) { if (remoteMode) MakeLocal(); }
+        else if (!remoteMode) MakeRemote();
+    }
+
+    public bool Orphaned => Online && Object.StateAuthority == PlayerRef.None;
+    public void Claim() { if (Online && !HasStateAuthority) Object.RequestStateAuthority(); }
 
     public override void FixedUpdateNetwork()
     {

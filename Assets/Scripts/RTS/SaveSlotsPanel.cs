@@ -19,6 +19,7 @@ public class SaveSlotsPanel : MonoBehaviour
         var root = new GameObject("SaveSlots", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
         root.SetParent(canvas.transform, false);
         root.SetAsLastSibling();
+        HoloSkin.Layer(root, HoloSkin.LayerPopup);
         SettingsPanel.Stretch(root);
         root.GetComponent<Image>().color = SettingsPanel.Back;
         var panel = root.gameObject.AddComponent<SaveSlotsPanel>();

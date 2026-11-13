@@ -149,6 +149,24 @@ public static class HoloSkin
     }
 
 
+    public const float CardSize = 180f;
+
+    public static void SquareCard(Button b)
+    {
+        ((RectTransform)b.transform).sizeDelta = new Vector2(CardSize, CardSize);
+        if (b.transform.Find("Icon") is Transform icon && icon.TryGetComponent(out Image img)) img.preserveAspect = true;
+    }
+
+    public const int LayerAlerts = 10, LayerChat = 20, LayerHelp = 30, LayerMenu = 40, LayerPopup = 45, LayerEnd = 55, LayerTooltip = 60;
+
+    public static void Layer(Component c, int order)
+    {
+        if (c == null) return;
+        if (!c.TryGetComponent(out SortLayer layer)) layer = c.gameObject.AddComponent<SortLayer>();
+        layer.order = order;
+        if (c.gameObject.activeInHierarchy) { layer.enabled = false; layer.enabled = true; }
+    }
+
     public static void Card(Button b)
     {
         if (b == null) return;

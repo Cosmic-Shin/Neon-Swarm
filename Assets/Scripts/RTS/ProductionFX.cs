@@ -115,6 +115,7 @@ public class ProductionFX : MonoBehaviour
 
     void Build(Object what)
     {
+        if (ring == null) { shown = null; return; }
         color = HoloColor(gameObject);
         ring.startColor = ring.endColor = color;
         holoMat = new Material(Shader.Find("GD5/Hologram"));

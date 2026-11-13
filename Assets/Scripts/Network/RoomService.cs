@@ -7,6 +7,7 @@ using UnityEngine;
 public class RoomService : MonoBehaviour
 {
     public const int MaxPlayers = 8;
+    public const int MaxSpectators = 4;
     public static RoomService Instance { get; private set; }
     public static event Action RoomsChanged;
     public static event Action<string> Disconnected;
@@ -84,12 +85,19 @@ public class RoomService : MonoBehaviour
     {
         SessionInfo best = null;
         foreach (var r in Rooms)
-            if (r.IsOpen && r.IsVisible && r.PlayerCount < r.MaxPlayers && (best == null || r.PlayerCount > best.PlayerCount)) best = r;
+            if (r.IsOpen && r.IsVisible && !IsLive(r) && r.PlayerCount < r.MaxPlayers && (best == null || r.PlayerCount > best.PlayerCount)) best = r;
         return best != null ? Join(best.Name) : JoinOrCreate("Quick " + UnityEngine.Random.Range(1000, 10000), true);
     }
 
     public static string HostOf(SessionInfo r) =>
         r.Properties != null && r.Properties.TryGetValue("host", out var h) ? (string)h.PropertyValue : null;
+
+    public static bool IsLive(SessionInfo r) =>
+        r.Properties != null && r.Properties.TryGetValue("live", out var l) && (int)l.PropertyValue == 1;
+
+    public const string RejoinKey = "rejoin.room";
+    public static string RejoinRoom => PlayerPrefs.GetString(RejoinKey, "");
+    public static void ForgetRejoin() => PlayerPrefs.DeleteKey(RejoinKey);
 
     public static (string room, bool visible, int credits, int minutes, int map)? Again;
 
@@ -119,29 +127,56 @@ public class RoomService : MonoBehaviour
 
     public bool IsHost => Runner && Runner.IsRunning && Runner.IsSharedModeMasterClient;
 
+    public async void Kicked(string why)
+    {
+        await Leave();
+        Disconnected?.Invoke(why);
+    }
+
     public void StartMatch()
     {
         if (!IsHost || RoomState.Instance == null || RoomState.Instance.TooManyPlayers) return;
-        Runner.SessionInfo.IsOpen = false;
         int index = UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(GameMaps.PathOf(RoomState.Instance.MapInfo));
+        Runner.SessionInfo.UpdateCustomProperties(new Dictionary<string, SessionProperty> { { "host", HostOf(Runner.SessionInfo) ?? AccountService.Username ?? "Player" }, { "live", 1 }, { "scene", index } });
         Runner.LoadScene(SceneRef.FromIndex(index));
     }
 
-    async Task<string> StartRoom(string room, bool create, bool visible = true)
+    static int LiveScene(SessionInfo r) =>
+        r != null && r.IsValid && IsLive(r) && r.Properties.TryGetValue("scene", out var s) ? (int)s.PropertyValue : -1;
+
+    async Task<string> StartRoom(string room, bool create, bool visible = true, int scene = -1)
+    {
+        if (scene < 0) scene = LiveScene(Rooms.Find(r => r.Name == room));
+        if (scene >= 0 && UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != scene)
+        {
+            LateJoin = true;
+            await Leave();
+            var load = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(scene);
+            while (!load.isDone) await Task.Yield();
+        }
+        try { return await EnterRoom(room, create, visible, scene); }
+        finally { LateJoin = false; }
+    }
+
+    public static bool LateJoin { get; private set; }
+
+    async Task<string> EnterRoom(string room, bool create, bool visible, int scene)
     {
         if (!Runner) Runner = NewRunner();
         var result = await Runner.StartGame(new StartGameArgs
         {
             GameMode = GameMode.Shared,
             SessionName = room,
-            PlayerCount = MaxPlayers,
+            PlayerCount = MaxPlayers + MaxSpectators,
             EnableClientSessionCreation = create,
             IsVisible = visible,
-            SessionProperties = new System.Collections.Generic.Dictionary<string, SessionProperty> { { "host", AccountService.Username ?? "Player" } },
+            SessionProperties = new System.Collections.Generic.Dictionary<string, SessionProperty> { { "host", AccountService.Username ?? "Player" }, { "live", 0 }, { "scene", -1 } },
             SceneManager = Runner.GetComponent<NetworkSceneManagerDefault>(),
         });
         if (!result.Ok)
         {
+            if (room == RejoinRoom && result.ShutdownReason is ShutdownReason.GameNotFound or ShutdownReason.GameClosed) ForgetRejoin();
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != 0) { UnityEngine.SceneManagement.SceneManager.LoadScene(0); return "Couldn't rejoin the match: " + result.ShutdownReason; }
             await EnterLobby();
             return result.ShutdownReason switch
             {
@@ -150,6 +185,10 @@ public class RoomService : MonoBehaviour
                 ShutdownReason.GameClosed => "That game has already started.",
                 _ => "Couldn't enter room: " + result.ShutdownReason,
             };
+        }
+        if (scene < 0 && LiveScene(Runner.SessionInfo) is int live && live >= 0)
+        {
+            return await StartRoom(room, false, visible, live);
         }
         inRoom = true;
         FriendsHub.SetRoom(room);

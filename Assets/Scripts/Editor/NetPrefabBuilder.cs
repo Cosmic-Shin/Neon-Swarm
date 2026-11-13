@@ -47,7 +47,7 @@ public static class NetPrefabBuilder
 
         var no = root.GetComponent<NetworkObject>();
         if (no == null) no = root.AddComponent<NetworkObject>();
-        no.Flags |= NetworkObjectFlags.DestroyWhenStateAuthorityLeaves;
+        no.Flags = (no.Flags & ~NetworkObjectFlags.DestroyWhenStateAuthorityLeaves) | NetworkObjectFlags.AllowStateAuthorityOverride;
         if (root.GetComponent<NetEntity>() == null) root.AddComponent<NetEntity>();
         if (isUnit && root.GetComponent<NetworkTransform>() == null) root.AddComponent<NetworkTransform>();
 

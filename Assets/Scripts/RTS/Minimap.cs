@@ -72,6 +72,7 @@ public class Minimap : MonoBehaviour, IPointerDownHandler, IDragHandler
             Color c = p.color; c.a = 1f - pulse;
             Dot(p.at, 8f + 26f * pulse, c);
         }
+        DrawAttacks();
         for (int i = used; i < pool.Count; i++) pool[i].enabled = false;
 
         Vector2 min = new(float.MaxValue, float.MaxValue), max = new(float.MinValue, float.MinValue);
@@ -85,11 +86,69 @@ public class Minimap : MonoBehaviour, IPointerDownHandler, IDragHandler
         viewFrame.sizeDelta = max - min;
     }
 
+    const float AttackLife = 5f, AttackPatch = 35f, AttackGap = 4f, FlashTime = 1.2f;
+    static readonly List<(Vector3 p, float at)> attacks = new();
+    static float flashAt = -10f;
+    Image[] edges;
+
+    public static void UnderAttack(Vector3 p)
+    {
+        attacks.RemoveAll(a => Time.time - a.at > AttackLife);
+        foreach (var a in attacks)
+        {
+            Vector3 d = a.p - p;
+            if (d.x * d.x + d.z * d.z <= AttackPatch * AttackPatch && Time.time - a.at < AttackGap) return;
+        }
+        attacks.Add((p, Time.time));
+        flashAt = Time.time;
+        Alerts.LastSpot = p;
+    }
+
+    void DrawAttacks()
+    {
+        foreach (var (p, at) in attacks)
+        {
+            float age = Time.time - at;
+            if (age > AttackLife) continue;
+            float fade = 1f - age / AttackLife;
+            for (int ring = 0; ring < 2; ring++)
+            {
+                float k = (age * 1.4f + ring * 0.5f) % 1f;
+                Dot(p, 6f + 34f * k, new Color(1f, 0.15f, 0.15f, (1f - k) * 0.7f * fade));
+            }
+            bool blink = Mathf.Repeat(age * 4f, 1f) < 0.6f;
+            Dot(p, 9f, new Color(1f, 0.2f, 0.2f, blink ? fade : fade * 0.3f));
+        }
+        if (edges == null) edges = MakeEdges();
+        float flash = Mathf.Clamp01(1f - (Time.time - flashAt) / FlashTime);
+        float on = flash * (Mathf.Repeat((Time.time - flashAt) * 5f, 1f) < 0.5f ? 1f : 0.4f);
+        foreach (var e in edges) { e.enabled = on > 0.01f; e.color = new Color(1f, 0.15f, 0.15f, on); }
+    }
+
+    Image[] MakeEdges()
+    {
+        var list = new Image[4];
+        for (int i = 0; i < 4; i++)
+        {
+            var img = new GameObject("AttackEdge", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            img.transform.SetParent(map, false);
+            img.raycastTarget = false;
+            var r = img.rectTransform;
+            bool side = i >= 2;
+            r.anchorMin = side ? new Vector2(i == 2 ? 0f : 1f, 0f) : new Vector2(0f, i == 0 ? 0f : 1f);
+            r.anchorMax = side ? new Vector2(i == 2 ? 0f : 1f, 1f) : new Vector2(1f, i == 0 ? 0f : 1f);
+            r.sizeDelta = side ? new Vector2(4f, 0f) : new Vector2(0f, 4f);
+            r.anchoredPosition = Vector2.zero;
+            list[i] = img;
+        }
+        return list;
+    }
+
     const float FightTime = 2.5f, FightPatch = 24f;
     static readonly List<(Vector3 p, float at, bool ours)> fights = new();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetFights() => fights.Clear();
+    static void ResetFights() { fights.Clear(); attacks.Clear(); flashAt = -10f; }
 
     public static void Fight(Vector3 p, bool ours)
     {

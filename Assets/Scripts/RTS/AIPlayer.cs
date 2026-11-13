@@ -154,7 +154,7 @@ public class AIPlayer : MonoBehaviour
         }
         if (!TeamEconomy.Spend(team, nextBuilding.cost)) return;
 
-        var go = Net.Spawn(nextBuilding.prefab, pos, rot);
+        var go = Net.SpawnFor(team, nextBuilding.prefab, pos, rot);
         var h = go.GetComponent<Health>();
         h.team = team;
         if (go.TryGetComponent(out TeamMember tm)) tm.team = team;
@@ -429,11 +429,15 @@ public class AIPlayer : MonoBehaviour
 
     void Army()
     {
+        Retreat();
         var threat = Threat();
         if (threat != null)
         {
             Mode = State.Defending;
-            foreach (var u in army) if (!wave.Contains(u) || Near(u.transform.position, home, profile.defendRadius * 1.5f)) Order(u, threat.transform.position);
+            var defenders = new List<SelectableUnit>();
+            foreach (var u in army)
+                if (!wave.Contains(u) || Near(u.transform.position, home, profile.defendRadius * 1.5f)) { Order(u, threat.transform.position); defenders.Add(u); }
+            Tactics(defenders);
             return;
         }
         if (Mode == State.Defending) Mode = wave.Count > 0 ? State.Attacking : State.Gathering;
@@ -449,7 +453,7 @@ public class AIPlayer : MonoBehaviour
 
         if (Time.time - started >= profile.firstAttack && worth >= waveValue)
         {
-            foreach (var u in army) if (!Away(u)) wave.Add(u);
+            foreach (var u in army) if (!Away(u) && Fit(u)) wave.Add(u);
             waveValue = Mathf.RoundToInt(waveValue * profile.waveGrowth);
             Mode = State.Attacking;
             foreach (var u in wave) u.GetComponent<Attacker>().Stop();
@@ -469,6 +473,94 @@ public class AIPlayer : MonoBehaviour
             if (a.HasTarget) continue;
             if (Near(u.transform.position, stand, 30f)) a.Attack(target);
             else if (!a.Busy) a.AttackMove(stand);
+        }
+        Tactics(wave);
+        if (profile.regroup && wave.Count > 3) Regroup(centre, stand);
+    }
+
+    readonly HashSet<SelectableUnit> retreating = new();
+
+    bool Fit(SelectableUnit u) => profile.retreatBelow <= 0f || u.GetComponent<Health>().Fraction >= Mathf.Max(0.6f, profile.retreatBelow + 0.2f);
+
+    void Retreat()
+    {
+        if (profile.retreatBelow <= 0f) return;
+        retreating.RemoveWhere(u => u == null || Near(u.transform.position, home, 25f));
+        foreach (var u in army)
+        {
+            if (retreating.Contains(u) || Near(u.transform.position, home, profile.defendRadius)) continue;
+            if (u.GetComponent<Health>().Fraction >= profile.retreatBelow) continue;
+            retreating.Add(u);
+            wave.Remove(u);
+            harass.Remove(u);
+            u.GetComponent<Attacker>().Stop();
+            if (u.TryGetComponent(out NavMeshAgent agent) && agent.enabled && agent.isOnNavMesh) agent.SetDestination(home + front * 10f);
+        }
+    }
+
+    void Tactics(List<SelectableUnit> squad)
+    {
+        squad.RemoveAll(u => u == null || retreating.Contains(u));
+        if (squad.Count == 0) return;
+        if (profile.focusFire) FocusFire(squad);
+        if (profile.kite) Kite(squad);
+    }
+
+    void FocusFire(List<SelectableUnit> squad)
+    {
+        Vector3 centre = Vector3.zero;
+        foreach (var u in squad) centre += u.transform.position;
+        centre /= squad.Count;
+
+        Health best = null;
+        float bestScore = 0f;
+        foreach (var h in Health.All)
+        {
+            if (h.IsDead || h.team == Creep.Team || Net.Allied(h.team, team)) continue;
+            if (!h.TryGetComponent(out SelectableUnit su) || su.Data == null || !Near(h.transform.position, centre, 35f)) continue;
+            float score = su.Data.cost / Mathf.Max(1f, su.Data.squadSize) / Mathf.Max(10f, h.Current);
+            if (score > bestScore) { bestScore = score; best = h; }
+        }
+        if (best == null) return;
+
+        foreach (var u in squad)
+        {
+            var a = u.GetComponent<Attacker>();
+            if (a.Target == best || !a.CanHit(best)) continue;
+            if (a.Target != null && a.Target.TryGetComponent(out SelectableUnit _) && a.Target.Fraction < 0.25f) continue;
+            if (Near(u.transform.position, best.transform.position, u.Data.range + 12f)) a.Attack(best);
+        }
+    }
+
+    void Kite(List<SelectableUnit> squad)
+    {
+        foreach (var u in squad)
+        {
+            if (u.Data.range < 12f || Flyer.IsAir(u) || !u.TryGetComponent(out NavMeshAgent agent) || !agent.enabled || !agent.isOnNavMesh) continue;
+            Vector3 p = u.transform.position;
+            Health melee = null;
+            foreach (var h in Health.All)
+            {
+                if (h.IsDead || Net.Allied(h.team, team) || !h.TryGetComponent(out SelectableUnit e) || e.Data == null || e.Data.range > 6f || e.Data.damage <= 0) continue;
+                if (Near(h.transform.position, p, 8f)) { melee = h; break; }
+            }
+            if (melee == null) continue;
+            Vector3 away = p - melee.transform.position; away.y = 0f;
+            Vector3 to = p + away.normalized * 7f;
+            if (NavMesh.SamplePosition(to, out NavMeshHit hit, 4f, NavMesh.AllAreas)) agent.SetDestination(hit.position);
+        }
+    }
+
+    void Regroup(Vector3 centre, Vector3 stand)
+    {
+        float centreLeft = (stand - centre).magnitude;
+        foreach (var u in wave)
+        {
+            var a = u.GetComponent<Attacker>();
+            if (a.HasTarget || Near(u.transform.position, stand, 40f) || Near(u.transform.position, centre, 22f)) continue;
+            if ((stand - u.transform.position).magnitude > centreLeft - 15f) continue;
+            a.Stop();
+            if (u.TryGetComponent(out NavMeshAgent agent) && agent.enabled && agent.isOnNavMesh) agent.ResetPath();
         }
     }
 

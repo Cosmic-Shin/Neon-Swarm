@@ -13,7 +13,7 @@ public class FreeHarvester : MonoBehaviour
         Vector3 inside = transform.position - outDir.normalized * 2.5f; 
         inside.y = dock.y;
 
-        var unit = Net.Spawn(harvesterPrefab, dock, Quaternion.LookRotation(outDir));
+        var unit = Net.SpawnFor(TeamEconomy.TeamOf(this), harvesterPrefab, dock, Quaternion.LookRotation(outDir));
         Attacker.SetTeam(unit, TeamEconomy.TeamOf(this));
         unit.WalkOut(inside, dock, exitSpeed);
     }

@@ -58,6 +58,7 @@ public class Construction : MonoBehaviour
 
     public void FinishRemote()
     {
+        if (this == null) return;
         if (site != null) site.Skip(1f);
         SetAbilities(true);
         Juice.ConstructionDone(gameObject);
@@ -82,7 +83,14 @@ public class Construction : MonoBehaviour
         if (remote) return;
         if (fill != null) fill.fillAmount = site.Progress;
         if (site.Progress < 1f) return;
+        Complete();
+    }
 
+    public void Complete()
+    {
+        if (remote) { FinishRemote(); return; }
+        if (site != null) site.Skip(1f);
+        if (features == null) { Destroy(this); return; }
         foreach (var f in features) if (f != this && f != null && f is not Fusion.NetworkBehaviour) f.enabled = true;
         SendMessage("OnConstructed", SendMessageOptions.DontRequireReceiver);
         Juice.ConstructionDone(gameObject);

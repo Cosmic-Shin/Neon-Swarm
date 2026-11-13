@@ -72,3 +72,7 @@ MonoBehaviour:
   expandBelow: 2000
   harassEvery: 180
   harassSize: 2
+  focusFire: 1
+  retreatBelow: 0.2
+  regroup: 1
+  kite: 0

@@ -8,6 +8,10 @@ public class RoomPlayer : NetworkBehaviour
     [Networked] public NetworkString<_32> Username { get; set; }
     [Networked] public NetworkString<_64> PlayerId { get; set; }
     [Networked] public NetworkBool LowPower { get; set; }
+    [Networked] public int Credits { get; set; }
+    [Networked] public NetworkString<_128> Research { get; set; }
+    [Networked] public NetworkBool Live { get; set; }
+    public static bool Publish;
     [Networked, Capacity(8)] public NetworkArray<int> Stats => default;
 
     public override void Spawned()
@@ -23,8 +27,11 @@ public class RoomPlayer : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        if (!HasStateAuthority || !Net.InMatch) return;
+        if (!HasStateAuthority || !Net.InMatch || !Publish) return;
+        Live = true;
         LowPower = Structure.LowPower;
+        Credits = ResourceBank.GetOrCreate().Credits;
+        Research = RoomState.ResearchIds(0);
         for (int i = 0; i < MatchStats.Values.Length; i++) Stats.Set(i, MatchStats.Values[i]);
     }
 

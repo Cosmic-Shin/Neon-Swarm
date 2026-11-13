@@ -29,6 +29,13 @@ public class Hud : MonoBehaviour
         BuildIdle();
         BuildHelp();
         clock = transform.Find("MatchTimer")?.GetComponentInChildren<Text>();
+
+        HoloSkin.Layer(transform.Find("Alerts"), HoloSkin.LayerAlerts);
+        HoloSkin.Layer(transform.Find("ChatInput"), HoloSkin.LayerChat);
+        HoloSkin.Layer(transform.Find("Hotkeys"), HoloSkin.LayerHelp);
+        HoloSkin.Layer(transform.Find("GameMenu"), HoloSkin.LayerMenu);
+        HoloSkin.Layer(transform.Find("MatchEnd"), HoloSkin.LayerEnd);
+        HoloSkin.Layer(transform.Find("TooltipBox"), HoloSkin.LayerTooltip);
     }
 
     void LateUpdate()

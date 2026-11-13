@@ -35,6 +35,8 @@ public class MatchManager : MonoBehaviour
         Health.LastBuildingDeath = null;
         endPanel.SetActive(false);
         timerText.transform.parent.gameObject.SetActive(false);
+        for (float t = 0f; RoomService.LateJoin || (t < 10f && Net.Runner != null && Net.Runner.IsRunning && Net.Runner.SessionInfo != null && Net.Runner.SessionInfo.IsValid && RoomState.Instance == null); t += Time.unscaledDeltaTime)
+            yield return null;
         var room = RoomState.Instance;
         var runner = Net.Runner;
         if (room == null || runner == null || !runner.IsRunning)
@@ -58,10 +60,27 @@ public class MatchManager : MonoBehaviour
         }
 
         Net.InMatch = true;
+        RoomPlayer.Publish = false;
         MatchStats.Reset();
         endButton.onClick.AddListener(BackToMenu);
         BuildEndScreen();
         RoomService.Disconnected += OnDisconnected;
+
+        for (float wait = 0f; wait < 15f && runner.IsRunning && room.SlotOf(runner.LocalPlayer) < 0 && room.WatcherOf(runner.LocalPlayer) < 0; wait += Time.deltaTime)
+            yield return null;
+        if (!runner.IsRunning) yield break;
+        foreach (var e in NetEntity.All) if (e != null) e.RefreshTeam();
+        PlayerPrefs.SetString(RoomService.RejoinKey, runner.SessionInfo.Name);
+
+        if (Net.Watching || room.HasReturned(Net.LocalSlot))
+        {
+            foreach (var go in singlePlayerOnly) if (go != null) Destroy(go);
+            while (runner.IsRunning && runner.SceneManager != null && runner.SceneManager.IsBusy) yield return null;
+            yield return null;
+            if (Net.Watching) { TeamEconomy.Set(0, 0); WatchMatch(); StartClock(room, runner); }
+            else yield return Rejoin(room);
+            yield break;
+        }
 
         var bank = ResourceBank.GetOrCreate();
         int diff = room.Credits - bank.Credits;
@@ -89,16 +108,63 @@ public class MatchManager : MonoBehaviour
         introNexus.Add(nexus);
         introHives.Add((hive.GetComponent<Building>(), layoutHarvesters.Length));
         StartCoroutine(Intro());
-        if (room.HasStateAuthority && room.MatchStart <= 0f)
-        {
-            room.MatchStart = runner.SimulationTime;
-            foreach (var c in creeps) if (c.prefab != null) Net.Spawn(c.prefab, c.position, c.rotation, Creep.Team);
-        }
+        StartClock(room, runner);
+        RoomPlayer.Publish = true;
         Alerts.Show($"You are Player {Net.LocalSlot + 1}. Destroy every enemy building!", Alerts.Info, 6f);
         Sfx.Say(Line.Start, 30f);
     }
 
-    void OnDestroy() => RoomService.Disconnected -= OnDisconnected;
+    void StartClock(RoomState room, Fusion.NetworkRunner runner)
+    {
+        if (!room.HasStateAuthority || room.MatchStart > 0f) return;
+        room.MatchStart = runner.SimulationTime;
+        foreach (var c in creeps) if (c.prefab != null) Net.Spawn(c.prefab, c.position, c.rotation, Creep.Team);
+    }
+
+    public static MatchManager Instance { get; private set; }
+    void Awake() => Instance = this;
+
+    void OnDestroy()
+    {
+        RoomService.Disconnected -= OnDisconnected;
+        if (Instance == this) Instance = null;
+    }
+
+    public AIPlayer MakeBot(int team, int baseIndex)
+    {
+        var spot = baseSpots.GetChild(Mathf.Clamp(baseIndex, 0, baseSpots.childCount - 1));
+        var brain = new GameObject($"Bot {team}").AddComponent<AIPlayer>();
+        brain.team = team;
+        brain.profile = Resources.Load<AIProfile>("AI/Normal");
+        brain.home = Flat(spot.position);
+        brain.front = -Flat(spot.position).normalized;
+        return brain;
+    }
+
+    System.Collections.IEnumerator Rejoin(RoomState room)
+    {
+        int slot = Net.LocalSlot;
+        room.LoadSaved(slot);
+        RoomPlayer.Publish = true;
+        Vector3 look = baseSpots.GetChild(Mathf.Clamp(room.Bases[slot], 0, baseSpots.childCount - 1)).position;
+        foreach (var s in Structure.All)
+            if (s != null && s.isHQ && s.TryGetComponent(out NetEntity n) && n.OwnerSlot == slot) look = s.transform.position;
+        CameraPan.LookAt(look);
+        Alerts.Show("Welcome back! You have control of your base again.", Alerts.Good, 6f);
+        for (float t = 0f; t < 6f; t += 0.5f)
+        {
+            foreach (var e in NetEntity.All) if (e != null && e.OwnerSlot == slot && !e.IsDead) e.Claim();
+            yield return new WaitForSeconds(0.5f);
+        }
+    }
+
+    void WatchMatch()
+    {
+        spectating = true;
+        over = true;
+        Spectate();
+        Alerts.Show("You are spectating this match.", Alerts.Info, 6f);
+    }
 
 
     void StartSkirmish()
@@ -357,6 +423,7 @@ public class MatchManager : MonoBehaviour
     void End(string title, string detail, bool canSpectate = false)
     {
         Debug.Log($"[GD5] end {title}: {detail}");
+        if (title != "DISCONNECTED") RoomService.ForgetRejoin();
         if (!recorded && (title == "VICTORY" || title == "DEFEAT")) { recorded = true; RecordResult(title == "VICTORY"); }
         over = true;
         spectating = false;

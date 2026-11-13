@@ -117,18 +117,10 @@ public partial class RoomState : NetworkBehaviour
         if (!HasStateAuthority) return;
         SyncOre();
         SyncOutposts();
-        for (int i = 0; i < RoomService.MaxPlayers; i++)
-        {
-            var p = Slots[i];
-            if (p != PlayerRef.None && !Contains(Runner.ActivePlayers, p)) { Slots.Set(i, PlayerRef.None); Ready.Set(i, false); }
-        }
-        foreach (var p in Runner.ActivePlayers)
-        {
-            if (SlotOf(p) >= 0) continue;
-            for (int i = 0; i < RoomService.MaxPlayers; i++)
-                if (Slots[i] == PlayerRef.None) { Slots.Set(i, p); Teams.Set(i, 0); Ready.Set(i, false); if (ColorTaken(i, Colors[i])) RPC_NextColor(i); break; }
-        }
-        if (!Net.InMatch) KeepPlayersOnMap();
+        UpdateSeats();
+        SendAwayBanned();
+        if (Net.InMatch) RunAwayPlayers();
+        else KeepPlayersOnMap();
     }
 
     bool ColorTaken(int slot, int color)
@@ -159,8 +151,10 @@ public partial class RoomState : NetworkBehaviour
     {
         if (slot < 0 || slot >= RoomService.MaxPlayers) return "?";
         var p = Slots[slot];
-        foreach (var rp in RoomPlayer.All) if (rp != null && rp.Object.StateAuthority == p) return rp.Username.ToString();
-        return $"Player {slot + 1}";
+        var rp = IsAway(slot) ? null : RoomPlayer.Of(p);
+        if (rp != null) return rp.Username.ToString();
+        string saved = Names[slot].ToString();
+        return saved.Length > 0 ? saved : $"Player {slot + 1}";
     }
 
     bool Valid(int slot) => Object != null && Object.IsValid && slot >= 0 && slot < RoomService.MaxPlayers;
@@ -250,6 +244,15 @@ public partial class RoomState : NetworkBehaviour
             if (Slots[i] == PlayerRef.None || Bases[i] < cap) continue;
             for (int j = 0; j < RoomService.MaxPlayers; j++)
                 if (Slots[j] == PlayerRef.None && Bases[j] < cap) { int b = Bases[i]; Bases.Set(i, Bases[j]); Bases.Set(j, b); break; }
+        }
+    }
+
+    public bool HasPlayers
+    {
+        get
+        {
+            for (int i = 0; i < RoomService.MaxPlayers; i++) if (Slots[i] != PlayerRef.None) return true;
+            return false;
         }
     }
 

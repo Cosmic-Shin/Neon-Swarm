@@ -37,7 +37,18 @@ public static class GameSettings
     }
 
     [RuntimeInitializeOnLoadMethod]
-    static void HookScenes() => UnityEngine.SceneManagement.SceneManager.sceneLoaded += (s, m) => ApplyPostFX();
+    static void HookScenes()
+    {
+        if (Screen.fullScreen) SetFullscreen(true);
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += (s, m) => ApplyPostFX();
+    }
+
+    public static void SetFullscreen(bool on)
+    {
+        var d = Screen.mainWindowDisplayInfo;
+        if (on) Screen.SetResolution(d.width, d.height, FullScreenMode.FullScreenWindow);
+        else Screen.SetResolution(d.width * 3 / 4, d.height * 3 / 4, FullScreenMode.Windowed);
+    }
 
     public static void ApplyPostFX()
     {
@@ -75,6 +86,7 @@ public class SettingsPanel : MonoBehaviour
         root.SetParent(canvas.transform, false);
         Stretch(root);
         root.GetComponent<Image>().color = Back;
+        HoloSkin.Layer(root, HoloSkin.LayerPopup);
         root.gameObject.AddComponent<SettingsPanel>().Build(root);
         IsOpen = true;
     }
@@ -121,7 +133,7 @@ public class SettingsPanel : MonoBehaviour
         Slider(box, "Bloom (neon glow)", ref y, 0f, 1.5f, GameSettings.BloomLevel, v => { GameSettings.BloomLevel = v; GameSettings.ApplyPostFX(); }, v => v < 0.01f ? "OFF" : $"{v:P0}");
         Slider(box, "Neon colours", ref y, 0.3f, 1f, GameSettings.NeonColours, v => { GameSettings.NeonColours = v; GameSettings.ApplyPostFX(); }, v => $"{v:P0}");
         Cycle(box, "Reduce flashing", ref y, () => GameSettings.ReduceFlashing ? "ON" : "OFF", () => GameSettings.ReduceFlashing = !GameSettings.ReduceFlashing);
-        Cycle(box, "Fullscreen", ref y, () => Screen.fullScreen ? "ON" : "OFF", () => Screen.fullScreen = !Screen.fullScreen);
+        Cycle(box, "Fullscreen", ref y, () => Screen.fullScreen ? "ON" : "OFF", () => GameSettings.SetFullscreen(!Screen.fullScreen));
         Cycle(box, "Screen shake", ref y, () => GameSettings.Shake ? "ON" : "OFF", () => GameSettings.Shake = !GameSettings.Shake);
         Cycle(box, "Rain", ref y, () => GameSettings.Rain ? "ON" : "OFF", () => GameSettings.Rain = !GameSettings.Rain);
         Cycle(box, "Damage numbers", ref y, () => GameSettings.DamageNumbers ? "ON" : "OFF", () => GameSettings.DamageNumbers = !GameSettings.DamageNumbers);

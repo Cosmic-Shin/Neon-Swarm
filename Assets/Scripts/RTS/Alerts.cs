@@ -41,23 +41,24 @@ public class Alerts : MonoBehaviour
         instance.Add(message, color);
     }
 
-    public static Vector3? LastSpot { get; private set; }
+    public static Vector3? LastSpot { get; set; }
 
-    public static void ShowAt(string message, Color color, Vector3 at, float throttle = 0f)
+    public static void ShowAt(string message, Color color, Vector3 at, float throttle = 0f, bool ping = true)
     {
         if (throttle > 0f && quietUntil.TryGetValue(message, out float t) && Time.time < t) return;
         Show(message, color, throttle);
         LastSpot = at;
-        Ping.Active.Add((at, color, Time.time));
+        if (ping) Ping.Active.Add((at, color, Time.time));
     }
 
     public static void Attacked(Health h)
     {
         Vector3 p = h.transform.position;
-        if (h.TryGetComponent(out OutpostCapture _)) ShowAt("Outpost under attack", Warn, p, 15f);
-        else if (h.TryGetComponent(out Structure _)) { ShowAt("Our base is under attack", Bad, p, 12f); Sfx.Say(Line.UnderAttack, 25f); }
-        else if (h.TryGetComponent(out Harvester _)) ShowAt("Harvester under attack", Warn, p, 15f);
-        else ShowAt("Unit under attack", Warn, p, 15f);
+        Minimap.UnderAttack(p);
+        if (h.TryGetComponent(out OutpostCapture _)) ShowAt("Outpost under attack", Warn, p, 15f, false);
+        else if (h.TryGetComponent(out Structure _)) { ShowAt("Our base is under attack", Bad, p, 12f, false); Sfx.Say(Line.UnderAttack, 25f); }
+        else if (h.TryGetComponent(out Harvester _)) ShowAt("Harvester under attack", Warn, p, 15f, false);
+        else ShowAt("Unit under attack", Warn, p, 15f, false);
     }
 
     public static void AllyAttacked(Health h)

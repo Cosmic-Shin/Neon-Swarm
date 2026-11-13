@@ -61,7 +61,7 @@ public class SwarmBay : MonoBehaviour
         nextLaunch = Time.time + launchGap;
         Vector2 r = Random.insideUnitCircle * 1.5f;
         Vector3 at = transform.position + new Vector3(r.x, 0f, r.y);
-        var d = Net.Spawn(dronePrefab.gameObject, at, transform.rotation).GetComponent<SelectableUnit>();
+        var d = Net.SpawnFor(health.team, dronePrefab.gameObject, at, transform.rotation).GetComponent<SelectableUnit>();
         Attacker.SetTeam(d, health.team);
         d.GetComponent<Health>().onDeath = () => Burnout(d);
         drones.Add(d);

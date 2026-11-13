@@ -51,6 +51,7 @@ public class BuildingPanel : MonoBehaviour
         {
             int index = i;
             Button btn = Instantiate(buttonTemplate, list);
+            HoloSkin.SquareCard(btn);
             btn.gameObject.SetActive(true);
             btn.transform.Find("Text").GetComponent<Text>().text = building.NameOf(i) + (building.SquadOf(i) > 1 ? $" x{building.SquadOf(i)}" : "");
             btn.transform.Find("Time").GetComponent<Text>().text = $"{building.TimeOf(i):0}s";

@@ -227,7 +227,7 @@ public class Building : MonoBehaviour
     public SelectableUnit Release(SelectableUnit prefab)
     {
         var (exit, inside, edge) = ExitPath();
-        var unit = Net.Spawn(prefab, exit, Quaternion.LookRotation(spawnPoint.position - transform.position));
+        var unit = Net.SpawnFor(Team, prefab, exit, Quaternion.LookRotation(spawnPoint.position - transform.position));
         if (Team != 0) Attacker.SetTeam(unit, Team);
         Sfx.At(Snd.UnitReady, exit, 0.6f);
         unit.WalkOut(inside, exit, exitSpeed, edge, null);
@@ -251,7 +251,7 @@ public class Building : MonoBehaviour
     void SummonOne(int index, Vector3? rally)
     {
         var (exit, inside, edge) = ExitPath();
-        var unit = Net.Spawn(unitPrefabs[index], exit, Quaternion.LookRotation(spawnPoint.position - transform.position));
+        var unit = Net.SpawnFor(Team, unitPrefabs[index], exit, Quaternion.LookRotation(spawnPoint.position - transform.position));
         Sfx.At(Snd.UnitReady, exit, 0.6f);
         if (Team == 0) Sfx.Say(Line.Ready, 8f);
         if (Team != 0) Attacker.SetTeam(unit, Team);

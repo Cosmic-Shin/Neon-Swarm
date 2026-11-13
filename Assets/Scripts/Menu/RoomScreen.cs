@@ -22,6 +22,12 @@ public class RoomScreen : MonoBehaviour
     static readonly Color Picked = new(1f, 1f, 1f, 0.25f);
 
     readonly Button[] rows = new Button[RoomService.MaxPlayers];
+    readonly Button[] watchRows = new Button[RoomService.MaxSpectators];
+    Button watchButton;
+    readonly (Button kick, Button ban)[] rowMod = new (Button, Button)[RoomService.MaxPlayers];
+    readonly (Button kick, Button ban)[] watchMod = new (Button, Button)[RoomService.MaxSpectators];
+    Fusion.PlayerRef confirmBan;
+    float confirmUntil;
     readonly Button[] bases = new Button[RoomService.MaxPlayers];
     int picked = -1;
     bool starting;
@@ -50,7 +56,27 @@ public class RoomScreen : MonoBehaviour
             rows[i].onClick.AddListener(() => picked = picked == slot ? -1 : slot);
             rows[i].transform.Find("Swatch").GetComponent<Button>().onClick.AddListener(() => RoomState.Instance?.NextColor());
             rows[i].transform.Find("Team").GetComponent<Button>().onClick.AddListener(() => RoomState.Instance?.NextTeam());
+            rowMod[i] = Moderation(rows[i], () => RoomState.Instance.Slots[slot]);
         }
+        for (int i = 0; i < watchRows.Length; i++)
+        {
+            watchRows[i] = Instantiate(playerTemplate, playerTemplate.transform.parent);
+            watchRows[i].name = "Spectator";
+            foreach (var part in new[] { "Swatch", "Team", "Base" }) watchRows[i].transform.Find(part).gameObject.SetActive(false);
+            watchRows[i].interactable = false;
+            int seat = i;
+            watchMod[i] = Moderation(watchRows[i], () => RoomState.Instance.Watchers[seat]);
+        }
+        watchButton = Instantiate(minutes, startGame.transform.parent);
+        watchButton.name = "WatchButton";
+        watchButton.onClick = new Button.ButtonClickedEvent();
+        watchButton.onClick.AddListener(() => RoomState.Instance?.ToggleWatch());
+        var startRect = (RectTransform)startGame.transform;
+        var watchRect = (RectTransform)watchButton.transform;
+        watchRect.anchorMin = startRect.anchorMin; watchRect.anchorMax = startRect.anchorMax; watchRect.pivot = startRect.pivot;
+        watchRect.sizeDelta = new Vector2(130f, startRect.sizeDelta.y);
+        watchRect.anchoredPosition = startRect.anchoredPosition - new Vector2(startRect.sizeDelta.x * 0.5f + 82f, 0f);
+        watchButton.GetComponentInChildren<Text>().rectTransform.sizeDelta = watchRect.sizeDelta;
         for (int b = 0; b < bases.Length; b++)
         {
             int index = b;
@@ -75,6 +101,47 @@ public class RoomScreen : MonoBehaviour
         mapButton.onClick.AddListener(() => RoomState.Instance?.NextMap());
     }
 
+
+    (Button kick, Button ban) Moderation(Button row, System.Func<Fusion.PlayerRef> who)
+    {
+        var style = playerTemplate.transform.Find("Team").GetComponent<Button>();
+        Button Make(string label, float x, bool ban)
+        {
+            var b = Instantiate(style, row.transform);
+            b.name = label;
+            b.onClick = new Button.ButtonClickedEvent();
+            b.onClick.AddListener(() => Moderate(who(), ban));
+            var rt = (RectTransform)b.transform;
+            rt.anchorMin = rt.anchorMax = new Vector2(1f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(54f, 26f);
+            rt.anchoredPosition = new Vector2(x, 0f);
+            var t = b.GetComponentInChildren<Text>();
+            t.text = label;
+            t.color = new Color(1f, 0.45f, 0.45f);
+            t.rectTransform.sizeDelta = rt.sizeDelta;
+            b.gameObject.SetActive(false);
+            return b;
+        }
+        return (Make("KICK", -96f, false), Make("BAN", -38f, true));
+    }
+
+    void Moderate(Fusion.PlayerRef p, bool ban)
+    {
+        var room = RoomState.Instance;
+        if (room == null || !room.IsHost) return;
+        if (ban && (confirmBan != p || Time.time > confirmUntil)) { confirmBan = p; confirmUntil = Time.time + 3f; return; }
+        confirmBan = Fusion.PlayerRef.None;
+        picked = -1;
+        room.Kick(p, ban);
+    }
+
+    void ShowModeration((Button kick, Button ban) mod, Fusion.PlayerRef p, bool show)
+    {
+        mod.kick.gameObject.SetActive(show);
+        mod.ban.gameObject.SetActive(show);
+        if (show) mod.ban.GetComponentInChildren<Text>().text = confirmBan == p && Time.time < confirmUntil ? "SURE?" : "BAN";
+    }
 
     public static Button MapButton(Transform panel, Button style)
     {
@@ -142,7 +209,24 @@ public class RoomScreen : MonoBehaviour
             rows[i].transform.Find("Swatch").GetComponent<Button>().interactable = mine;
             rows[i].GetComponent<Image>().color = picked == i ? Picked : new Color(0f, 0f, 0f, 0.4f);
             rows[i].interactable = host;
+            bool moderate = host && picked == i && player != runner.LocalPlayer;
+            ShowModeration(rowMod[i], player, moderate);
+            rows[i].transform.Find("Base").gameObject.SetActive(!moderate);
         }
+
+        for (int i = 0; i < watchRows.Length; i++)
+        {
+            var p = room.Watchers[i];
+            bool here = p != Fusion.PlayerRef.None;
+            watchRows[i].gameObject.SetActive(here);
+            ShowModeration(watchMod[i], p, here && host && p != runner.LocalPlayer);
+            if (!here) continue;
+            string tags = (p == runner.LocalPlayer ? "  (you)" : "") + (p == room.Object.StateAuthority || (p == runner.LocalPlayer && room.IsHost) ? "  (host)" : "");
+            watchRows[i].transform.Find("Name").GetComponent<Text>().text = $"<color=#8A96B0>SPECTATOR</color>   {room.WatcherName(i)}{tags}";
+        }
+        bool watching = room.WatcherOf(runner.LocalPlayer) >= 0;
+        watchButton.GetComponentInChildren<Text>().text = watching ? "PLAY" : "SPECTATE";
+        watchButton.interactable = !starting;
 
         var m = room.MapInfo;
         if (m != shownMap) { shownMap = m; ShowMap(map, bases, m); picked = -1; }
@@ -162,8 +246,8 @@ public class RoomScreen : MonoBehaviour
         credits.interactable = minutes.interactable = host;
         customCredits.gameObject.SetActive(host);
         hint.text = !host ? "Click your colour or team to change it. The host sets bases and settings."
-                  : picked >= 0 ? $"Now click a base for player {picked + 1}."
-                  : "Click your colour or team to change it. Click a player, then a base to move them.";
+                  : picked >= 0 ? $"Click a base for player {picked + 1}, or KICK / BAN them."
+                  : "Click your colour or team to change it. Click a player to move, kick or ban them.";
 
         startGame.gameObject.SetActive(true);
         waiting.gameObject.SetActive(true);
@@ -171,7 +255,7 @@ public class RoomScreen : MonoBehaviour
         bool meReady = room.IsReady(room.SlotOf(runner.LocalPlayer));
         startGame.GetComponentInChildren<Text>().text = host ? "START GAME" : meReady ? "NOT READY" : "READY";
         bool crowded = room.TooManyPlayers;
-        startGame.interactable = host ? allReady && !starting && !crowded : true;
+        startGame.interactable = host ? allReady && !starting && !crowded && room.HasPlayers : !watching;
         waiting.text = crowded ? $"Too many players for {m.name.Split(' ')[0]}. The host picks a bigger map."
                      : host ? (allReady ? "" : "Waiting for everyone to click READY.")
                      : meReady ? "Waiting for the host to start." : "Click READY when you are set.";

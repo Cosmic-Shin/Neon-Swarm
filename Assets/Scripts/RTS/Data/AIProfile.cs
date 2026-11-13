@@ -49,4 +49,14 @@ public class AIProfile : ScriptableObject
     [Tooltip("Seconds between raids on enemy harvesters with its fastest units. 0 = never.")]
     public float harassEvery;
     public int harassSize = 3;
+
+    [Header("Battle")]
+    [Tooltip("The squad shoots the most valuable, most damaged enemy unit nearby together.")]
+    public bool focusFire;
+    [Tooltip("Units below this share of health walk home. 0 = fight to the death.")]
+    [Range(0f, 0.8f)] public float retreatBelow;
+    [Tooltip("Units out in front of an attack wait for the rest.")]
+    public bool regroup;
+    [Tooltip("Ranged units step back from melee units.")]
+    public bool kite;
 }

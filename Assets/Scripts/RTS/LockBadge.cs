@@ -25,7 +25,7 @@ public static class LockBadge
     {
         var shade = new GameObject("LockBadge", typeof(RectTransform)).AddComponent<Image>();
         shade.transform.SetParent(button.transform, false);
-        shade.color = new Color(0.02f, 0f, 0.05f, 0.6f);
+        shade.color = new Color(0.02f, 0f, 0.05f, 0.78f);
         shade.raycastTarget = false;
         var rt = shade.rectTransform;
         rt.anchorMin = Vector2.zero;
@@ -45,6 +45,9 @@ public static class LockBadge
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
         text.verticalOverflow = VerticalWrapMode.Overflow;
         text.raycastTarget = false;
+        var outline = text.gameObject.AddComponent<Outline>();
+        outline.effectColor = new Color(0f, 0f, 0f, 0.9f);
+        outline.effectDistance = new Vector2(1.5f, -1.5f);
         var trt = text.rectTransform;
         trt.anchorMin = Vector2.zero;
         trt.anchorMax = Vector2.one;

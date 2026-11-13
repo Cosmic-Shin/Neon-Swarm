@@ -222,7 +222,7 @@ public class Attacker : MonoBehaviour
         Vector3 from = muzzles.Count > 0 ? muzzles[0].position : Flyer.Center(this);
         Vector3 ground = new(from.x, 0f, from.z);
         if (NavMesh.SamplePosition(ground, out NavMeshHit hit, 15f, NavMesh.AllAreas)) ground = hit.position;
-        var pod = Net.Spawn(data.extra, from, transform.rotation).GetComponent<SelectableUnit>();
+        var pod = Net.SpawnFor(self.team, data.extra, from, transform.rotation).GetComponent<SelectableUnit>();
         SetTeam(pod, self.team);
         pod.GetComponent<Health>().onDeath = () =>
         {
