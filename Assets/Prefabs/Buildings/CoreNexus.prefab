@@ -269,6 +269,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 3000
   team: 0
+  scenery: 0
 --- !u!114 &7115254961374054736
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -367,7 +368,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BuildingUpgrade
   level: 1
-  maxLevel: 2
+  maxLevel: 3
   upgradeCost: 0000000000000000dc050000b80b0000
   upgradeTime:
   - 0

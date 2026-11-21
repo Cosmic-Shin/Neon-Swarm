@@ -254,14 +254,14 @@ public class GoodSelectionManager : MonoBehaviour
     {
         var kb = Chat.Keys;
         if (kb == null) return;
-        if (kb.fKey.wasPressedThisFrame) NextFormation();
+        if (Controls.Down(Act.Formation)) NextFormation();
         if (kb.escapeKey.wasPressedThisFrame) attackMoveArmed = patrolArmed = false;
-        if (kb.periodKey.wasPressedThisFrame) NextIdle();
+        if (Controls.Down(Act.NextIdle)) NextIdle();
         if (!UnitsSelected) { attackMoveArmed = patrolArmed = false; return; }
-        if (kb.aKey.wasPressedThisFrame) ArmAttackMove();
-        if (kb.pKey.wasPressedThisFrame) ArmPatrol();
-        if (kb.sKey.wasPressedThisFrame) StopOrder();
-        if (kb.hKey.wasPressedThisFrame) HoldOrder();
+        if (Controls.Down(Act.AttackMove)) ArmAttackMove();
+        if (Controls.Down(Act.Patrol)) ArmPatrol();
+        if (Controls.Down(Act.Stop)) StopOrder();
+        if (Controls.Down(Act.Hold)) HoldOrder();
     }
 
     public Formation CurrentFormation => formation;

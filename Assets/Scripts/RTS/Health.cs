@@ -87,6 +87,7 @@ public class Health : MonoBehaviour
         enabled = false;
         if (scenery) Sfx.At(Snd.WallBreak, transform.position);
         if (TryGetComponent(out Structure _)) { Juice.BuildingExplosion(gameObject); LastBuildingDeath = transform.position; LastBuildingDeathAt = Time.time; }
+        if (TryGetComponent(out SelectableUnit dying)) Juice.UnitDeath(dying);
         if (TryGetComponent(out SelectableUnit unit)) { unit.HideRing(); if (unit.TryGetComponent(out UnitMarker marker)) marker.Remove(); Sfx.At(Snd.BoomSmall, transform.position, 0.7f); }
         if (TryGetComponent(out UnitDeath death)) PlayDeath(death);
     }
@@ -135,11 +136,12 @@ public class Health : MonoBehaviour
         if (scenery) Sfx.At(Snd.WallBreak, transform.position);
         if (team == 0)
         {
-            if (TryGetComponent(out Structure s)) Alerts.Show($"Building destroyed: {s.Name}", Alerts.Bad);
+            if (TryGetComponent(out Structure s)) { Alerts.Show($"Building destroyed: {s.Name}", Alerts.Bad); Juice.EdgeFlash(Juice.Danger, s.isHQ ? 0.8f : 0.5f); }
             else Alerts.Show("Unit lost", Alerts.Bad, 5f);
             MatchStats.Add(TryGetComponent(out Structure _) ? MatchStats.Kind.BuildingsLost : MatchStats.Kind.UnitsLost);
         }
         if (TryGetComponent(out Structure _)) { Juice.BuildingExplosion(gameObject); LastBuildingDeath = transform.position; LastBuildingDeathAt = Time.time; }
+        if (TryGetComponent(out SelectableUnit dying)) Juice.UnitDeath(dying);
         if (TryGetComponent(out SelectableUnit unit)) { unit.HideRing(); if (unit.TryGetComponent(out UnitMarker marker)) marker.Remove(); Sfx.At(Snd.BoomSmall, transform.position, 0.7f); }
         if (TryGetComponent(out UnitDeath death)) PlayDeath(death);
         else Net.Destroy(gameObject);

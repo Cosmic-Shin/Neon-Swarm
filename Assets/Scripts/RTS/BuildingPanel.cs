@@ -18,9 +18,13 @@ public class BuildingPanel : MonoBehaviour
     readonly List<Button> buttons = new();
     readonly List<string> blockers = new();
 
+    static BuildingPanel instance;
+    public static bool Open => instance != null && instance.building != null && instance.panel.gameObject.activeInHierarchy && instance.buttons.Count > 0;
+
     void Awake()
     {
         panel.gameObject.SetActive(false);
+        instance = this;
         buttonTemplate.gameObject.SetActive(false);
     }
 
@@ -65,7 +69,31 @@ public class BuildingPanel : MonoBehaviour
             blockers.Add(building.Blocker(i));
             sweeps.Add(btn.transform.Find("Progress").GetComponent<Image>());
             counts.Add(btn.transform.Find("Count").GetComponent<Text>());
+            KeyBadge(btn, Controls.GridLabel(i));
         }
+    }
+
+    public static Text KeyBadge(Selectable b, string key)
+    {
+        var old = b.transform.Find("KeyBadge");
+        var t = old != null ? old.GetComponent<Text>() : new GameObject("KeyBadge", typeof(RectTransform), typeof(Text), typeof(Outline)).GetComponent<Text>();
+        if (old == null)
+        {
+            t.transform.SetParent(b.transform, false);
+            var r = t.rectTransform;
+            r.anchorMin = r.anchorMax = r.pivot = new Vector2(0.5f, 1f);
+            r.anchoredPosition = new Vector2(0f, -5f);
+            r.sizeDelta = new Vector2(40f, 26f);
+            t.font = HoloSkin.BoldFont;
+            t.fontSize = 18;
+            t.alignment = TextAnchor.UpperCenter;
+            t.color = new Color(0.3f, 1f, 1f);
+            t.raycastTarget = false;
+            t.GetComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
+        }
+        t.text = key;
+        t.transform.SetAsLastSibling();
+        return t;
     }
 
     void LateUpdate()
@@ -77,6 +105,16 @@ public class BuildingPanel : MonoBehaviour
         if (building == watched && wasProducing >= 0 && wasProducing < buttons.Count && wasProgress > 0.8f && (now != wasProducing || progress < wasProgress - 0.5f))
             UIJuice.Flash(buttons[wasProducing], Alerts.Good);
         (watched, wasProducing, wasProgress) = (building, now, progress);
+
+        if (!GoodSelectionManager.UnitsSelected && !BuildingPlacer.MenuOpen && !BuildingPlacer.Placing)
+        {
+            int key = Controls.GridDown();
+            if (key >= 0 && key < buttons.Count)
+            {
+                if (buttons[key].interactable) { buttons[key].onClick.Invoke(); UIJuice.Flash(buttons[key], HoloUI.Cyan); }
+                else CreditsDisplay.Deny();
+            }
+        }
 
         for (int i = 0; i < sweeps.Count; i++)
         {

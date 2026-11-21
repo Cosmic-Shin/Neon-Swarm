@@ -24,6 +24,8 @@ public class RoomScreen : MonoBehaviour
     readonly Button[] rows = new Button[RoomService.MaxPlayers];
     readonly Button[] watchRows = new Button[RoomService.MaxSpectators];
     Button watchButton;
+    Button addBot;
+    readonly (Button level, Button remove)[] botMod = new (Button, Button)[RoomService.MaxPlayers];
     readonly (Button kick, Button ban)[] rowMod = new (Button, Button)[RoomService.MaxPlayers];
     readonly (Button kick, Button ban)[] watchMod = new (Button, Button)[RoomService.MaxSpectators];
     Fusion.PlayerRef confirmBan;
@@ -54,9 +56,11 @@ public class RoomScreen : MonoBehaviour
             int slot = i;
             rows[i] = Instantiate(playerTemplate, playerTemplate.transform.parent);
             rows[i].onClick.AddListener(() => picked = picked == slot ? -1 : slot);
-            rows[i].transform.Find("Swatch").GetComponent<Button>().onClick.AddListener(() => RoomState.Instance?.NextColor());
-            rows[i].transform.Find("Team").GetComponent<Button>().onClick.AddListener(() => RoomState.Instance?.NextTeam());
+            rows[i].transform.Find("Swatch").GetComponent<Button>().onClick.AddListener(() => { var r = RoomState.Instance; if (r == null) return; if (r.BotLevel(slot) > 0) r.BotColor(slot); else r.NextColor(); });
+            rows[i].transform.Find("Team").GetComponent<Button>().onClick.AddListener(() => { var r = RoomState.Instance; if (r == null) return; if (r.BotLevel(slot) > 0) r.BotTeam(slot); else r.NextTeam(); });
             rowMod[i] = Moderation(rows[i], () => RoomState.Instance.Slots[slot]);
+            botMod[i] = (RowButton(rows[i], "NORMAL", -108f, 80f, () => RoomState.Instance?.CycleBot(slot)),
+                         RowButton(rows[i], "X", -38f, 34f, () => { picked = -1; RoomState.Instance?.RemoveBot(slot); }));
         }
         for (int i = 0; i < watchRows.Length; i++)
         {
@@ -77,6 +81,17 @@ public class RoomScreen : MonoBehaviour
         watchRect.sizeDelta = new Vector2(130f, startRect.sizeDelta.y);
         watchRect.anchoredPosition = startRect.anchoredPosition - new Vector2(startRect.sizeDelta.x * 0.5f + 82f, 0f);
         watchButton.GetComponentInChildren<Text>().rectTransform.sizeDelta = watchRect.sizeDelta;
+        addBot = Instantiate(watchButton, transform);
+        addBot.name = "AddBotButton";
+        addBot.onClick = new Button.ButtonClickedEvent();
+        addBot.onClick.AddListener(() => RoomState.Instance?.AddBot());
+        var botRect = (RectTransform)addBot.transform;
+        var players = (RectTransform)playerTemplate.transform.parent;
+        botRect.anchorMin = botRect.anchorMax = botRect.pivot = new Vector2(0.5f, 0.5f);
+        botRect.sizeDelta = new Vector2(130f, 30f);
+        botRect.anchoredPosition = players.anchoredPosition + new Vector2(players.sizeDelta.x * 0.5f - 65f, players.sizeDelta.y * 0.5f + 12f);
+        addBot.GetComponentInChildren<Text>().rectTransform.sizeDelta = botRect.sizeDelta;
+        addBot.GetComponentInChildren<Text>().text = "+ ADD BOT";
         for (int b = 0; b < bases.Length; b++)
         {
             int index = b;
@@ -124,6 +139,25 @@ public class RoomScreen : MonoBehaviour
             return b;
         }
         return (Make("KICK", -96f, false), Make("BAN", -38f, true));
+    }
+
+    Button RowButton(Button row, string label, float x, float width, UnityEngine.Events.UnityAction act)
+    {
+        var b = Instantiate(playerTemplate.transform.Find("Team").GetComponent<Button>(), row.transform);
+        b.name = label;
+        b.onClick = new Button.ButtonClickedEvent();
+        b.onClick.AddListener(act);
+        var rt = (RectTransform)b.transform;
+        rt.anchorMin = rt.anchorMax = new Vector2(1f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.sizeDelta = new Vector2(width, 26f);
+        rt.anchoredPosition = new Vector2(x, 0f);
+        var t = b.GetComponentInChildren<Text>();
+        t.text = label;
+        t.rectTransform.sizeDelta = rt.sizeDelta;
+        if (label == "X") t.color = new Color(1f, 0.45f, 0.45f);
+        b.gameObject.SetActive(false);
+        return b;
     }
 
     void Moderate(Fusion.PlayerRef p, bool ban)
@@ -193,15 +227,16 @@ public class RoomScreen : MonoBehaviour
         for (int i = 0; i < rows.Length; i++)
         {
             var player = room.Slots[i];
-            bool seated = player != Fusion.PlayerRef.None;
+            int bot = room.BotLevel(i);
+            bool seated = room.Taken(i);
             rows[i].gameObject.SetActive(seated);
             if (!seated) { if (picked == i) picked = -1; continue; }
             string tags = (player == runner.LocalPlayer ? "  (you)" : "") + (player == room.Object.StateAuthority ? "  (host)" : "");
-            string ready = room.IsHostSlot(i) ? "" : room.IsReady(i) ? "   <color=#60FF90>READY</color>" : "   <color=#FF8080>NOT READY</color>";
+            string ready = bot > 0 ? "   <color=#8A96B0>AI</color>" : room.IsHostSlot(i) ? "" : room.IsReady(i) ? "   <color=#60FF90>READY</color>" : "   <color=#FF8080>NOT READY</color>";
             rows[i].transform.Find("Name").GetComponent<Text>().text = $"{i + 1}.  {room.NameOf(i)}{tags}{ready}";
             rows[i].transform.Find("Base").GetComponent<Text>().text = $"BASE {room.Bases[i] + 1}";
             rows[i].transform.Find("Swatch").GetComponent<Image>().color = TeamMember.ColorOf(i);
-            bool mine = player == runner.LocalPlayer;
+            bool mine = bot == 0 && player == runner.LocalPlayer || bot > 0 && host;
             int team = room.TeamOf(i);
             var teamButton = rows[i].transform.Find("Team").GetComponent<Button>();
             teamButton.GetComponentInChildren<Text>().text = team == 0 ? "NO TEAM" : $"TEAM {team}";
@@ -209,8 +244,11 @@ public class RoomScreen : MonoBehaviour
             rows[i].transform.Find("Swatch").GetComponent<Button>().interactable = mine;
             rows[i].GetComponent<Image>().color = picked == i ? Picked : new Color(0f, 0f, 0f, 0.4f);
             rows[i].interactable = host;
-            bool moderate = host && picked == i && player != runner.LocalPlayer;
-            ShowModeration(rowMod[i], player, moderate);
+            bool moderate = host && picked == i && (bot > 0 || player != runner.LocalPlayer);
+            ShowModeration(rowMod[i], player, moderate && bot == 0);
+            botMod[i].level.gameObject.SetActive(moderate && bot > 0);
+            botMod[i].remove.gameObject.SetActive(moderate && bot > 0);
+            if (bot > 0) botMod[i].level.GetComponentInChildren<Text>().text = RoomState.BotNames[bot].ToUpper() + " >";
             rows[i].transform.Find("Base").gameObject.SetActive(!moderate);
         }
 
@@ -227,6 +265,8 @@ public class RoomScreen : MonoBehaviour
         bool watching = room.WatcherOf(runner.LocalPlayer) >= 0;
         watchButton.GetComponentInChildren<Text>().text = watching ? "PLAY" : "SPECTATE";
         watchButton.interactable = !starting;
+        addBot.gameObject.SetActive(room.IsHost && !watching);
+        addBot.interactable = !starting && room.CanAddBot;
 
         var m = room.MapInfo;
         if (m != shownMap) { shownMap = m; ShowMap(map, bases, m); picked = -1; }
@@ -235,7 +275,7 @@ public class RoomScreen : MonoBehaviour
         for (int b = 0; b < m.Players; b++)
         {
             int slot = room.SlotAtBase(b);
-            bool taken = slot >= 0 && room.Slots[slot] != Fusion.PlayerRef.None;
+            bool taken = slot >= 0 && room.Taken(slot);
             bases[b].GetComponent<Image>().color = taken ? TeamMember.ColorOf(slot) : Empty;
             bases[b].GetComponentInChildren<Text>().text = taken ? (slot + 1).ToString() : "";
             bases[b].interactable = host && picked >= 0;
@@ -247,7 +287,7 @@ public class RoomScreen : MonoBehaviour
         customCredits.gameObject.SetActive(host);
         hint.text = !host ? "Click your colour or team to change it. The host sets bases and settings."
                   : picked >= 0 ? $"Click a base for player {picked + 1}, or KICK / BAN them."
-                  : "Click your colour or team to change it. Click a player to move, kick or ban them.";
+                  : "Click a player to move or kick them, or a bot to change its level. Put bots on their own TEAM to fight them together.";
 
         startGame.gameObject.SetActive(true);
         waiting.gameObject.SetActive(true);

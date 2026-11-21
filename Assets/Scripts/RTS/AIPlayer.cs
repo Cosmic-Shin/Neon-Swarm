@@ -2,12 +2,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-public class AIPlayer : MonoBehaviour
+public partial class AIPlayer : MonoBehaviour
 {
     public enum State { Gathering, Attacking, Defending }
 
     public int team;
     public AIProfile profile;
+    public Skirmish.Personality personality;
     public Vector3 home;
     public Vector3 front;
 
@@ -29,6 +30,7 @@ public class AIPlayer : MonoBehaviour
     void Start()
     {
         placer = FindFirstObjectByType<BuildingPlacer>();
+        ApplyPersonality();
         started = Time.time - Skirmish.ElapsedBefore;
         waveValue = profile.waveValue;
         TeamEconomy.SetIncomeBonus(team, profile.incomeBonus);
@@ -400,6 +402,7 @@ public class AIPlayer : MonoBehaviour
                 var d = b.UnitOf(i);
                 if (d == null || d.role == UnitData.Role.Worker || b.Blocker(i) != null) continue;
                 float w = Weight(d);
+                w *= StyleWeight(b, d);
                 if (w <= 0f) continue;
                 options.Add((b, i, w));
                 total += w;
@@ -633,5 +636,79 @@ public class AIPlayer : MonoBehaviour
             if (d < bestSqr) { bestSqr = d; best = h; }
         }
         return best;
+    }
+}
+
+public partial class AIPlayer
+{
+    void ApplyPersonality()
+    {
+        if (personality == Skirmish.Personality.Random) personality = (Skirmish.Personality)Random.Range(0, 4);
+        if (personality == Skirmish.Personality.Mixed || profile == null) return;
+        profile = Instantiate(profile);
+        var p = profile;
+        switch (personality)
+        {
+            case Skirmish.Personality.Rusher:
+                p.firstAttack *= 0.45f;
+                p.waveValue = Mathf.RoundToInt(p.waveValue * 0.55f);
+                p.waveGrowth = Mathf.Min(p.waveGrowth, 1.15f);
+                p.armyShare = Mathf.Min(0.8f, p.armyShare + 0.15f);
+                p.research = false;
+                p.harassEvery = p.harassEvery > 0f ? p.harassEvery * 0.6f : 120f;
+                p.harassSize += 1;
+                break;
+            case Skirmish.Personality.Turtle:
+                p.firstAttack *= 1.8f;
+                p.waveValue = Mathf.RoundToInt(p.waveValue * 1.7f);
+                p.defendRadius *= 1.4f;
+                p.harassEvery = 0f;
+                p.lateGame = Concat(Defences(), p.lateGame);
+                break;
+            case Skirmish.Personality.Air:
+                if (Aerie() is BuildingData aerie && System.Array.IndexOf(p.buildOrder, aerie) < 0)
+                {
+                    var order = new List<BuildingData>(p.buildOrder);
+                    order.Insert(Mathf.Min(4, order.Count), aerie);
+                    p.buildOrder = order.ToArray();
+                }
+                break;
+        }
+    }
+
+    float StyleWeight(Building b, UnitData d)
+    {
+        bool air = b.TryGetComponent(out AerieFX _);
+        return personality switch
+        {
+            Skirmish.Personality.Air => air ? 3f : 0.4f,
+            Skirmish.Personality.Rusher => d.role == UnitData.Role.Elite ? 0.3f : d.role is UnitData.Role.Infantry or UnitData.Role.Scout ? 1.6f : 1f,
+            Skirmish.Personality.Turtle => d.role is UnitData.Role.Heavy or UnitData.Role.Elite ? 1.5f : 1f,
+            _ => 1f,
+        };
+    }
+
+    BuildingData[] Defences()
+    {
+        var list = new List<BuildingData>();
+        var all = placer != null ? placer.Buildings : FindFirstObjectByType<BuildingPlacer>()?.Buildings;
+        if (all == null) return list.ToArray();
+        foreach (var d in all)
+            if (d != null && d.prefab != null && (d.prefab.TryGetComponent(out Turret _) || d.prefab.TryGetComponent(out DroneHangar _))) list.Add(d);
+        return list.ToArray();
+    }
+
+    BuildingData Aerie()
+    {
+        var all = FindFirstObjectByType<BuildingPlacer>()?.Buildings;
+        if (all != null) foreach (var d in all) if (d != null && d.prefab != null && d.prefab.TryGetComponent(out AerieFX _)) return d;
+        return null;
+    }
+
+    static BuildingData[] Concat(BuildingData[] a, BuildingData[] b)
+    {
+        var list = new List<BuildingData>(a ?? new BuildingData[0]);
+        if (b != null) list.AddRange(b);
+        return list.ToArray();
     }
 }

@@ -147,6 +147,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 800
   team: 0
+  scenery: 0
 --- !u!114 &6254035657852405610
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -280,7 +281,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bfe352e78c0828343ba48874a1e2202e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeEffects
-  levels: []
+  levels:
+  - level: 2
+    displayName: Hive Aerie Mk II
+    description: "Flyer build time \u221220%."
+    mods:
+    - stat: 6
+      percent: -0.2
+      flat: 0
+      roles: 
+      units: []
+      buildings: []
+      defenses: 0
+  - level: 3
+    displayName: Hive Aerie Mk III
+    description: 'Raises the Titan Mooring Mast: unlocks the 3 titan flyers (also
+      needs Core Nexus Mk III).'
+    mods: []
 --- !u!114 &6993760142684546929
 MonoBehaviour:
   m_ObjectHideFlags: 0

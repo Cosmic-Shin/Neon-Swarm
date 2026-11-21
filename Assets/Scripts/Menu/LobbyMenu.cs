@@ -15,6 +15,7 @@ public class LobbyMenu : MonoBehaviour
     {
         skirmish.onClick.AddListener(() => SkirmishPanel.Open(this));
         Tutorial.Active = false;
+        Mission.Current = -1;
         AddEntries();
         extras = MenuExtras.Build(transform.parent, OpenAccount);
         multiplayer.onClick.AddListener(() => { gameObject.SetActive(false); multiplayerPanel.SetActive(true); });
@@ -57,12 +58,14 @@ public class LobbyMenu : MonoBehaviour
     {
         continueButton = Entry("CONTINUE", () => SaveSystem.LoadGame(SaveSystem.NewestSlot));
         var tutorial = Entry("TUTORIAL", Tutorial.Begin);
-        var order = new[] { continueButton, tutorial, skirmish, multiplayer, friends, settings, account, quit };
-        const float gap = 66f;
+        var missions = Entry("MISSIONS", () => MissionsPanel.Open(transform.parent));
+        var board = Entry("LEADERBOARD", () => LeaderboardPanel.Open(transform.parent));
+        var order = new[] { continueButton, tutorial, missions, skirmish, multiplayer, friends, board, settings, account, quit };
+        const float gap = 56f;
         var panel = (RectTransform)transform;
         float grow = (order.Length - 1) * gap - 5 * 72f;
         panel.sizeDelta += new Vector2(0f, grow);
-        panel.anchoredPosition -= new Vector2(0f, grow / 2f);
+        panel.anchoredPosition -= new Vector2(0f, grow / 2f - 34f);
         welcome.rectTransform.anchoredPosition += new Vector2(0f, grow / 2f);
         status.rectTransform.anchoredPosition -= new Vector2(0f, grow / 2f);
         float top = panel.sizeDelta.y / 2f - 135f;

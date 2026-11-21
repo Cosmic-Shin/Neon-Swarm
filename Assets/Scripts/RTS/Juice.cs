@@ -326,6 +326,65 @@ public static class Juice
         Shake(b.center, 0.2f);
     }
 
+    public static void UnitDeath(SelectableUnit unit)
+    {
+        Vector3 c = Flyer.Center(unit);
+        if (!Seen(c)) return;
+        Color team = ProductionFX.HoloColor(unit.gameObject);
+        var role = unit.Data != null ? unit.Data.role : UnitData.Role.Infantry;
+        float big = role == UnitData.Role.Elite ? 3f : role == UnitData.Role.Heavy ? 1.8f : 1f;
+        Vector3 ground = new(c.x, 0.15f, c.z);
+        Flash(c, Fire, 4f * big, 6f * big, 0.2f);
+        Burst(c, Fire, Mathf.RoundToInt(10 * big), 4f * big, 0.12f, 0.45f, 0.6f, true);
+        Burst(c, team, Mathf.RoundToInt(8 * big), 3f * big, 0.1f, 0.6f, 0.4f);
+        Particles.Emit("Smoke", c, Vector3.up * 1.2f, 0.8f * big, 1.4f, Soot);
+        if (big > 1f)
+        {
+            Ring(ground, Fire, 0.5f, 3f * big, 0.45f, 0.3f);
+            Shake(c, 0.12f * big);
+            if (big > 2f) Aftermath(new Bounds(c, new Vector3(4f, 3f, 4f)));
+        }
+    }
+
+    static CanvasGroup edge;
+
+    public static void EdgeFlash(Color c, float strength = 0.55f)
+    {
+        if (edge == null)
+        {
+            var go = new GameObject("EdgeFlash", typeof(Canvas), typeof(CanvasGroup));
+            Object.DontDestroyOnLoad(go);
+            var canvas = go.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 31000;
+            edge = go.GetComponent<CanvasGroup>();
+            edge.blocksRaycasts = false;
+            edge.interactable = false;
+            var img = new GameObject("Vignette", typeof(RectTransform), typeof(UnityEngine.UI.RawImage)).GetComponent<UnityEngine.UI.RawImage>();
+            img.transform.SetParent(go.transform, false);
+            img.rectTransform.anchorMin = Vector2.zero;
+            img.rectTransform.anchorMax = Vector2.one;
+            img.rectTransform.offsetMin = img.rectTransform.offsetMax = Vector2.zero;
+            img.raycastTarget = false;
+            const int n = 128;
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float dx = Mathf.Abs(x / (n - 1f) - 0.5f) * 2f, dy = Mathf.Abs(y / (n - 1f) - 0.5f) * 2f;
+                    float d = Mathf.Max(dx, dy);
+                    tex.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Pow(Mathf.InverseLerp(0.8f, 1f, d), 1.6f)));
+                }
+            tex.Apply();
+            img.texture = tex;
+            edge.alpha = 0f;
+        }
+        edge.GetComponentInChildren<UnityEngine.UI.RawImage>().color = c;
+        float peak = strength * (GameSettings.ReduceFlashing ? 0.4f : 1f);
+        if (!edge.TryGetComponent(out EdgeFade fade)) fade = edge.gameObject.AddComponent<EdgeFade>();
+        fade.Begin(edge, peak);
+    }
+
     public static void TargetLock(Health target)
     {
         if (target == null) return;
@@ -371,5 +430,22 @@ public class CameraShake : MonoBehaviour
         applied = Random.insideUnitSphere * strength;
         transform.position += applied;
         strength = Mathf.MoveTowards(strength, 0f, Time.unscaledDeltaTime * 2.5f);
+    }
+}
+
+public class EdgeFade : MonoBehaviour
+{
+    CanvasGroup group;
+    float peak, age = 99f;
+    const float Time_ = 0.9f;
+
+    public void Begin(CanvasGroup g, float strength) { group = g; peak = strength; age = 0f; }
+
+    void Update()
+    {
+        if (group == null || age >= Time_) return;
+        age += Time.unscaledDeltaTime;
+        float k = Mathf.Clamp01(age / Time_);
+        group.alpha = peak * (1f - k) * (1f - k);
     }
 }

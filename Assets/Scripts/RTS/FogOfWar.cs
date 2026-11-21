@@ -25,6 +25,7 @@ public class FogOfWar : MonoBehaviour
     float next;
     readonly Dictionary<Health, List<(Transform t, int layer)>> hiddenNow = new();
     readonly List<Health> stale = new();
+    Color shownFog = Color.clear;
 
     void Awake()
     {
@@ -76,7 +77,9 @@ public class FogOfWar : MonoBehaviour
 
         Blur(visible, softVisible, ease: 0.55f);
         Blur(explored, softExplored, ease: 1f);
-        Color32 clear = new(0, 0, 0, 0), dim = new(5, 3, 12, 120), dark = new(5, 3, 12, 190);
+        Color fog = GameSettings.Fog;
+        if (fog != shownFog) { shownFog = fog; fogPlane.material.SetColor("_Color", fog); }
+        Color32 tint = fog, clear = new(0, 0, 0, 0), dim = new(tint.r, tint.g, tint.b, 120), dark = new(tint.r, tint.g, tint.b, 190);
         for (int i = 0; i < px.Length; i++)
         {
             px[i] = new Color32((byte)(softVisible[i] * 255f), (byte)(softExplored[i] * 255f), 0, 255);

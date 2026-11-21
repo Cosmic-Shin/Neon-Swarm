@@ -33,6 +33,7 @@ public class BuildingLife : MonoBehaviour
             if (size > biggest) { biggest = size; eye = r; }
         }
         Setup();
+        Common();
     }
 
     void Update()
@@ -67,7 +68,7 @@ public class BuildingLife : MonoBehaviour
         else if (P("Gate_EnergyField") != null) Firewall();
         else if (P("Cloak_GlitchCore") != null) Cloak();
         else if (P("Lab_Dome") != null) Lab(working);
-        else if (P("Hangar_Pad") != null) Hangar(working);
+        else if (P("Hangar_Pad") != null) { var bay = GetComponent<DroneHangar>(); Hangar(bay != null ? () => bay.Busy ? 1f : 0.25f : working); }
         else if (P("Hive_Hall") != null) Hive(working);
         else if (P("Aerie_Base") != null) Aerie();
     }
@@ -321,12 +322,40 @@ public class BuildingLife : MonoBehaviour
                 sh.position = sh.parent.TransformPoint(rest) + Vector3.up * 1.6f * k;
             });
         }
+        var bay = GetComponent<DroneHangar>();
+        Func<bool> alert = () => bay != null && bay.Target != null;
         Chase(@"^Hangar_PadLight", 4f);
-        Spin(P("Hangar_PadRing"), 40f, working);
-        Spin(P("Hangar_Dish"), 30f);
-        Blink(@"^Hangar_MastLight", 1f);
+        Spin(P("Hangar_PadRing"), 40f, () => working() * (alert() ? 4f : 1f));
+        Spin(P("Hangar_Dish"), 30f, () => alert() ? 7f : 1f);
+        Glow(@"^Hangar_MastLight", () => Mathf.Repeat(Time.time * (alert() ? 5f : 1f), 1f) < 0.25f ? (alert() ? 4f : 3f) : 0.15f);
+        if (bay != null) HangarEvents(bay);
         Glow(@"^Hangar_(BayGlow|SlabGlow)", () => 0.5f + 1.5f * working());
         Glitch(@"^Hangar_Sign");
+    }
+
+    void HangarEvents(DroneHangar bay)
+    {
+        var pad = P("Hangar_Pad");
+        float launch = bay.LastLaunch, dock = bay.LastDock;
+        ticks.Add(dt =>
+        {
+            Vector3 at = (pad != null ? pad.position : transform.position) + Vector3.up * 0.4f;
+            if (bay.LastLaunch != launch)
+            {
+                launch = bay.LastLaunch;
+                Juice.Flash(at + Vector3.up * 2f, team, 6f, 12f, 0.2f);
+                Juice.Ring(at, team, 0.6f, 6f, 0.4f, 0.25f);
+                Juice.Burst(at, Color.Lerp(team, Color.white, 0.4f), 10, 7f, 0.1f, 0.35f, 2f);
+                Particles.Emit("Dust", at, Vector3.up * 1.5f, 2f, 1f, new Color(0.5f, 0.5f, 0.6f, 0.4f));
+                Kick(-0.45f);
+            }
+            if (bay.LastDock != dock)
+            {
+                dock = bay.LastDock;
+                Juice.Ring(at, team, 5f, 0.6f, 0.45f, 0.2f);
+                Kick(0.3f);
+            }
+        });
     }
 
     void Hive(Func<float> working)
@@ -359,6 +388,95 @@ public class BuildingLife : MonoBehaviour
         foreach (var w in Ps(@"^Aerie_WindRing")) Spin(w, 120f);
     }
 
+    Transform visual;
+    Vector3 rest;
+    float punch, punchVel;
+    bool springing;
+    Collider body;
+
+    void Common()
+    {
+        var hp = GetComponent<Health>();
+        var building = GetComponent<Building>();
+        body = GetComponent<Collider>();
+        if (eye != null && eye.transform != transform)
+        {
+            visual = eye.transform;
+            while (visual.parent != transform) visual = visual.parent;
+        }
+        float last = hp != null ? hp.Current : 0f, nextJolt = 0f, released = building != null ? building.LastRelease : 0f;
+        bool wasPowered = Powered;
+        ticks.Add(dt =>
+        {
+            if (hp != null)
+            {
+                float now = hp.Current;
+                if (now < last - 0.01f && Time.time >= nextJolt && !hp.IsDead)
+                {
+                    nextJolt = Time.time + 0.18f;
+                    float hit = Mathf.Clamp01((last - now) / hp.MaxHealth * 12f);
+                    Kick(-(0.35f + 0.6f * hit));
+                    if (hit > 0.3f) Juice.Burst(Roof(), Juice.Fire, 4 + (int)(10f * hit), 6f, 0.1f, 0.45f, 1f, true);
+                }
+                last = now;
+            }
+            if (building != null && building.LastRelease != released)
+            {
+                released = building.LastRelease;
+                Kick(0.8f);
+                Juice.Ring(Ground(), team, Size() * 0.35f, Size() * 0.8f, 0.45f, 0.2f);
+            }
+            if (Powered != wasPowered)
+            {
+                wasPowered = Powered;
+                if (Powered)
+                {
+                    Kick(0.6f);
+                    Juice.Ring(Ground(), team, 1f, Size(), 0.6f, 0.25f);
+                    Juice.Burst(Roof(), team, 14, 5f, 0.1f, 0.5f, 1f);
+                }
+                else
+                {
+                    Kick(-0.45f);
+                    Juice.Burst(Roof(), new Color(0.6f, 0.6f, 0.7f), 10, 3f, 0.12f, 0.7f, 0.5f, true);
+                }
+            }
+            Spring(dt);
+        });
+    }
+
+    void Kick(float amount)
+    {
+        if (visual == null || TryGetComponent(out Construction _)) return;
+        if (!springing) { rest = visual.localScale; springing = true; }
+        punchVel += amount * (GameSettings.ReduceFlashing ? 0.5f : 1f);
+    }
+
+    void Spring(float dt)
+    {
+        if (!springing) return;
+        dt = Mathf.Min(dt, 0.05f);
+        punchVel += (-punch * 300f - punchVel * 14f) * dt;
+        punch += punchVel * dt;
+        if (Mathf.Abs(punch) < 0.002f && Mathf.Abs(punchVel) < 0.02f)
+        {
+            visual.localScale = rest;
+            springing = false;
+            punch = punchVel = 0f;
+            return;
+        }
+        visual.localScale = Vector3.Scale(rest, new Vector3(1f - punch * 0.5f, 1f + punch, 1f - punch * 0.5f));
+    }
+
+    float Size() => body != null ? Mathf.Max(body.bounds.size.x, body.bounds.size.z) : 6f;
+    Vector3 Ground() => new(transform.position.x, 0.25f, transform.position.z);
+
+    Vector3 Roof()
+    {
+        if (body == null) return transform.position + Vector3.up * 3f;
+        Bounds b = body.bounds;
+        return new Vector3(b.center.x + b.size.x * Random.Range(-0.3f, 0.3f), b.max.y * 0.9f, b.center.z + b.size.z * Random.Range(-0.3f, 0.3f));
+    }
 
     Transform P(string name)
     {

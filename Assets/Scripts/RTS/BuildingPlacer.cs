@@ -113,7 +113,7 @@ public class BuildingPlacer : MonoBehaviour
     {
         var kb = Chat.Keys;
         if (kb == null || ghost != null) return;
-        if (kb.bKey.wasPressedThisFrame) ToggleMenu();
+        if (Controls.Down(Act.BuildMenu)) ToggleMenu();
         if (!menuPanel.gameObject.activeSelf) return;
         if (kb.escapeKey.wasPressedThisFrame) { menuPanel.gameObject.SetActive(false); return; }
         for (int i = 0; i < Hotkeys.Length && i < buildings.Length; i++)

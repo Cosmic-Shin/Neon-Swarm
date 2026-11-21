@@ -14,6 +14,9 @@ public class PlayerProfile
         public float seconds;
         public int kills, unitsLost;
         public long when;
+        public int[] stats;
+        public string map;
+        public int startCredits;
     }
 
     [System.Serializable]
@@ -25,10 +28,11 @@ public class PlayerProfile
     }
 
     public string avatar = "";
+    public string[] badges = new string[0];
     public Tally all = new(), skirmish = new(), online = new();
     public Tally[] vsAI = { new(), new(), new() };
     public int streak, bestStreak;
-    public float secondsPlayed, fastestWin;
+    public float secondsPlayed, fastestWin, secondsInGame;
     public int[] totals = new int[MatchStats.Headers.Length];
     public List<MatchRecord> recent = new();
 

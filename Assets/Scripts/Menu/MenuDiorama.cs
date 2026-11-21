@@ -524,7 +524,7 @@ public class MenuDiorama : MonoBehaviour
     {
         GlitchOnScreenChange();
         if (dim == null) return;
-        bool menu = (lobby != null && lobby.activeSelf) || (signIn != null && signIn.activeSelf);
+        bool menu = LoginScreen.Booting || (lobby != null && lobby.activeSelf) || (signIn != null && signIn.activeSelf);
         var c = dim.color;
         c.a = Mathf.MoveTowards(c.a, menu ? 0f : 0.62f, Time.deltaTime * 2.5f);
         dim.color = c;

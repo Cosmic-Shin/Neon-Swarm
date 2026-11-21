@@ -4,6 +4,7 @@ using UnityEngine;
 public static class Skirmish
 {
     public enum Difficulty { Easy, Normal, Hard }
+    public enum Personality { Mixed, Rusher, Turtle, Air, Random }
 
     [System.Serializable]
     public class Opponent

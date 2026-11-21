@@ -106,7 +106,7 @@ public static class SaveSystem
         LastSlot = slot;
         pending = d;
         var map = System.Array.Find(GameMaps.All, m => m.scene == d.map) ?? GameMaps.All[0];
-        UnityEngine.SceneManagement.SceneManager.LoadScene(map.scene);
+        LoadingScreen.Load(map.scene);
         return true;
     }
 

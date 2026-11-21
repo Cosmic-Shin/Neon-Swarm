@@ -151,8 +151,8 @@ public class RoomService : MonoBehaviour
         {
             LateJoin = true;
             await Leave();
-            var load = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(scene);
-            while (!load.isDone) await Task.Yield();
+            LoadingScreen.Load(scene);
+            while (UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != scene) await Task.Yield();
         }
         try { return await EnterRoom(room, create, visible, scene); }
         finally { LateJoin = false; }
@@ -176,7 +176,7 @@ public class RoomService : MonoBehaviour
         if (!result.Ok)
         {
             if (room == RejoinRoom && result.ShutdownReason is ShutdownReason.GameNotFound or ShutdownReason.GameClosed) ForgetRejoin();
-            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != 0) { UnityEngine.SceneManagement.SceneManager.LoadScene(0); return "Couldn't rejoin the match: " + result.ShutdownReason; }
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != 0) { LoadingScreen.Load(0); return "Couldn't rejoin the match: " + result.ShutdownReason; }
             await EnterLobby();
             return result.ShutdownReason switch
             {

@@ -21,12 +21,14 @@ public class AvatarList : ScriptableObject
     public static Sprite Find(string name)
     {
         if (string.IsNullOrEmpty(name)) return null;
+        if (CustomAvatar.Is(name)) return CustomAvatar.SpriteOf(name);
         foreach (var s in All) if (s != null && s.name == name) return s;
         return null;
     }
 
     public static string Title(string name)
     {
+        if (CustomAvatar.Is(name)) return "YOUR PICTURE";
         if (Find(name) == null) return "INITIAL";
         string n = name.Replace("icon_unit_", "");
         var sb = new System.Text.StringBuilder();

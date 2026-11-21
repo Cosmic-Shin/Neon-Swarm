@@ -48,6 +48,10 @@ public class MatchManager : MonoBehaviour
                 tut.match = this;
                 tut.hive = layoutHive != null ? layoutHive.GetComponent<Building>() : null;
             }
+            if (Mission.Active)
+            {
+                gameObject.AddComponent<Mission>().match = this;
+            }
             if (!SaveSystem.Loaded)
             {
                 if (layoutNexus != null) introNexus.Add(layoutNexus.gameObject);
@@ -107,6 +111,7 @@ public class MatchManager : MonoBehaviour
         var hive = Net.Spawn(spawns[1].prefab, spawns[1].pos, spawns[1].rot);
         introNexus.Add(nexus);
         introHives.Add((hive.GetComponent<Building>(), layoutHarvesters.Length));
+        if (room.HasStateAuthority) SpawnBots(room, home);
         StartCoroutine(Intro());
         StartClock(room, runner);
         RoomPlayer.Publish = true;
@@ -130,12 +135,15 @@ public class MatchManager : MonoBehaviour
         if (Instance == this) Instance = null;
     }
 
-    public AIPlayer MakeBot(int team, int baseIndex)
+    public bool IntroDone { get; private set; }
+
+    public AIPlayer MakeBot(int team, int baseIndex, string level = "Normal", bool randomStyle = false)
     {
         var spot = baseSpots.GetChild(Mathf.Clamp(baseIndex, 0, baseSpots.childCount - 1));
         var brain = new GameObject($"Bot {team}").AddComponent<AIPlayer>();
         brain.team = team;
-        brain.profile = Resources.Load<AIProfile>("AI/Normal");
+        brain.profile = Resources.Load<AIProfile>("AI/" + level);
+        if (randomStyle) brain.personality = Skirmish.Personality.Random;
         brain.home = Flat(spot.position);
         brain.front = -Flat(spot.position).normalized;
         return brain;
@@ -143,6 +151,7 @@ public class MatchManager : MonoBehaviour
 
     System.Collections.IEnumerator Rejoin(RoomState room)
     {
+        IntroDone = true;
         int slot = Net.LocalSlot;
         room.LoadSaved(slot);
         RoomPlayer.Publish = true;
@@ -160,6 +169,7 @@ public class MatchManager : MonoBehaviour
 
     void WatchMatch()
     {
+        IntroDone = true;
         spectating = true;
         over = true;
         Spectate();
@@ -171,7 +181,7 @@ public class MatchManager : MonoBehaviour
     {
         if (!Tutorial.Active) Sfx.Say(Line.Start, 30f);
         MatchStats.Reset();
-        endButton.onClick.AddListener(() => { Skirmish.Active = Tutorial.Active = false; Skirmish.ElapsedBefore = 0f; UnityEngine.SceneManagement.SceneManager.LoadScene(0); });
+        endButton.onClick.AddListener(() => { Skirmish.Active = Tutorial.Active = false; Skirmish.ElapsedBefore = 0f; LoadingScreen.Load(0); });
         BuildEndScreen();
         if (GameObject.Find("Enemies") is GameObject squad) Destroy(squad);
         TeamEconomy.Set(0, Skirmish.StartCredits);
@@ -195,6 +205,7 @@ public class MatchManager : MonoBehaviour
             introBrains.Add(brain);
             brain.team = ai.team;
             brain.profile = Resources.Load<AIProfile>($"AI/{ai.difficulty}");
+            brain.personality = Skirmish.Personality.Random;
             brain.home = Flat(spot.position);
             brain.front = (Flat(centre) - Flat(spot.position)).normalized;
         }
@@ -216,7 +227,7 @@ public class MatchManager : MonoBehaviour
         }
 
         skirmishStarted = Time.time;
-        if (!Tutorial.Active) Alerts.Show("Skirmish: destroy every enemy building!", Alerts.Info, 6f);
+        if (!Tutorial.Active && !Mission.Active) Alerts.Show("Skirmish: destroy every enemy building!", Alerts.Info, 6f);
     }
 
     public static GameObject SpawnFor(int team, GameObject prefab, Vector3 pos, Quaternion rot)
@@ -254,13 +265,28 @@ public class MatchManager : MonoBehaviour
             yield return new WaitForSeconds(IntroGap);
         }
         foreach (var b in introBrains) if (b != null) b.enabled = true;
+        IntroDone = true;
+    }
+
+    void SpawnBots(RoomState room, Transform home)
+    {
+        for (int slot = 0; slot < RoomService.MaxPlayers; slot++)
+        {
+            if (room.BotLevel(slot) == 0) continue;
+            var spot = baseSpots.GetChild(Mathf.Clamp(room.Bases[slot], 0, baseSpots.childCount - 1));
+            Quaternion turn = Quaternion.Euler(0f, Vector3.SignedAngle(Flat(home.position), Flat(spot.position), Vector3.up), 0f);
+            Vector3 Place(Transform t) => spot.position + turn * (t.position - home.position);
+            introNexus.Add(Net.Spawn(nexusPrefab, Place(layoutNexus), turn * layoutNexus.rotation, slot));
+            var hive = Net.Spawn(hivePrefab, Place(layoutHive), turn * layoutHive.rotation, slot);
+            introHives.Add((hive.GetComponent<Building>(), layoutHarvesters.Length));
+        }
     }
 
     float skirmishStarted = -1f;
 
     void UpdateSkirmish()
     {
-        if (Tutorial.Active || over || Time.time - skirmishStarted < 5f || Time.time < nextCheck) return;
+        if (Tutorial.Active || Mission.Active || over || Time.time - skirmishStarted < 5f || Time.time < nextCheck) return;
         nextCheck = Time.time + 0.5f;
         var sides = new HashSet<int>();
         bool mine = false;
@@ -402,6 +428,9 @@ public class MatchManager : MonoBehaviour
     {
         var m = new PlayerProfile.MatchRecord { won = won, online = Net.InMatch, difficulty = -1, when = System.DateTime.UtcNow.Ticks,
             seconds = Net.InMatch ? Time.timeSinceLevelLoad : Skirmish.Elapsed, kills = MatchStats.Values[(int)MatchStats.Kind.Kills], unitsLost = MatchStats.Values[(int)MatchStats.Kind.UnitsLost] };
+        m.stats = (int[])MatchStats.Values.Clone();
+        m.map = GameMaps.Of(gameObject.scene).name;
+        m.startCredits = Net.InMatch && RoomState.Instance != null ? RoomState.Instance.Credits : Skirmish.StartCredits;
         if (m.online)
         {
             int others = RoomState.Instance != null ? RoomPlayer.All.Count - 1 : 0;
@@ -429,11 +458,17 @@ public class MatchManager : MonoBehaviour
         spectating = false;
         spectateBanner.gameObject.SetActive(false);
         endTitle.text = title;
-        endTitle.color = title == "VICTORY" || title == "TUTORIAL COMPLETE" ? new Color(0.3f, 1f, 0.6f) : title == "MATCH OVER" ? Alerts.Info : new Color(1f, 0.3f, 0.35f);
+        endTitle.color = title == "VICTORY" || title == "TUTORIAL COMPLETE" || title == "MISSION COMPLETE" ? new Color(0.3f, 1f, 0.6f) : title == "MATCH OVER" ? Alerts.Info : new Color(1f, 0.3f, 0.35f);
         endDetail.text = detail;
         FillStats(1f);
         spectateButton.gameObject.SetActive(canSpectate);
         bool again = Net.InMatch && title != "DISCONNECTED";
+        if (Mission.Active)
+        {
+            missionNext = title == "MISSION COMPLETE" ? Mission.Current + 1 : Mission.Current;
+            again = missionNext < Mission.All.Length;
+            playAgainButton.GetComponentInChildren<Text>().text = missionNext == Mission.Current ? "RETRY" : "NEXT MISSION";
+        }
         playAgainButton.gameObject.SetActive(again);
         var row = new System.Collections.Generic.List<Button>();
         if (canSpectate) row.Add(spectateButton);
@@ -516,6 +551,7 @@ public class MatchManager : MonoBehaviour
         endPanel.SetActive(false);
         FogOfWar.RevealAll = true;
         spectateBanner.gameObject.SetActive(true);
+        if (!GetComponent<SpectatorPanel>()) gameObject.AddComponent<SpectatorPanel>().Build(this, endPanel.transform.parent);
     }
 
     static string Winner(HashSet<int> sides)
@@ -525,6 +561,8 @@ public class MatchManager : MonoBehaviour
     }
 
     public bool IsOver => over && !spectating;
+    public bool Spectating => spectating;
+    int missionNext;
 
     public void Surrender()
     {
@@ -546,7 +584,13 @@ public class MatchManager : MonoBehaviour
         playAgainButton = Instantiate(endButton, endButton.transform.parent);
         playAgainButton.name = "PlayAgainButton";
         playAgainButton.onClick = new Button.ButtonClickedEvent();
-        playAgainButton.onClick.AddListener(() => { playAgainButton.interactable = false; RoomService.Instance.SetUpPlayAgain(); BackToMenu(); });
+        playAgainButton.onClick.AddListener(() =>
+        {
+            playAgainButton.interactable = false;
+            if (Mission.Active) { Mission.Begin(missionNext); return; }
+            RoomService.Instance.SetUpPlayAgain();
+            BackToMenu();
+        });
         playAgainButton.GetComponentInChildren<Text>().text = "PLAY AGAIN";
         playAgainButton.gameObject.SetActive(false);
 
@@ -601,7 +645,7 @@ public class MatchManager : MonoBehaviour
         for (int slot = 0; slot < RoomService.MaxPlayers; slot++)
         {
             var player = room.Slots[slot];
-            if (player == Fusion.PlayerRef.None) continue;
+            if (player == Fusion.PlayerRef.None && room.BotLevel(slot) == 0) continue;
             bool me = slot == Net.LocalSlot;
             var rp = RoomPlayer.Of(player);
             int team = room.TeamOf(slot);
@@ -644,6 +688,6 @@ public class MatchManager : MonoBehaviour
         endButton.interactable = false;
         Net.InMatch = false;
         await RoomService.Instance.Leave();
-        UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+        LoadingScreen.Load(0);
     }
 }

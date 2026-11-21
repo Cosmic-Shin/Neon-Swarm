@@ -361,6 +361,6 @@ public class SkirmishPanel : MonoBehaviour
         Skirmish.Minutes = minutes;
         Skirmish.ElapsedBefore = 0f;
         Skirmish.Active = true;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(M.scene);
+        LoadingScreen.Load(M.scene);
     }
 }

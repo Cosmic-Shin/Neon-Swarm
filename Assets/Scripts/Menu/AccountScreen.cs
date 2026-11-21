@@ -16,13 +16,76 @@ public class AccountScreen : MonoBehaviour
     readonly (GameObject row, Image badge, Text result, Text what, Text when)[] recent = new (GameObject, Image, Text, Text, Text)[PlayerProfile.RecentKept];
     Text noMatches;
     bool built;
+    bool viewer;
+    PlayerProfile shown;
+    readonly Badge[] showcase = new Badge[AchievementsPanel.MaxPinned];
+    readonly Text[] showcaseEmpty = new Text[AchievementsPanel.MaxPinned];
+    readonly Image[] showcaseSlot = new Image[AchievementsPanel.MaxPinned];
+    readonly Tooltip[] showcaseTip = new Tooltip[AchievementsPanel.MaxPinned];
+    Text showcaseLabel;
+    string shownName;
+
+    void OpenAchievements() =>
+        AchievementsPanel.Open(transform.parent, shown, !viewer, viewer ? (shownName ?? "PLAYER").ToUpper() + "'S ACHIEVEMENTS" : "ACHIEVEMENTS", () => { if (this != null) ShowBadges(shown); });
+
+    void ShowBadges(PlayerProfile p)
+    {
+        var pinned = p?.badges ?? new string[0];
+        int n = 0;
+        for (int i = 0; i < showcase.Length; i++)
+        {
+            var d = i < pinned.Length ? Achievements.Find(pinned[i]) : null;
+            int t = d != null ? Achievements.Tier(d, p) : 0;
+            bool has = d != null && t > 0;
+            showcase[i].gameObject.SetActive(has);
+            showcaseEmpty[i].text = has || viewer ? "" : "+";
+            showcaseSlot[i].color = new Color(1f, 1f, 1f, has ? 0f : 0.35f);
+            if (has) { showcase[i].Show(d, t); n++; }
+            showcaseTip[i].text = has ? $"{d.name}  ·  {Achievements.TierNames[t]}" : viewer ? "Empty slot" : "Pin a badge in ACHIEVEMENTS";
+        }
+        int pts = p != null ? Achievements.Points(p) : 0;
+        showcaseLabel.text = n == 0 && !viewer ? "PIN BADGES  ·  click a slot" : $"BADGES  ·  {pts} / {Achievements.All.Length * 4} tiers";
+    }
+
+    public static void View(Transform parent, string playerId, string name)
+    {
+        var shade = new GameObject("ProfileView", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+        shade.SetParent(parent, false);
+        SettingsPanel.Stretch(shade);
+        shade.GetComponent<Image>().color = new Color(0f, 0.01f, 0.04f, 0.9f);
+        HoloSkin.Layer(shade, HoloSkin.LayerPopup + 4);
+        var panel = new GameObject("Profile", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+        panel.SetParent(shade, false);
+        HoloSkin.Modal(panel);
+        var screen = panel.gameObject.AddComponent<AccountScreen>();
+        screen.viewer = true;
+        screen.ShowOther(playerId, name);
+    }
+
+    async void ShowOther(string playerId, string name)
+    {
+        Build();
+        nameText.text = (name ?? "PLAYER").ToUpper();
+        idText.text = "PLAYER ID  " + playerId;
+        memberSince = "Friend";
+        noMatches.text = "No matches yet.";
+        note.text = "Loading stats...";
+        shown = new PlayerProfile();
+        Fill(shown, name);
+        var p = await ProfileService.LoadPublic(playerId);
+        if (this == null) return;
+        shown = p ?? new PlayerProfile();
+        Fill(shown, name);
+        note.text = p == null ? "This player has no stats yet." : "Public stats from their account.";
+    }
 
     public async void Show()
     {
         if (!built) Build();
         nameText.text = AccountService.Username?.ToUpper() ?? "GUEST";
         idText.text = "PLAYER ID  " + (AccountService.SignedIn ? AccountService.PlayerId : "-");
-        sinceText.text = "Member since ...";
+        memberSince = "Member since ...";
+        nextClock = 0f;
         note.text = "Loading stats...";
         Fill(ProfileService.Current ?? new PlayerProfile());
 
@@ -33,21 +96,44 @@ public class AccountScreen : MonoBehaviour
         try
         {
             var since = await AccountService.MemberSince();
-            if (this != null) sinceText.text = "Member since " + (since?.ToLocalTime().ToString("MMMM d, yyyy") ?? "unknown");
+            memberSince = "Member since " + (since?.ToLocalTime().ToString("MMMM d, yyyy") ?? "unknown");
         }
-        catch (System.Exception e) { if (this != null) sinceText.text = "Member since: unavailable"; Debug.LogWarning(e); }
+        catch (System.Exception e) { memberSince = "Member since: unavailable"; Debug.LogWarning(e); }
     }
 
-    void Fill(PlayerProfile p)
+    string memberSince = "Member since ...";
+    float nextClock;
+
+    void Update()
     {
-        avatarView.Show(p.avatar, AccountService.Username);
+        if (viewer && UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame && matchView == null) { Destroy(transform.parent.gameObject); return; }
+        if (!built || Time.unscaledTime < nextClock) return;
+        nextClock = Time.unscaledTime + 1f;
+        var p = viewer ? shown : ProfileService.Current;
+        sinceText.text = memberSince + (p != null ? $"   <color=#FFFFFF>·   {Played(p.secondsInGame)} played</color>" : "");
+    }
+
+    static string Played(float s)
+    {
+        int m = (int)(s / 60f);
+        return m >= 60 ? $"{m / 60}h {m % 60:00}m" : $"{m}m";
+    }
+
+    void Fill(PlayerProfile p) => Fill(p, AccountService.Username);
+
+    void Fill(PlayerProfile p, string user)
+    {
+        if (!viewer) shown = p;
+        avatarView.Show(p.avatar, user);
+        shownName = user;
+        ShowBadges(p);
         int r = p.RankIndex;
         rankText.text = PlayerProfile.Ranks[r].name;
         rankFill.rectTransform.anchorMax = new Vector2(p.RankProgress, 1f);
         rankNext.text = r + 1 < PlayerProfile.Ranks.Length ? $"{PlayerProfile.Ranks[r + 1].wins - p.all.wins} more wins to {PlayerProfile.Ranks[r + 1].name}" : "Top rank reached";
 
         cardValues[0].text = p.all.games.ToString();
-        cardSubs[0].text = Hours(p.secondsPlayed) + " played";
+        cardSubs[0].text = Hours(p.secondsPlayed) + " in matches";
         cardValues[1].text = p.all.wins.ToString();
         cardSubs[1].text = p.fastestWin > 0f ? "fastest " + Clock(p.fastestWin) : "no wins yet";
         cardValues[2].text = p.all.Losses.ToString();
@@ -88,7 +174,7 @@ public class AccountScreen : MonoBehaviour
             row.badge.color = m.won ? Win : Loss;
             row.result.text = m.won ? "W" : "L";
             row.what.text = $"<b>{(m.online ? "MULTIPLAYER" : "SKIRMISH")}</b>  <color=#8C99BF>vs {m.opponents}</color>";
-            row.when.text = $"{Clock(m.seconds)}   {m.kills} kills   <color=#8C99BF>{Ago(m.when)}</color>";
+            row.when.text = $"{Clock(m.seconds)}   {m.kills} kills   <color=#8C99BF>{Ago(m.when)}  ></color>";
         }
     }
 
@@ -110,27 +196,52 @@ public class AccountScreen : MonoBehaviour
         panel.anchoredPosition = new Vector2(0f, -112f);
         panel.localScale = Vector3.one * 0.92f;
         var circle = AvatarList.Circle;
-        transform.Find("Header").gameObject.SetActive(false);
-        transform.Find("Info").gameObject.SetActive(false);
-        var signOut = (RectTransform)transform.Find("SIGNOUTButton");
-        var back = (RectTransform)transform.Find("BACKButton");
-        signOut.anchoredPosition = new Vector2(-210f, -350f);
-        back.anchoredPosition = new Vector2(210f, -350f);
+        if (viewer)
+        {
+            var close = SettingsPanel.Button(panel, "BACK", new Vector2(220f, -350f), new Vector2(360f, 64f));
+            close.onClick.AddListener(() => Destroy(transform.parent.gameObject));
+            SettingsPanel.Button(panel, "ACHIEVEMENTS", new Vector2(-220f, -350f), new Vector2(360f, 64f)).onClick.AddListener(OpenAchievements);
+        }
+        else
+        {
+            transform.Find("Header").gameObject.SetActive(false);
+            transform.Find("Info").gameObject.SetActive(false);
+            var signOut = (RectTransform)transform.Find("SIGNOUTButton");
+            var back = (RectTransform)transform.Find("BACKButton");
+            signOut.anchoredPosition = new Vector2(-420f, -350f);
+            back.anchoredPosition = new Vector2(420f, -350f);
+            var ach = SettingsPanel.Button(panel, "ACHIEVEMENTS", new Vector2(0f, -350f), back.sizeDelta);
+            HoloSkin.Button(ach, HoloUI.ButtonStyle.Gold);
+            ach.onClick.AddListener(OpenAchievements);
+        }
 
         var top = Box(panel, new Vector2(0f, 296f), new Vector2(1480f, 140f), Card);
         avatarView = AvatarList.Make(top, new Vector2(-655f, 0f), 116f, Pink);
-        var avatarButton = avatarView.ring.gameObject.AddComponent<Button>();
-        avatarView.ring.raycastTarget = true;
-        avatarButton.transition = Selectable.Transition.None;
-        avatarButton.onClick.AddListener(OpenPicker);
-        var edit = Img(avatarView.ring.rectTransform, new Vector2(40f, -40f), new Vector2(34f, 34f), Cyan, circle);
-        Txt(edit.rectTransform, "EDIT", Vector2.zero, 11, TextAnchor.MiddleCenter, 34f, Color.black, FontStyle.Bold);
+        if (!viewer)
+        {
+            var avatarButton = avatarView.ring.gameObject.AddComponent<Button>();
+            avatarView.ring.raycastTarget = true;
+            avatarButton.transition = Selectable.Transition.None;
+            avatarButton.onClick.AddListener(OpenPicker);
+            var edit = Img(avatarView.ring.rectTransform, new Vector2(40f, -40f), new Vector2(34f, 34f), Cyan, circle);
+            Txt(edit.rectTransform, "EDIT", Vector2.zero, 11, TextAnchor.MiddleCenter, 34f, Color.black, FontStyle.Bold);
+        }
         nameText = Txt(top, "", new Vector2(-330f, 30f), 40, TextAnchor.MiddleLeft, 480f, Color.white, FontStyle.Bold);
         sinceText = Txt(top, "", new Vector2(-330f, -10f), 18, TextAnchor.MiddleLeft, 480f, Dim);
         idText = Txt(top, "", new Vector2(-330f, -38f), 13, TextAnchor.MiddleLeft, 480f, new Color(0.4f, 0.45f, 0.6f));
-        var change = SettingsPanel.Button(top, "CHANGE AVATAR", new Vector2(40f, 0f), new Vector2(250f, 54f));
-        HoloSkin.Button(change, HoloUI.ButtonStyle.Small);
-        change.onClick.AddListener(OpenPicker);
+        for (int i = 0; i < showcase.Length; i++)
+        {
+            var pos = new Vector2(22f + (i - 1.5f) * 76f, 4f);
+            var slot = Img(top, pos, new Vector2(90f, 90f), new Color(1f, 1f, 1f, 0.35f), Badge.Art("frame_0"));
+            slot.raycastTarget = true;
+            slot.preserveAspect = true;
+            showcaseSlot[i] = slot;
+            slot.gameObject.AddComponent<Button>().onClick.AddListener(OpenAchievements);
+            showcaseEmpty[i] = Txt(slot.transform, "+", Vector2.zero, 26, TextAnchor.MiddleCenter, 70f, Dim);
+            showcase[i] = Badge.Make(top, pos, 56f);
+            showcaseTip[i] = slot.gameObject.AddComponent<Tooltip>();
+        }
+        showcaseLabel = Txt(top, "", new Vector2(22f, -50f), 12, TextAnchor.MiddleCenter, 320f, Dim);
         Img(top, new Vector2(180f, 0f), new Vector2(2f, 100f), new Color(1f, 1f, 1f, 0.08f), null);
         Txt(top, "RANK", new Vector2(450f, 40f), 16, TextAnchor.MiddleLeft, 500f, Dim);
         rankText = Txt(top, "", new Vector2(450f, 10f), 34, TextAnchor.MiddleLeft, 500f, Gold, FontStyle.Bold);
@@ -162,18 +273,18 @@ public class AccountScreen : MonoBehaviour
         Txt(left, "WIN RATE", new Vector2(-52f, 156f), 18, TextAnchor.MiddleLeft, 600f, Pink, FontStyle.Bold);
         for (int i = 0; i < bars.Length; i++)
         {
-            float y = 122f - i * 30f;
+            float y = 124f - i * 27f;
             var l = Txt(left, "", new Vector2(-268f, y), 15, TextAnchor.MiddleLeft, 170f, Dim);
             var back5 = Img(left, new Vector2(-18f, y), new Vector2(300f, 14f), BarBack, null);
             var v = Txt(left, "", new Vector2(250f, y), 15, TextAnchor.MiddleLeft, 200f, Color.white);
             bars[i] = (l, Fill(back5.rectTransform, Win), v);
             HoloSkin.Bar(back5, bars[i].fill, Win);
         }
-        Txt(left, "CAREER", new Vector2(-52f, -36f), 18, TextAnchor.MiddleLeft, 600f, Pink, FontStyle.Bold);
+        Txt(left, "CAREER", new Vector2(-52f, -16f), 18, TextAnchor.MiddleLeft, 600f, Pink, FontStyle.Bold);
         string[] totalNames = { "KILLS", "UNITS BUILT", "UNITS LOST", "BUILDINGS BUILT", "BUILDINGS LOST", "RESEARCH", "CREDITS EARNED", "AVG MATCH", "KILLS / MATCH" };
         for (int i = 0; i < totalValues.Length; i++)
         {
-            var pos = new Vector2(-240f + (i % 3) * 240f, -66f - (i / 3) * 48f);
+            var pos = new Vector2(-240f + (i % 3) * 240f, -50f - (i / 3) * 44f);
             totalValues[i] = Txt(left, "0", pos + new Vector2(0f, 7f), 20, TextAnchor.MiddleCenter, 220f, Color.white, FontStyle.Bold);
             Txt(left, totalNames[i], pos + new Vector2(0f, -13f), 12, TextAnchor.MiddleCenter, 220f, Dim);
         }
@@ -190,10 +301,16 @@ public class AccountScreen : MonoBehaviour
             var res = Txt(badge.rectTransform, "W", Vector2.zero, 15, TextAnchor.MiddleCenter, 24f, Color.black, FontStyle.Bold);
             var what = Txt(row.rectTransform, "", new Vector2(-90f, 0f), 15, TextAnchor.MiddleLeft, 450f, Color.white);
             var when = Txt(row.rectTransform, "", new Vector2(222f, 0f), 14, TextAnchor.MiddleRight, 240f, Color.white);
+            row.raycastTarget = true;
+            var rowButton = row.gameObject.AddComponent<Button>();
+            rowButton.transition = Selectable.Transition.ColorTint;
+            rowButton.colors = new ColorBlock { normalColor = Color.white, highlightedColor = new Color(1.6f, 1.6f, 2.2f), pressedColor = new Color(0.8f, 0.8f, 0.9f), selectedColor = Color.white, disabledColor = Color.white, colorMultiplier = 1f, fadeDuration = 0.08f };
+            int index = i;
+            rowButton.onClick.AddListener(() => { var p = shown; if (p != null && index < p.recent.Count) ShowMatch(p.recent[index]); });
             recent[i] = (row.gameObject, badge, res, what, when);
         }
 
-        note = Txt(panel, "", new Vector2(0f, -310f), 14, TextAnchor.MiddleCenter, 1200f, new Color(0.45f, 0.5f, 0.65f));
+        note = Txt(panel, "", new Vector2(0f, -304f), 14, TextAnchor.MiddleCenter, 1200f, new Color(0.45f, 0.5f, 0.65f));
     }
 
     RectTransform Box(Transform parent, Vector2 pos, Vector2 size, Color fill)
@@ -253,6 +370,7 @@ public class AccountScreen : MonoBehaviour
         shade.raycastTarget = true;
         picker = shade.gameObject;
         picker.name = "AvatarPicker";
+        HoloSkin.Layer(shade, HoloSkin.LayerPopup + 5);
         var win = Img(shade.transform, new Vector2(0f, -30f), new Vector2(1080f, 720f), Card, null);
         HoloSkin.Modal(win.rectTransform);
         Txt(win.transform, "CHOOSE YOUR AVATAR", new Vector2(0f, 312f), 34, TextAnchor.MiddleCenter, 900f, Cyan, FontStyle.Bold);
@@ -282,7 +400,20 @@ public class AccountScreen : MonoBehaviour
         }
 
         pickedName = Txt(win.transform, "", new Vector2(0f, -232f), 24, TextAnchor.MiddleCenter, 900f, Gold, FontStyle.Bold);
-        SettingsPanel.Button(win.transform, "DONE", new Vector2(0f, -296f), new Vector2(280f, 60f)).onClick.AddListener(() => picker.SetActive(false));
+        SettingsPanel.Button(win.transform, "DONE", new Vector2(160f, -296f), new Vector2(280f, 60f)).onClick.AddListener(() => picker.SetActive(false));
+        var upload = SettingsPanel.Button(win.transform, "UPLOAD FROM PC", new Vector2(-160f, -296f), new Vector2(280f, 60f));
+        HoloSkin.Button(upload, HoloUI.ButtonStyle.Gold);
+        upload.interactable = CustomAvatar.CanPick;
+        upload.onClick.AddListener(Upload);
+    }
+
+    void Upload()
+    {
+        string path = CustomAvatar.PickFile();
+        if (string.IsNullOrEmpty(path)) return;
+        string data = CustomAvatar.FromFile(path, out string error);
+        if (data == null) { pickedName.text = error; return; }
+        Pick(data);
     }
 
     void Pick(string name)
@@ -299,6 +430,65 @@ public class AccountScreen : MonoBehaviour
         pickedName.text = AvatarList.Title(current);
     }
 
+
+    GameObject matchView;
+
+    void ShowMatch(PlayerProfile.MatchRecord m)
+    {
+        if (matchView != null) Destroy(matchView);
+        var shade = Img(transform.parent, Vector2.zero, Vector2.zero, new Color(0f, 0.01f, 0.04f, 0.85f), null);
+        SettingsPanel.Stretch(shade.rectTransform);
+        shade.raycastTarget = true;
+        matchView = shade.gameObject;
+        matchView.name = "MatchDetail";
+        HoloSkin.Layer(shade, HoloSkin.LayerPopup + 5);
+        shade.gameObject.AddComponent<Button>().onClick.AddListener(() => Destroy(matchView));
+
+        var win = Img(shade.transform, Vector2.zero, new Vector2(900f, 560f), Card, null);
+        win.raycastTarget = true;
+        HoloSkin.Modal(win.rectTransform);
+        Img(win.transform, Vector2.zero, new Vector2(884f, 544f), new Color(0.01f, 0.015f, 0.04f, 0.94f), null).transform.SetSiblingIndex(1);
+        Color result = m.won ? Win : Loss;
+        Txt(win.transform, m.won ? "VICTORY" : "DEFEAT", new Vector2(0f, 222f), 44, TextAnchor.MiddleCenter, 800f, result, FontStyle.Bold);
+        var when = new System.DateTime(m.when, System.DateTimeKind.Utc).ToLocalTime();
+        Txt(win.transform, $"{(m.online ? "MULTIPLAYER" : "SKIRMISH")}   ·   {(string.IsNullOrEmpty(m.map) ? "Unknown map" : m.map)}   ·   {when:MMM d, yyyy  h:mm tt}",
+            new Vector2(0f, 176f), 18, TextAnchor.MiddleCenter, 840f, Dim);
+        Txt(win.transform, $"vs {m.opponents}", new Vector2(0f, 146f), 20, TextAnchor.MiddleCenter, 840f, Color.white);
+
+        string credits = m.startCredits > 0 ? $"${m.startCredits:N0}" : "-";
+        var top = new[] { ("DURATION", Clock(m.seconds)), ("KILLS", m.kills.ToString()), ("UNITS LOST", m.unitsLost.ToString()), ("START CREDITS", credits) };
+        for (int i = 0; i < top.Length; i++)
+        {
+            var box = Img(win.transform, new Vector2(-315f + i * 210f, 70f), new Vector2(190f, 92f), new Color(1f, 1f, 1f, 0.04f), null);
+            Txt(box.transform, top[i].Item2, new Vector2(0f, 12f), 32, TextAnchor.MiddleCenter, 180f, i == 0 ? Cyan : Color.white, FontStyle.Bold);
+            Txt(box.transform, top[i].Item1, new Vector2(0f, -26f), 13, TextAnchor.MiddleCenter, 180f, Dim);
+        }
+
+        if (m.stats != null && m.stats.Length >= MatchStats.Headers.Length)
+        {
+            Txt(win.transform, "MATCH STATS", new Vector2(-220f, -24f), 16, TextAnchor.MiddleLeft, 300f, Pink, FontStyle.Bold);
+            int n = MatchStats.Headers.Length;
+            for (int i = 0; i < n; i++)
+            {
+                float x = -360f + i * (720f / (n - 1));
+                string v = i == (int)MatchStats.Kind.Earned ? "$" + Short(m.stats[i]) : m.stats[i].ToString("N0");
+                Txt(win.transform, v, new Vector2(x, -70f), 26, TextAnchor.MiddleCenter, 120f, Color.white, FontStyle.Bold);
+                var label = Txt(win.transform, MatchStats.Headers[i], new Vector2(x, -110f), 12, TextAnchor.MiddleCenter, 120f, Dim);
+                label.rectTransform.sizeDelta = new Vector2(120f, 34f);
+            }
+            int built = m.stats[(int)MatchStats.Kind.UnitsBuilt], lost = m.stats[(int)MatchStats.Kind.UnitsLost];
+            float kd = lost > 0 ? (float)m.kills / lost : m.kills;
+            Txt(win.transform, $"K/D {kd:0.00}   ·   {(built > 0 ? $"{100f * (built - Mathf.Min(lost, built)) / built:0}% of units survived" : "no units built")}   ·   ${(m.seconds > 0f ? m.stats[(int)MatchStats.Kind.Earned] / (m.seconds / 60f) : 0f):N0} earned per minute",
+                new Vector2(0f, -160f), 16, TextAnchor.MiddleCenter, 840f, Gold);
+        }
+        else Txt(win.transform, "Detailed stats weren't recorded for this match.\nMatches played from now on keep the full breakdown.", new Vector2(0f, -90f), 17, TextAnchor.MiddleCenter, 800f, Dim)
+            .rectTransform.sizeDelta = new Vector2(800f, 60f);
+
+        var close = SettingsPanel.Button(win.transform, "CLOSE", new Vector2(0f, -232f), new Vector2(260f, 52f));
+        close.onClick.AddListener(() => Destroy(matchView));
+    }
+
+    void OnDisable() { if (matchView != null) Destroy(matchView); }
 
     static string Clock(float s) => $"{(int)s / 60}:{(int)s % 60:00}";
     static string Hours(float s) => s >= 3600f ? $"{s / 3600f:0.0}h" : $"{Mathf.RoundToInt(s / 60f)}m";

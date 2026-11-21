@@ -77,7 +77,7 @@ public class FriendsPanel : MonoBehaviour
         status = Label(box, "", new Vector2(0f, 235f), 20, TextAnchor.MiddleCenter, Width);
         status.color = Dim;
 
-        content = List(box, new Vector2(0f, -40f), new Vector2(Width, 500f));
+        content = List(box, new Vector2(0f, -65f), new Vector2(Width, 560f));
         underCard = new[] { addBox.gameObject, add.gameObject, status.gameObject, content.GetComponentInParent<ScrollRect>().gameObject };
         Button(box, "CLOSE", new Vector2(0f, -400f), new Vector2(300f, 56f)).onClick.AddListener(() => Destroy(gameObject));
 
@@ -224,22 +224,23 @@ public class FriendsPanel : MonoBehaviour
         if (card) Destroy(card.gameObject);
         cardId = m.Id;
         cardName = FriendsHub.NameOf(m);
-        card = Box(box, new Vector2(Width + 20f, 700f), "Panel_Frame");
+        card = Box(box, new Vector2(Width + 20f, 620f), "Panel_Frame");
         foreach (var go in underCard) go.SetActive(false);
-        card.anchoredPosition = new Vector2(0f, -40f);
+        card.anchoredPosition = new Vector2(0f, -25f);
         string id = m.Id, name = FriendsHub.NameOf(m);
 
-        Small(Button(card, "< BACK", new Vector2(-Width / 2f + 70f, 315f), new Vector2(120f, 44f))).onClick.AddListener(CloseCard);
-        Label(card, name.ToUpper(), new Vector2(0f, 315f), 30, TextAnchor.MiddleCenter, 400f).color = Color.white;
+        Small(Button(card, "< BACK", new Vector2(-Width / 2f + 80f, 255f), new Vector2(120f, 44f))).onClick.AddListener(CloseCard);
+        Label(card, name.ToUpper(), new Vector2(0f, 262f), 30, TextAnchor.MiddleCenter, 400f).color = Color.white;
         var act = FriendsHub.ActivityOf(m);
-        Label(card, act == null ? "Offline" : act.room != null ? act.status + ": " + act.room : act.status, new Vector2(0f, 278f), 18, TextAnchor.MiddleCenter, Width).color = Dim;
-        var stats = Label(card, "Loading stats...", new Vector2(0f, 205f), 20, TextAnchor.UpperCenter, Width - 40f);
-        stats.rectTransform.sizeDelta = new Vector2(Width - 40f, 110f);
+        Label(card, act == null ? "Offline" : act.room != null ? act.status + ": " + act.room : act.status, new Vector2(0f, 228f), 18, TextAnchor.MiddleCenter, Width).color = Dim;
+        var stats = Label(card, "Loading stats...", new Vector2(0f, 172f), 20, TextAnchor.UpperCenter, Width - 40f);
+        stats.rectTransform.sizeDelta = new Vector2(Width - 40f, 60f);
         stats.color = Color.white;
 
-        Label(card, "CHAT", new Vector2(-Width / 2f + 130f, 135f), 20, TextAnchor.MiddleLeft, 200f);
-        cardChat = Label(card, "", new Vector2(0f, 0f), 19, TextAnchor.LowerLeft, Width - 60f);
-        cardChat.rectTransform.sizeDelta = new Vector2(Width - 60f, 240f);
+        Label(card, "CHAT", new Vector2(-Width / 2f + 130f, 115f), 20, TextAnchor.MiddleLeft, 200f);
+        Small(Button(card, "VIEW PROFILE  >", new Vector2(Width / 2f - 140f, 115f), new Vector2(220f, 40f))).onClick.AddListener(() => AccountScreen.View(card.GetComponentInParent<Canvas>().rootCanvas.transform, id, name));
+        cardChat = Label(card, "", new Vector2(0f, -10f), 19, TextAnchor.LowerLeft, Width - 60f);
+        cardChat.rectTransform.sizeDelta = new Vector2(Width - 60f, 180f);
         cardChat.color = Color.white;
         var chatBox = new GameObject("ChatBox", typeof(RectTransform)).GetComponent<RectTransform>();
         chatBox.SetParent(card, false);
@@ -247,7 +248,7 @@ public class FriendsPanel : MonoBehaviour
         chatBox.sizeDelta = cardChat.rectTransform.sizeDelta + new Vector2(24f, 16f);
         chatBox.SetSiblingIndex(cardChat.transform.GetSiblingIndex());
         HoloSkin.Back(chatBox, "Panel_Inset");
-        var input = Input(card, "Message (Enter to send)", new Vector2(-75f, -160f), new Vector2(Width - 190f, 48f), myTag.font);
+        var input = Input(card, "Message (Enter to send)", new Vector2(-70f, -140f), new Vector2(Width - 200f, 48f), myTag.font);
         input.characterLimit = FriendsHub.MaxMessage;
         async void Send()
         {
@@ -258,19 +259,19 @@ public class FriendsPanel : MonoBehaviour
             if (input) input.ActivateInputField();
         }
         input.onSubmit.AddListener(_ => Send());
-        Button(card, "SEND", new Vector2(Width / 2f - 70f, -160f), new Vector2(120f, 48f)).onClick.AddListener(Send);
-        cardStatus = Label(card, "", new Vector2(0f, -205f), 18, TextAnchor.MiddleCenter, Width);
+        Button(card, "SEND", new Vector2(Width / 2f - 80f, -140f), new Vector2(120f, 48f)).onClick.AddListener(Send);
+        cardStatus = Label(card, "", new Vector2(0f, -182f), 18, TextAnchor.MiddleCenter, Width);
         cardStatus.color = Dim;
 
-        Risky(Danger(Button(card, "REMOVE FRIEND", new Vector2(-150f, -290f), new Vector2(250f, 48f))), async () => { await FriendsHub.Remove(id); CloseCard(); });
-        Risky(Danger(Button(card, "BLOCK", new Vector2(150f, -290f), new Vector2(250f, 48f))), async () => { await FriendsHub.Block(id); CloseCard(); });
+        Risky(Danger(Button(card, "REMOVE FRIEND", new Vector2(-150f, -240f), new Vector2(250f, 48f))), async () => { await FriendsHub.Remove(id); CloseCard(); });
+        Risky(Danger(Button(card, "BLOCK", new Vector2(150f, -240f), new Vector2(250f, 48f))), async () => { await FriendsHub.Block(id); CloseCard(); });
 
         FriendsHub.MarkRead(id);
         RefreshChat();
         var p = await ProfileService.LoadPublic(id);
         if (!stats) return;
         stats.text = p == null ? "No stats yet." : StatsText(p);
-        AvatarList.Make(card, new Vector2(Width / 2f - 60f, 300f), 76f, HoloUI.Cyan).Show(p?.avatar, name);
+        AvatarList.Make(card, new Vector2(Width / 2f - 70f, 245f), 72f, HoloUI.Cyan).Show(p?.avatar, name);
     }
 
     static string StatsText(PlayerProfile p)
@@ -294,7 +295,7 @@ public class FriendsPanel : MonoBehaviour
         FriendsHub.MarkRead(cardId);
         var lines = new System.Text.StringBuilder();
         if (FriendsHub.Chats.TryGetValue(cardId, out var chat))
-            for (int i = Mathf.Max(0, chat.Count - 9); i < chat.Count; i++)
+            for (int i = Mathf.Max(0, chat.Count - 7); i < chat.Count; i++)
                 lines.AppendLine((chat[i].mine ? "<color=#4CFFFF>You:</color> " : $"<color=#FF40E0>{cardName}:</color> ") + chat[i].text);
         cardChat.text = lines.Length > 0 ? lines.ToString() : "<color=#8A96B0>No messages yet. Messages last until you close the game.</color>";
     }

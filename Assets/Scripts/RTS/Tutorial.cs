@@ -20,7 +20,7 @@ public class Tutorial : MonoBehaviour
         Skirmish.ElapsedBefore = 0f;
         Skirmish.Active = true;
         Active = true;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(GameMaps.All[0].scene);
+        LoadingScreen.Load(GameMaps.All[0].scene);
     }
 
     public MatchManager match;

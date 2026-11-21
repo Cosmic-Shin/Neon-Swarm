@@ -61,8 +61,16 @@ public class Building : MonoBehaviour
 
     public int Producing => queue.Count > 0 ? queue[0] : -1;
     public float Progress01 => queue.Count > 0 ? progress / TimeOf(queue[0]) : 0f;
-    public void ShowProduction(int i, float progress01) =>
+    int shownJob = -1;
+    float shownProgress;
+    public int Job => queue.Count > 0 ? queue[0] : shownJob;
+    public float JobProgress => queue.Count > 0 ? Progress01 : shownProgress;
+    public void ShowProduction(int i, float progress01)
+    {
+        shownJob = i < OptionCount ? i : -1;
+        shownProgress = progress01;
         fx.Show(i < 0 || i >= OptionCount ? null : IsUnit(i) ? unitPrefabs[i] : Upgrade(i).icon, progress01);
+    }
 
     public string Blocker(int i)
     {
@@ -270,8 +278,11 @@ public class Building : MonoBehaviour
         if (TryGetComponent(out NetEntity net) && net.Online) net.RPC_OpenGate(doorTime);
     }
 
+    public float LastRelease { get; private set; } = -99f;
+
     public void OpenGate(float seconds)
     {
+        LastRelease = Time.time;
         if (gate != null) gate.Open(seconds);
         if (aerie != null) aerie.OpenHatch(seconds);
     }

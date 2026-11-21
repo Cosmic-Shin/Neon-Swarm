@@ -143,7 +143,7 @@ public class Transport : MonoBehaviour
                 beam.localScale = new Vector3(flyer.size * 2f, h, flyer.size * 2f);
             }
         }
-        if (self != null && self.IsSelected && carried.Count > 0 && Keyboard.current != null && Keyboard.current.uKey.wasPressedThisFrame) Unload();
+        if (self != null && self.IsSelected && carried.Count > 0 && Controls.Down(Act.Unload)) Unload();
     }
 
     void SinkWithShip()

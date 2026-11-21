@@ -38,12 +38,29 @@ public class Hud : MonoBehaviour
         HoloSkin.Layer(transform.Find("TooltipBox"), HoloSkin.LayerTooltip);
     }
 
+    static readonly string[] PlayerOnly = { "BuildingsButton", "BuildingPanel", "BuildMenuPanel", "PlacementHint", "StructureBar", "Credits", "Power" };
+
+    void HideForSpectator()
+    {
+        foreach (var n in PlayerOnly) if (transform.Find(n) is Transform t && t.gameObject.activeSelf) t.gameObject.SetActive(false);
+        if (unitPanel.gameObject.activeSelf) unitPanel.gameObject.SetActive(false);
+        if (idleBtn.gameObject.activeSelf) idleBtn.gameObject.SetActive(false);
+        if (jumpBtn.gameObject.activeSelf) jumpBtn.gameObject.SetActive(false);
+        foreach (var tab in groupTabs) if (tab != null && tab.gameObject.activeSelf) tab.gameObject.SetActive(false);
+        foreach (var c in prodCells) if (c.b.gameObject.activeSelf) c.b.gameObject.SetActive(false);
+    }
+
     void LateUpdate()
     {
-        UpdateUnitPanel();
-        UpdateGroups();
-        UpdateProduction();
-        UpdateIdle();
+        if (MatchManager.Instance != null && MatchManager.Instance.Spectating) HideForSpectator();
+        else
+        {
+            UpdateUnitPanel();
+            UpdateGroups();
+            UpdateProduction();
+            UpdateIdle();
+            UpdateJump();
+        }
         if (!Net.Online && clock != null)
         {
             clock.transform.parent.gameObject.SetActive(true);
@@ -54,7 +71,7 @@ public class Hud : MonoBehaviour
             if (limit && t < 60f && t > 0f) Sfx.Say(Line.Hurry, 3600f);
         }
         var kb = Chat.Keys;
-        if (kb != null && kb.f1Key.wasPressedThisFrame) help.SetActive(!help.activeSelf);
+        if (Controls.Down(Act.Help)) { help.SetActive(!help.activeSelf); if (help.activeSelf) FillHelp(); }
         if (kb != null && kb.escapeKey.wasPressedThisFrame && help.activeSelf) help.SetActive(false);
     }
 
@@ -102,12 +119,86 @@ public class Hud : MonoBehaviour
         holdBtn = At(0, 1, "HOLD\n<size=14>[H]</size>", manager.HoldOrder);
         formBtn = At(1, 1, "", manager.NextFormation);
         unloadBtn = At(2, 1, "UNLOAD\n<size=14>[U]</size>", () => { foreach (var t in Selected<Transport>()) t.Unload(); });
+        Relabel();
+        Controls.Changed += Relabel;
         Tip(attackBtn, "Attack-move: walk there and fight anything met on the way.\nShift: add to the unit's queue of orders.");
         Tip(patrolBtn, "Patrol: walk back and forth between here and the clicked spot, fighting anything met.");
         Tip(stopBtn, "Stop: drop every order.");
         Tip(holdBtn, "Hold position: never move, only shoot what comes in range.");
         Tip(formBtn, "Next formation: circle, line or box. Right-drag draws a line formation.");
         Tip(unloadBtn, "Wasp Transport: drop off everyone aboard.");
+    }
+
+    Text hint, helpLeft, helpRight;
+    Button jumpBtn;
+
+    static void JumpToAttack() => CameraPan.LookAt(Alerts.AttackSpot);
+
+    void UpdateJump()
+    {
+        if (jumpBtn == null) return;
+        float age = Time.time - Alerts.AttackTime;
+        bool show = age < 12f;
+        if (jumpBtn.gameObject.activeSelf != show) jumpBtn.gameObject.SetActive(show);
+        if (!show) return;
+        float blink = GameSettings.ReduceFlashing ? 1f : 0.65f + 0.35f * Mathf.Sin(Time.time * 9f);
+        Text(jumpBtn).text = $"<color=#FF6A6A>UNDER ATTACK</color>  <size=14>[{Controls.Label(Act.JumpAlert)}]</size>";
+        Text(jumpBtn).color = new Color(1f, 1f, 1f, blink);
+    }
+
+    void OnDestroy() => Controls.Changed -= Relabel;
+
+    void Relabel()
+    {
+        static string L(string name, Act a) => $"{name}\n<size=14>[{Controls.Label(a)}]</size>";
+        Text(attackBtn).text = L("ATTACK", Act.AttackMove);
+        Text(patrolBtn).text = L("PATROL", Act.Patrol);
+        Text(stopBtn).text = L("STOP", Act.Stop);
+        Text(holdBtn).text = L("HOLD", Act.Hold);
+        Text(unloadBtn).text = L("UNLOAD", Act.Unload);
+        if (hint != null) hint.text = Controls.Label(Act.Help) + "  HOTKEYS";
+        if (help != null && help.activeSelf) FillHelp();
+    }
+
+    static string Col(params (string key, string what)[] rows)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var (k, w) in rows) sb.Append(k == "" ? $"\n<color=#70FFFF><b>{w}</b></color>\n" : $"<color=#FFD24A><b>{k}</b></color>   {w}\n");
+        return sb.ToString();
+    }
+
+    void FillHelp()
+    {
+        if (helpLeft == null) return;
+        static string K(Act a) => Controls.Label(a);
+        helpLeft.text = Col(
+            ("", "UNITS"),
+            ("Left-click / drag", "select / box select"),
+            ("Double-click", "all of that type on screen"),
+            ("Right-click", "move, attack, mine, board, garrison"),
+            ("Right-drag", "line formation along the drag"),
+            ("Shift + order", "add to the queue of orders"),
+            (K(Act.AttackMove) + " + click", "attack-move"),
+            (K(Act.Patrol) + " + click", "patrol"),
+            (K(Act.Stop) + "  /  " + K(Act.Hold), "stop  /  hold position"),
+            (K(Act.Formation), "next formation"),
+            (K(Act.Unload), "unload a Wasp Transport"),
+            ("Ctrl+1-9  /  1-9", "save / select a group"),
+            (K(Act.NextIdle), "next idle unit"));
+        helpRight.text = Col(
+            ("", "BASE"),
+            (K(Act.BuildMenu), "build menu"),
+            ("1-0, -, =, Z, X, C", "pick a building (menu open)"),
+            ("Q W E R T ... L", "train / research (building selected)"),
+            ("Click, drag, release", "place and turn a building"),
+            ("Right-click a unit button", "cancel one from the queue"),
+            ("", "CAMERA & GAME"),
+            ($"{K(Act.CamUp)}{K(Act.CamLeft)}{K(Act.CamDown)}{K(Act.CamRight)} / arrows / edge", "scroll"),
+            ("Mouse wheel", "zoom"),
+            (K(Act.JumpAlert), "jump to the last attack"),
+            (K(Act.QuickSave) + "  /  " + K(Act.QuickLoad), "quick save  /  load (offline)"),
+            ("Enter", "chat (online)"),
+            ("Esc", "menu   ·   rebind keys in Settings > Controls"));
     }
 
     static void Armed(Button b, bool on)
@@ -133,7 +224,7 @@ public class Hud : MonoBehaviour
 
         Armed(attackBtn, manager.AttackMoveArmed);
         Armed(patrolBtn, manager.PatrolArmed);
-        Text(formBtn).text = $"{manager.CurrentFormation.ToString().ToUpper()}\n<size=14>[F]</size>";
+        Text(formBtn).text = $"{manager.CurrentFormation.ToString().ToUpper()}\n<size=14>[{Controls.Label(Act.Formation)}]</size>";
         bool wasp = false, cargo = false;
         foreach (var t in Selected<Transport>()) { wasp = true; cargo |= t.Carried > 0; }
         unloadBtn.gameObject.SetActive(wasp);
@@ -347,48 +438,18 @@ public class Hud : MonoBehaviour
 
     void BuildHelp()
     {
-        var hint = Label(transform, "F1  HOTKEYS", 15, TextAnchor.UpperRight, Grey, new Vector2(-16f, -348f), new Vector2(260f, 20f), FontStyle.Normal, new Vector2(1f, 1f));
+        hint = Label(transform, Controls.Label(Act.Help) + "  HOTKEYS", 15, TextAnchor.UpperRight, Grey, new Vector2(-16f, -348f), new Vector2(260f, 20f), FontStyle.Normal, new Vector2(1f, 1f));
         hint.raycastTarget = false;
+        jumpBtn = MakeButton(transform, "", new Vector2(-16f, -378f), new Vector2(240f, 40f), JumpToAttack, new Vector2(1f, 1f));
+        HoloSkin.Button(jumpBtn, HoloUI.ButtonStyle.Danger);
+        jumpBtn.gameObject.SetActive(false);
 
         var root = Box(transform, "Hotkeys", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(980f, 640f), Panel, true, new Vector2(0.5f, 0.5f));
         help = root.gameObject;
         Label(root, "HOTKEYS", 34, TextAnchor.UpperCenter, Cyan, new Vector2(0f, -18f), new Vector2(900f, 44f), FontStyle.Bold, new Vector2(0.5f, 1f));
-        string Col(params (string key, string what)[] rows)
-        {
-            var sb = new System.Text.StringBuilder();
-            foreach (var (k, w) in rows) sb.Append(k == "" ? $"\n<color=#70FFFF><b>{w}</b></color>\n" : $"<color=#FFD24A><b>{k}</b></color>   {w}\n");
-            return sb.ToString();
-        }
-        Label(root, Col(
-            ("", "UNITS"),
-            ("Left-click / drag", "select / box select"),
-            ("Double-click", "all of that type on screen"),
-            ("Right-click", "move, attack, mine, board, garrison"),
-            ("Right-drag", "line formation along the drag"),
-            ("Shift + order", "add to the queue of orders"),
-            ("A + click", "attack-move"),
-            ("P + click", "patrol"),
-            ("S  /  H", "stop  /  hold position"),
-            ("F", "next formation"),
-            ("U", "unload a Wasp Transport"),
-            ("Ctrl+1-9  /  1-9", "save / select a group"),
-            (".", "next idle unit")),
-            18, TextAnchor.UpperLeft, Color.white, new Vector2(40f, -80f), new Vector2(440f, 520f), FontStyle.Normal, new Vector2(0f, 1f));
-        Label(root, Col(
-            ("", "BASE"),
-            ("B", "build menu"),
-            ("1-0, -, =, Z, X, C", "pick a building (menu open)"),
-            ("Click, drag, release", "place and turn a building"),
-            ("Right-click a unit button", "cancel one from the queue"),
-            ("", "CAMERA & GAME"),
-            ("WASD / arrows / edge", "scroll"),
-            ("Mouse wheel", "zoom"),
-            ("Space", "jump to the last alert"),
-            ("F5  /  F9", "quick save  /  load (offline)"),
-            ("Enter", "chat (online)"),
-            ("Esc", "menu")),
-            18, TextAnchor.UpperLeft, Color.white, new Vector2(510f, -80f), new Vector2(440f, 520f), FontStyle.Normal, new Vector2(0f, 1f));
-        Label(root, "F1 or Esc to close", 15, TextAnchor.LowerCenter, Grey, new Vector2(0f, 14f), new Vector2(900f, 22f), FontStyle.Normal, new Vector2(0.5f, 0f));
+        helpLeft = Label(root, "", 18, TextAnchor.UpperLeft, Color.white, new Vector2(40f, -80f), new Vector2(440f, 520f), FontStyle.Normal, new Vector2(0f, 1f));
+        helpRight = Label(root, "", 18, TextAnchor.UpperLeft, Color.white, new Vector2(510f, -80f), new Vector2(440f, 520f), FontStyle.Normal, new Vector2(0f, 1f));
+        Label(root, "Esc to close", 15, TextAnchor.LowerCenter, Grey, new Vector2(0f, 14f), new Vector2(900f, 22f), FontStyle.Normal, new Vector2(0.5f, 0f));
         help.SetActive(false);
     }
 

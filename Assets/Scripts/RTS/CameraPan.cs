@@ -53,12 +53,12 @@ public class CameraPan : MonoBehaviour
         var mouse = Mouse.current;
         if (kb == null) return;
 
-        bool letters = !GoodSelectionManager.UnitsSelected;
+        bool letters = !GoodSelectionManager.UnitsSelected && !BuildingPanel.Open;
         Vector2 dir = Vector2.zero;
-        if ((letters && kb.wKey.isPressed) || kb.upArrowKey.isPressed) dir.y += 1f;
-        if ((letters && kb.sKey.isPressed) || kb.downArrowKey.isPressed) dir.y -= 1f;
-        if ((letters && kb.dKey.isPressed) || kb.rightArrowKey.isPressed) dir.x += 1f;
-        if ((letters && kb.aKey.isPressed) || kb.leftArrowKey.isPressed) dir.x -= 1f;
+        if ((letters && Controls.Held(Act.CamUp)) || kb.upArrowKey.isPressed) dir.y += 1f;
+        if ((letters && Controls.Held(Act.CamDown)) || kb.downArrowKey.isPressed) dir.y -= 1f;
+        if ((letters && Controls.Held(Act.CamRight)) || kb.rightArrowKey.isPressed) dir.x += 1f;
+        if ((letters && Controls.Held(Act.CamLeft)) || kb.leftArrowKey.isPressed) dir.x -= 1f;
 
         Vector3 p = transform.position;
         if (mouse != null)
@@ -81,7 +81,7 @@ public class CameraPan : MonoBehaviour
             if (scroll != 0f && !overUI) p.y = Mathf.Clamp(p.y - Mathf.Sign(scroll) * zoomStep, minHeight, maxHeight);
         }
 
-        if (kb.spaceKey.wasPressedThisFrame && Alerts.LastSpot is Vector3 spot) p = Centered(p, spot);
+        if (Controls.Down(Act.JumpAlert) && Alerts.LastSpot is Vector3 spot) p = Centered(p, spot);
 
         dir = Vector2.ClampMagnitude(dir, 1f);
         p += new Vector3(dir.x, 0f, dir.y) * speed * GameSettings.CameraSpeed * Time.unscaledDeltaTime;

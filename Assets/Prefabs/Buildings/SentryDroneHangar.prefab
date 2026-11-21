@@ -66,8 +66,8 @@ GameObject:
   - component: {fileID: 906853357150963220}
   - component: {fileID: 6254035657852405610}
   - component: {fileID: 3974678056445077735}
-  - component: {fileID: 2741372617825717891}
   - component: {fileID: 7949578716641230358}
+  - component: {fileID: 5712526237980637496}
   m_Layer: 9
   m_Name: SentryDroneHangar
   m_TagString: Untagged
@@ -144,6 +144,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 800
   team: 0
+  scenery: 0
 --- !u!114 &6254035657852405610
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -194,30 +195,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Structure
   data: {fileID: 11400000, guid: 35219c113a9955a46a8b2529195587d9, type: 2}
+  isHQ: 0
   fallbackName: Building
   power: -30
   sight: 0
   repairSpeed: 0.05
---- !u!114 &2741372617825717891
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3510008407332807053}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ee4952d2e1cb4441ad62224997567fa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Building
-  unitPrefabs:
-  - {fileID: 7941280648110854592, guid: ff489a2ac5752b441b311bb619946b3c, type: 3}
-  upgrades: []
-  spawnPoint: {fileID: 3681771204322676625}
-  spawnSpread: 1.5
-  exitSpeed: 4
-  gate: {fileID: 0}
-  padEdge: {fileID: 0}
 --- !u!114 &7949578716641230358
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -234,6 +216,23 @@ MonoBehaviour:
   fire: {fileID: 8623457806621160266, guid: 3a6037cadc939484c86ac1811c23f371, type: 3}
   spark: {fileID: 2368381330221681213, guid: 6e0553d6e46b9a7418595bfa45d2018c, type: 3}
   smokeLinger: 10
+--- !u!114 &5712526237980637496
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3510008407332807053}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 93ff13529939ddc499342ee70869efa5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneHangar
+  dronePrefab: {fileID: 7941280648110854592, guid: ff489a2ac5752b441b311bb619946b3c, type: 3}
+  capacity: 4
+  rebuildTime: 12
+  guardRadius: 32
+  launchGap: 0.4
 --- !u!1 &4441784179180145792
 GameObject:
   m_ObjectHideFlags: 0

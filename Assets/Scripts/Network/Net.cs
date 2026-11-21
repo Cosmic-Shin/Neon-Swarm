@@ -48,7 +48,7 @@ public static class Net
         if (!InRoom) return Structure.LowPowerOf(team);
         int slot = ToSlot(team);
         if (!IsSlot(slot)) return false;
-        var rp = RoomState.Instance.IsAway(slot) ? null : RoomPlayer.Of(RoomState.Instance.Slots[slot]);
+        var rp = RoomState.Instance.IsAway(slot) || RoomState.Instance.BotLevel(slot) > 0 ? null : RoomPlayer.Of(RoomState.Instance.Slots[slot]);
         return rp != null ? rp.LowPower : Structure.LowPowerOf(team);
     }
 

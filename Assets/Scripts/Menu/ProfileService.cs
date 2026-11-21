@@ -20,8 +20,9 @@ public static class ProfileService
         {
             var data = await CloudSaveService.Instance.Data.Player.LoadAsync(new HashSet<string> { Key });
             var cloud = data.TryGetValue(Key, out var item) ? FromJson(item.Value.GetAsString()) : null;
-            if (cloud != null && cloud.all.games >= Current.all.games) { Current = cloud; await PushPublic(); }
+            if (cloud != null && cloud.all.games >= Current.all.games) { cloud.secondsInGame = Mathf.Max(cloud.secondsInGame, Current.secondsInGame); Current = cloud; await PushPublic(); }
             else if (Current.all.games > 0) await Push();
+            if (Current.all.wins > 0 && !submitted) { submitted = true; LeaderboardPanel.Submit(Current.all.wins); }
             KeepLocal();
             LastError = null;
         }
@@ -39,9 +40,12 @@ public static class ProfileService
         try
         {
             if (Current == null) await Load();
+            var before = Achievements.Snapshot(Current);
             Current.Add(match, (int[])stats.Clone());
+            foreach (var (def, tier) in before) { int now = Achievements.Tier(def, Current); for (int t = tier + 1; t <= now; t++) AchievementToast.Unlocked(def, t); }
             KeepLocal();
             await Push();
+            LeaderboardPanel.Submit(Current.all.wins);
             LastError = null;
         }
         catch (System.Exception e)
@@ -49,6 +53,16 @@ public static class ProfileService
             LastError = "Couldn't reach Cloud Save; the result is kept on this PC.";
             Debug.LogWarning(e);
         }
+    }
+
+    public static async void SetBadges(string[] badges)
+    {
+        Current ??= new PlayerProfile();
+        Current.badges = badges;
+        if (!AccountService.SignedIn) return;
+        KeepLocal();
+        try { publicGames = -1; await Push(); LastError = null; }
+        catch (System.Exception e) { LastError = "Couldn't reach Cloud Save; your badges are kept on this PC."; Debug.LogWarning(e); }
     }
 
     public static async void SetAvatar(string avatar)
@@ -96,7 +110,32 @@ public static class ProfileService
         catch (System.Exception e) { Debug.LogWarning(e); return null; }
     }
 
-    public static void Forget() { Current = null; publicGames = -1; }
+    static bool submitted;
+    public static void Forget() { Current = null; publicGames = -1; submitted = false; }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void StartTimer() => Object.DontDestroyOnLoad(new GameObject("PlayTimer", typeof(PlayTimer)) { hideFlags = HideFlags.HideInHierarchy });
+
+    class PlayTimer : MonoBehaviour
+    {
+        float saveAt = 60f, pushAt = 300f;
+
+        void Update()
+        {
+            if (Current == null || !AccountService.SignedIn) return;
+            float dt = Mathf.Min(Time.unscaledDeltaTime, 1f);
+            Current.secondsInGame += dt;
+            if ((saveAt -= dt) <= 0f) { saveAt = 60f; KeepLocal(); }
+            if ((pushAt -= dt) <= 0f) { pushAt = 300f; Save(); }
+        }
+
+        void OnApplicationQuit() { if (Current != null && AccountService.SignedIn) KeepLocal(); }
+
+        static async void Save()
+        {
+            try { await Push(); } catch (System.Exception e) { Debug.LogWarning(e); }
+        }
+    }
 
     static void KeepLocal()
     {

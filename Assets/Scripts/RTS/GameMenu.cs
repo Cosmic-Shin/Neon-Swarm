@@ -24,8 +24,8 @@ public class GameMenu : MonoBehaviour
     void Update()
     {
         var kb = Chat.Keys;
-        if (kb != null && kb.f5Key.wasPressedThisFrame) QuickSave();
-        if (kb != null && kb.f9Key.wasPressedThisFrame) QuickLoad();
+        if (Controls.Down(Act.QuickSave)) QuickSave();
+        if (Controls.Down(Act.QuickLoad)) QuickLoad();
         if (kb == null || !kb.escapeKey.wasPressedThisFrame || match.IsOver || SettingsPanel.IsOpen || SaveSlotsPanel.IsOpen || Hud.HelpOpen) return;
         if (!IsOpen && (BuildingPlacer.MenuOpen || BuildingPlacer.Placing)) return;
         Show(!IsOpen);
@@ -67,6 +67,7 @@ public class GameMenu : MonoBehaviour
     static bool Offline()
     {
         if (Net.Online) Alerts.Show("Saving and loading are offline only", Alerts.Warn, 2f);
+        else if (Mission.Active || Tutorial.Active) { Alerts.Show("Saving is off during missions", Alerts.Warn, 2f); return false; }
         return !Net.Online;
     }
 
@@ -89,6 +90,6 @@ public class GameMenu : MonoBehaviour
     {
         Show(false);
         if (Net.Online) match.BackToMenu();
-        else { Skirmish.Active = Tutorial.Active = false; Skirmish.ElapsedBefore = 0f; SceneManager.LoadScene(0); }
+        else { Skirmish.Active = Tutorial.Active = false; Skirmish.ElapsedBefore = 0f; LoadingScreen.Load(0); }
     }
 }

@@ -12,7 +12,30 @@ public static class GameSettings
     public static bool PostFX = Get("postfx", 1f) > 0.5f;
     public static float NeonColours = Get("neon", 1f);
     public static bool ReduceFlashing = Get("calm", 0f) > 0.5f;
+    public static int FogColor = (int)Get("fog", 1f);
+    public static readonly (string name, Color color)[] FogColors =
+    {
+        ("VOID", new Color(0.02f, 0.01f, 0.05f)),
+        ("PURPLE", new Color(0.2f, 0.07f, 0.34f)),
+        ("PINK", new Color(0.38f, 0.05f, 0.25f)),
+        ("TEAL", new Color(0.02f, 0.2f, 0.24f)),
+        ("SMOKE", new Color(0.2f, 0.22f, 0.27f)),
+    };
+    public static Color Fog => FogColors[Mathf.Clamp(FogColor, 0, FogColors.Length - 1)].color;
     public static float FlashScale => ReduceFlashing ? 0.3f : 1f;
+    public static bool ColorBlind = Get("cvd", 0f) > 0.5f;
+    static readonly Color[] NormalTeams = (Color[])TeamMember.TeamColors.Clone();
+    static readonly Color[] SafeTeams =
+    {
+        new(0.34f, 0.71f, 0.91f), new(0.84f, 0.37f, 0f), new(0.94f, 0.89f, 0.26f), new(0.95f, 0.95f, 0.95f),
+        new(0f, 0.62f, 0.45f), new(0.6f, 0.35f, 0.15f), new(0.8f, 0.47f, 0.65f), new(0.1f, 0.3f, 0.85f),
+    };
+
+    public static void ApplyTeamColors()
+    {
+        var src = ColorBlind ? SafeTeams : NormalTeams;
+        for (int i = 0; i < TeamMember.TeamColors.Length && i < src.Length; i++) TeamMember.TeamColors[i] = src[i];
+    }
     public static event System.Action Changed;
 
     static float Get(string key, float fallback) => PlayerPrefs.GetFloat("settings." + key, fallback);
@@ -23,7 +46,7 @@ public static class GameSettings
         Set("master", Master); Set("music", Music); Set("effects", Effects); Set("camSpeed", CameraSpeed);
         Set("shake", Shake ? 1f : 0f); Set("quality", Quality);
         Set("rain", Rain ? 1f : 0f); Set("dmgNumbers", DamageNumbers ? 1f : 0f);
-        Set("bloom", BloomLevel); Set("postfx", PostFX ? 1f : 0f); Set("neon", NeonColours); Set("calm", ReduceFlashing ? 1f : 0f);
+        Set("bloom", BloomLevel); Set("postfx", PostFX ? 1f : 0f); Set("neon", NeonColours); Set("calm", ReduceFlashing ? 1f : 0f); Set("fog", FogColor); Set("cvd", ColorBlind ? 1f : 0f);
         PlayerPrefs.Save();
         Apply();
     }
@@ -33,6 +56,7 @@ public static class GameSettings
         AudioListener.volume = Master;
         if (Quality >= 0 && Quality < QualitySettings.names.Length && QualitySettings.GetQualityLevel() != Quality) QualitySettings.SetQualityLevel(Quality, true);
         ApplyPostFX();
+        ApplyTeamColors();
         Changed?.Invoke();
     }
 
@@ -40,6 +64,7 @@ public static class GameSettings
     static void HookScenes()
     {
         if (Screen.fullScreen) SetFullscreen(true);
+        ApplyTeamColors();
         UnityEngine.SceneManagement.SceneManager.sceneLoaded += (s, m) => ApplyPostFX();
     }
 
@@ -95,6 +120,7 @@ public class SettingsPanel : MonoBehaviour
 
     void Update()
     {
+        if (KeyRebinder.Open) return;
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Close();
     }
 
@@ -137,10 +163,24 @@ public class SettingsPanel : MonoBehaviour
         Cycle(box, "Screen shake", ref y, () => GameSettings.Shake ? "ON" : "OFF", () => GameSettings.Shake = !GameSettings.Shake);
         Cycle(box, "Rain", ref y, () => GameSettings.Rain ? "ON" : "OFF", () => GameSettings.Rain = !GameSettings.Rain);
         Cycle(box, "Damage numbers", ref y, () => GameSettings.DamageNumbers ? "ON" : "OFF", () => GameSettings.DamageNumbers = !GameSettings.DamageNumbers);
+        Cycle(box, "Fog of war colour", ref y, () => GameSettings.FogColors[Mathf.Clamp(GameSettings.FogColor, 0, GameSettings.FogColors.Length - 1)].name,
+            () => GameSettings.FogColor = (GameSettings.FogColor + 1) % GameSettings.FogColors.Length);
+        Cycle(box, "Colourblind team colours", ref y, () => GameSettings.ColorBlind ? "ON" : "OFF", () =>
+        {
+            GameSettings.ColorBlind = !GameSettings.ColorBlind;
+            GameSettings.ApplyTeamColors();
+            foreach (var h in Health.All)
+            {
+                if (h == null) continue;
+                TeamLook.Apply(h.gameObject, h.team);
+                if (h.TryGetComponent(out UnitMarker m)) m.Recolor();
+            }
+        });
 
-        var back = Button(box, "BACK", new Vector2(-150f, -450f), new Vector2(270f, 56f));
+        var back = Button(box, "BACK", new Vector2(-190f, -450f), new Vector2(180f, 56f));
         back.onClick.AddListener(Close);
-        Button(box, "CREDITS", new Vector2(150f, -450f), new Vector2(270f, 56f)).onClick.AddListener(() => ShowCredits(root));
+        Button(box, "CONTROLS", new Vector2(0f, -450f), new Vector2(180f, 56f)).onClick.AddListener(() => KeyRebinder.Show(root));
+        Button(box, "CREDITS", new Vector2(190f, -450f), new Vector2(180f, 56f)).onClick.AddListener(() => ShowCredits(root));
     }
 
     static void ShowCredits(RectTransform root)
@@ -198,7 +238,7 @@ public class SettingsPanel : MonoBehaviour
         y -= RowStep;
     }
 
-    const float RowStep = 58f;
+    const float RowStep = 53f;
 
     public static Text Cycle(Transform box, string name, ref float y, System.Func<string> show, System.Action next)
     {

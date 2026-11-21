@@ -13,7 +13,7 @@ public class GameIconSetup : AssetPostprocessor
 {
     const string Folder = "Assets/CyberpunkRTS/UI/Icon";
     const string Stamp = "Library/CyberpunkRTS_GameIcon.txt";
-    const string Version = "hive-emblem-2-hex";
+    const string Version = "hive-emblem-3-orb";
     static readonly int[] Available = { 1024, 512, 256, 128, 64, 48, 32, 24, 16 };
 
     void OnPreprocessTexture()

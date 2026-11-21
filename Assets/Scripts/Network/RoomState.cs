@@ -19,6 +19,8 @@ public partial class RoomState : NetworkBehaviour
     [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> Colors => default;
     [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> Teams => default;
     [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<NetworkBool> Ready => default;
+    [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> BotLevels => default;
+    public static readonly string[] BotNames = { "", "Easy", "Normal", "Hard" };
     public const int TeamCount = 4;
 
     const int MaxOre = 192;
@@ -103,7 +105,7 @@ public partial class RoomState : NetworkBehaviour
     {
         int me = SlotOf(Runner.LocalPlayer);
         for (int i = 0; i < RoomService.MaxPlayers; i++)
-            if (i != me && Slots[i] != PlayerRef.None && TeamOf(me) != 0 && TeamOf(i) == TeamOf(me)) return true;
+            if (i != me && Taken(i) && TeamOf(me) != 0 && TeamOf(i) == TeamOf(me)) return true;
         return false;
     }
 
@@ -125,7 +127,7 @@ public partial class RoomState : NetworkBehaviour
 
     bool ColorTaken(int slot, int color)
     {
-        for (int i = 0; i < RoomService.MaxPlayers; i++) if (i != slot && Slots[i] != PlayerRef.None && Colors[i] == color) return true;
+        for (int i = 0; i < RoomService.MaxPlayers; i++) if (i != slot && Taken(i) && Colors[i] == color) return true;
         return false;
     }
 
@@ -151,7 +153,7 @@ public partial class RoomState : NetworkBehaviour
     {
         if (slot < 0 || slot >= RoomService.MaxPlayers) return "?";
         var p = Slots[slot];
-        var rp = IsAway(slot) ? null : RoomPlayer.Of(p);
+        var rp = IsAway(slot) || BotLevels[slot] > 0 ? null : RoomPlayer.Of(p);
         if (rp != null) return rp.Username.ToString();
         string saved = Names[slot].ToString();
         return saved.Length > 0 ? saved : $"Player {slot + 1}";
@@ -216,7 +218,7 @@ public partial class RoomState : NetworkBehaviour
     {
         if (!IsHost) return;
         int players = 0;
-        for (int i = 0; i < RoomService.MaxPlayers; i++) if (Slots[i] != PlayerRef.None) players++;
+        for (int i = 0; i < RoomService.MaxPlayers; i++) if (Taken(i)) players++;
         for (int step = 1; step <= GameMaps.All.Length; step++)
         {
             int m = (Map + step) % GameMaps.All.Length;
@@ -241,9 +243,9 @@ public partial class RoomState : NetworkBehaviour
         int cap = MapInfo.Players;
         for (int i = 0; i < RoomService.MaxPlayers; i++)
         {
-            if (Slots[i] == PlayerRef.None || Bases[i] < cap) continue;
+            if (!Taken(i) || Bases[i] < cap) continue;
             for (int j = 0; j < RoomService.MaxPlayers; j++)
-                if (Slots[j] == PlayerRef.None && Bases[j] < cap) { int b = Bases[i]; Bases.Set(i, Bases[j]); Bases.Set(j, b); break; }
+                if (!Taken(j) && Bases[j] < cap) { int b = Bases[i]; Bases.Set(i, Bases[j]); Bases.Set(j, b); break; }
         }
     }
 
@@ -261,7 +263,7 @@ public partial class RoomState : NetworkBehaviour
         get
         {
             int players = 0;
-            for (int i = 0; i < RoomService.MaxPlayers; i++) if (Slots[i] != PlayerRef.None) players++;
+            for (int i = 0; i < RoomService.MaxPlayers; i++) if (Taken(i)) players++;
             return players > MapInfo.Players;
         }
     }
@@ -272,4 +274,48 @@ public partial class RoomState : NetworkBehaviour
     public void NextMinutes() { if (IsHost) { Minutes = Next(MinuteOptions, Minutes); Unready(); } }
 
     static int Next(int[] options, int current) => options[(System.Array.IndexOf(options, current) + 1) % options.Length];
+}
+
+public partial class RoomState
+{
+    public bool Taken(int slot) => Valid(slot) && (Slots[slot] != PlayerRef.None || BotLevels[slot] > 0);
+    public int BotLevel(int slot) => Valid(slot) ? BotLevels[slot] : 0;
+
+    public void AddBot()
+    {
+        if (!IsHost || Net.InMatch) return;
+        for (int i = 0; i < RoomService.MaxPlayers; i++)
+        {
+            if (Taken(i) || Bases[i] >= MapInfo.Players) continue;
+            BotLevels.Set(i, 2);
+            Names.Set(i, "BOT " + BotNames[2].ToUpper());
+            Ids.Set(i, "");
+            Teams.Set(i, 2);
+            Ready.Set(i, false);
+            if (ColorTaken(i, Colors[i])) RPC_NextColor(i);
+            return;
+        }
+    }
+
+    public void CycleBot(int slot)
+    {
+        if (!IsHost || BotLevel(slot) == 0) return;
+        int level = BotLevels[slot] % 3 + 1;
+        BotLevels.Set(slot, level);
+        Names.Set(slot, "BOT " + BotNames[level].ToUpper());
+    }
+
+    public void RemoveBot(int slot) { if (IsHost && BotLevel(slot) > 0) BotLevels.Set(slot, 0); }
+    public void BotTeam(int slot) { if (IsHost && BotLevel(slot) > 0) Teams.Set(slot, (Teams[slot] + 1) % (TeamCount + 1)); }
+    public void BotColor(int slot) { if (IsHost && BotLevel(slot) > 0) RPC_NextColor(slot); }
+
+    public bool CanAddBot
+    {
+        get
+        {
+            if (!IsHost) return false;
+            for (int i = 0; i < RoomService.MaxPlayers; i++) if (!Taken(i) && Bases[i] < MapInfo.Players) return true;
+            return false;
+        }
+    }
 }

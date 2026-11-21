@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 public class MenuExtras : MonoBehaviour
 {
-    static readonly string[] Tips =
+    public static readonly string[] Tips =
     {
         "Hold <b>Shift</b> while giving orders to queue them up.",
         "<b>Ctrl + 1-9</b> saves a control group. Tap the number to select it again.",
@@ -40,7 +40,9 @@ public class MenuExtras : MonoBehaviour
         card.anchoredPosition = new Vector2(-36f, -36f);
         card.sizeDelta = new Vector2(380f, 104f);
         card.GetComponent<Image>().color = new Color(0.02f, 0.03f, 0.08f, 0.85f);
-        HoloSkin.Back(card, "Panel_Inset");
+        HoloSkin.Back(card, "Panel_Modal");
+        HoloSkin.Brackets(card, HoloUI.Cyan);
+        HoloSkin.FX(card, HoloUI.Pink, strength: 0.6f);
         var cardButton = card.GetComponent<Button>();
         cardButton.transition = Selectable.Transition.None;
         cardButton.onClick.AddListener(() => openAccount());

@@ -51,9 +51,14 @@ public class Alerts : MonoBehaviour
         if (ping) Ping.Active.Add((at, color, Time.time));
     }
 
+    public static Vector3 AttackSpot { get; private set; }
+    public static float AttackTime { get; private set; } = -99f;
+
     public static void Attacked(Health h)
     {
         Vector3 p = h.transform.position;
+        AttackSpot = p;
+        AttackTime = Time.time;
         Minimap.UnderAttack(p);
         if (h.TryGetComponent(out OutpostCapture _)) ShowAt("Outpost under attack", Warn, p, 15f, false);
         else if (h.TryGetComponent(out Structure _)) { ShowAt("Our base is under attack", Bad, p, 12f, false); Sfx.Say(Line.UnderAttack, 25f); }

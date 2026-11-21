@@ -76,13 +76,22 @@ public partial class RoomState
         }
 
         if (!Net.InMatch)
-            for (int i = 0; i < RoomService.MaxPlayers; i++) { AwaySince.Set(i, 0f); Bot.Set(i, false); Returned.Set(i, false); }
+        {
+            adopted.Clear();
+            foreach (var b in brains.Values) if (b != null) Destroy(b.gameObject);
+            brains.Clear();
+            for (int i = 0; i < RoomService.MaxPlayers; i++)
+            {
+                AwaySince.Set(i, 0f); Bot.Set(i, false); Returned.Set(i, false);
+                if (BotLevels[i] > 0) { SavedCredits.Set(i, Credits); SavedResearch.Set(i, ""); }
+            }
+        }
     }
 
     bool TakeSeat(PlayerRef p)
     {
         for (int i = 0; i < RoomService.MaxPlayers; i++)
-            if (Slots[i] == PlayerRef.None)
+            if (!Taken(i))
             {
                 Slots.Set(i, p); Teams.Set(i, 0); Ready.Set(i, false);
                 if (ColorTaken(i, Colors[i])) RPC_NextColor(i);
@@ -138,11 +147,12 @@ public partial class RoomState
     void RunAwayPlayers()
     {
         foreach (var e in NetEntity.All)
-            if (e != null && e.Orphaned && (IsAway(e.OwnerSlot) || e.OwnerSlot == Creep.Team)) e.Claim();
+            if (e != null && e.Orphaned && (IsAway(e.OwnerSlot) || BotLevel(e.OwnerSlot) > 0 || e.OwnerSlot == Creep.Team)) e.Claim();
 
         for (int slot = 0; slot < RoomService.MaxPlayers; slot++)
         {
-            if (!IsAway(slot))
+            bool lobbyBot = BotLevels[slot] > 0;
+            if (!IsAway(slot) && !lobbyBot)
             {
                 DropBrain(slot);
                 var rp = Slots[slot] != PlayerRef.None ? RoomPlayer.Of(Slots[slot]) : null;
@@ -165,9 +175,9 @@ public partial class RoomState
                 SavedCredits.Set(slot, TeamEconomy.Credits(team));
                 SavedResearch.Set(slot, ResearchIds(team));
             }
-            if (!Bot[slot] && Runner.SimulationTime - AwaySince[slot] >= BotDelay) { Bot.Set(slot, true); RPC_Notice(slot, 1); }
-            if (Bot[slot] && !brains.ContainsKey(slot) && MatchManager.Instance != null)
-                brains[slot] = MatchManager.Instance.MakeBot(team, Bases[slot]);
+            if (!lobbyBot && !Bot[slot] && Runner.SimulationTime - AwaySince[slot] >= BotDelay) { Bot.Set(slot, true); RPC_Notice(slot, 1); }
+            if ((Bot[slot] || lobbyBot) && !brains.ContainsKey(slot) && MatchManager.Instance != null && MatchManager.Instance.IntroDone)
+                brains[slot] = MatchManager.Instance.MakeBot(team, Bases[slot], lobbyBot ? BotNames[BotLevels[slot]] : "Normal", lobbyBot);
         }
     }
 
