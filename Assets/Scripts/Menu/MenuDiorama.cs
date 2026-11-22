@@ -47,6 +47,7 @@ public class MenuDiorama : MonoBehaviour
         for (int i = 0; i < traffic.Length; i++) if (traffic[i] != null) StartCoroutine(Fly(traffic[i], i * 2.5f));
         for (int i = 0; i < patrol.Length; i++) if (patrol[i] != null) StartCoroutine(Patrol(patrol[i], i));
         ScreenUI();
+        StartCoroutine(DistantWar());
     }
 
     void Update()
@@ -453,6 +454,73 @@ public class MenuDiorama : MonoBehaviour
         }
     }
 
+
+    static readonly Color WarSmoke = new(0.12f, 0.1f, 0.14f, 0.5f), Tracer = new(1f, 0.7f, 0.35f, 1f);
+
+    IEnumerator DistantWar()
+    {
+        yield return new WaitForSeconds(2.5f);
+        while (true)
+        {
+            yield return new WaitForSeconds(Random.Range(2f, 5.5f));
+            Vector3 at = Far(Random.Range(30f, 55f), Random.Range(5f, 22f));
+            float big = Random.Range(0.7f, 1.6f);
+            Juice.Flash(at, Juice.Fire, 8f * big, 45f * big, 0.6f);
+            Juice.Burst(at, Juice.Fire, Mathf.RoundToInt(18 * big), 6f * big, 0.9f * big, 0.8f, 0.4f, true);
+            Juice.Burst(at, Color.white, 6, 3f, 1.4f * big, 0.25f, 0f);
+            for (int i = 0; i < 3; i++) Particles.Emit("Smoke", at + Random.insideUnitSphere * 2f, Vector3.up * 2.5f + Vector3.right * 1.5f, 9f * big, 6f, WarSmoke);
+            Sfx.Play(Snd.BoomBig, 0.07f * big, Random.Range(0.45f, 0.6f));
+            if (Random.value < 0.65f) StartCoroutine(Flak(Far(Random.Range(45f, 60f), 0f)));
+        }
+    }
+
+    Vector3 Far(float distance, float height)
+    {
+        Vector3 f = cam.transform.forward; f.y = 0f;
+        Vector3 p = cam.transform.position + Quaternion.Euler(0f, Random.Range(-38f, 38f), 0f) * f.normalized * distance;
+        p.y = height;
+        return p;
+    }
+
+    static Material tracerMat;
+    static Material TracerMat
+    {
+        get
+        {
+            if (tracerMat != null) return tracerMat;
+            tracerMat = new Material(Juice.AdditiveLine);
+            tracerMat.SetColor("_TintColor", new Color(3f, 3f, 3f, 1f));
+            return tracerMat;
+        }
+    }
+
+    IEnumerator Flak(Vector3 gun)
+    {
+        Vector3 away = cam.transform.forward; away.y = 0f; away.Normalize();
+        Vector3 side = cam.transform.right * (Random.value < 0.5f ? -1f : 1f);
+        float tilt = Random.Range(30f, 60f) * Mathf.Deg2Rad;
+        Vector3 aim = Vector3.Slerp(side, away, Random.Range(0f, 0.7f)) * Mathf.Sin(tilt) + Vector3.up * Mathf.Cos(tilt);
+        int shots = Random.Range(8, 16);
+        for (int i = 0; i < shots; i++)
+        {
+            Vector3 dir = (aim + Random.insideUnitSphere * 0.12f).normalized;
+            Vector3 from = gun + Vector3.up * Random.Range(0.5f, 3f), to = from + dir * Random.Range(9f, 16f);
+            var lr = new GameObject("Tracer").AddComponent<LineRenderer>();
+            lr.transform.SetParent(transform, false);
+            lr.sharedMaterial = TracerMat;
+            lr.useWorldSpace = true;
+            lr.positionCount = 2;
+            lr.SetPosition(0, from + dir * Random.Range(0f, 10f));
+            lr.SetPosition(1, to);
+            lr.widthMultiplier = 0.18f;
+            lr.startColor = new Color(Tracer.r, Tracer.g, Tracer.b, 0f);
+            lr.endColor = Tracer;
+            lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            Destroy(lr.gameObject, 0.14f);
+            if (Random.value < 0.6f) { Juice.Burst(to, Tracer, 6, 2.5f, 0.9f, 0.4f, 0f); Juice.Flash(to, Tracer, 2f, 12f, 0.15f); }
+            yield return new WaitForSeconds(Random.Range(0.06f, 0.14f));
+        }
+    }
 
     Image dim;
     GameObject lobby, signIn;

@@ -43,7 +43,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9b3f890f62f20d546aa45de9335497f6, type: 2}
   - {fileID: 11400000, guid: 050ed5871d95a5a41bb5f9c88b889ada, type: 2}
   armyShare: 0.6
-  harvesters: 6
+  harvesters: 8
   units:
   - unit: {fileID: 11400000, guid: e1d3ae5e0ffa04d44ac47e2cfa2f1eea, type: 2}
     weight: 2
@@ -86,6 +86,7 @@ MonoBehaviour:
   waveGrowth: 1.2
   defendRadius: 65
   upgrades: 1
+  coreUpgradeAt: 240
   research: 1
   counterPick: 1
   expandBelow: 3000

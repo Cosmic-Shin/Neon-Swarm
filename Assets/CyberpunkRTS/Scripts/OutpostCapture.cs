@@ -175,10 +175,19 @@ public class OutpostCapture : MonoBehaviour
         if (restored) restored.SetActive(IsOwned);
     }
 
+    Color lastEmit = Color.clear, lastBase = Color.clear;
+    float nextGlow;
+    static GUIStyle labelStyle;
+
     void UpdateGlow()
     {
         Color baseCol = capturingTeam >= 0 ? Color.Lerp(Color.white, Net.ColorOf(capturingTeam), progress) : Color.white;
+        if (!IsOwned && Time.time < nextGlow) return;
+        nextGlow = Time.time + 0.05f;
         float pulse = IsOwned ? 1f : 0.6f + 0.4f * Mathf.Sin(Time.time * 4f);
+        Color emit = baseCol * 2.1f * pulse;
+        if (emit == lastEmit && baseCol == lastBase) return;
+        lastEmit = emit; lastBase = baseCol;
         foreach (var (r, slot) in glow)
         {
             if (!r) continue;
@@ -228,6 +237,8 @@ public class OutpostCapture : MonoBehaviour
 
     void OnGUI()
     {
+        useGUILayout = false;
+        if (Event.current.type != EventType.Repaint) return;
         var cam = Camera.main;
         if (!cam) return;
         Vector3 sp = cam.WorldToScreenPoint(transform.position + Vector3.up * 2.6f * transform.lossyScale.y);
@@ -240,7 +251,7 @@ public class OutpostCapture : MonoBehaviour
         string line = IsOwned
             ? $"{who}  ·  hold {Mathf.CeilToInt(holdTimeLeft)}s  ·  garrison {garrison.Count}/{maxGarrison}"
             : (progress > 0 ? $"CAPTURING {Mathf.RoundToInt(progress * 100)}%" : "DERELICT OUTPOST");
-        var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+        var style = labelStyle ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
         style.normal.textColor = IsOwned ? Net.ColorOf(ownerTeam) : Color.white;
         GUI.Label(new Rect(sp.x - 160, Screen.height - sp.y - 12, 320, 24), line, style);
     }

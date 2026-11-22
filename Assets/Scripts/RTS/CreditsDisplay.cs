@@ -33,6 +33,7 @@ public class CreditsDisplay : MonoBehaviour
         shown = ResourceBank.GetOrCreate().Credits;
         label.text = $"CREDITS  {shown:N0}";
         gain.text = "";
+        gain.rectTransform.anchoredPosition += Vector2.left * 270f;
     }
 
     void Changed(int delta)

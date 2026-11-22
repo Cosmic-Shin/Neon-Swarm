@@ -128,7 +128,7 @@ public class Sfx : MonoBehaviour
     void UpdateRain()
     {
         bool on = inMatch && GameSettings.Rain && rain.clip != null;
-        float target = on ? 0.22f * GameSettings.Effects : 0f;
+        float target = on ? 0.22f * GameSettings.Effects * Mathf.Clamp01(GameMaps.Current.weather.rain) : 0f;
         rain.volume = Mathf.MoveTowards(rain.volume, target, Time.unscaledDeltaTime * 0.15f);
         if (target > 0f && !rain.isPlaying) rain.Play();
         else if (target <= 0f && rain.volume <= 0f && rain.isPlaying) rain.Stop();

@@ -31,7 +31,40 @@ public class OreNode : MonoBehaviour
     void Awake()
     {
         full = Child("OreStage_Full"); half = Child("OreStage_Half"); low = Child("OreStage_Low"); depleted = Child("OreStage_Depleted");
+        Merge();
         UpdateVisual();
+    }
+
+    // GD5: an ore node is ~24 crystal parts; merge them per stage group and material (24 renderers -> ~4)
+    void Merge()
+    {
+        var groups = new List<Transform> { transform };
+        foreach (var g in new[] { full, half, low, depleted }) if (g) groups.Add(g.transform);
+        var parts = new Dictionary<(Transform, Material), List<CombineInstance>>();
+        var shadows = new Dictionary<(Transform, Material), UnityEngine.Rendering.ShadowCastingMode>();
+        foreach (var f in GetComponentsInChildren<MeshFilter>(true))
+        {
+            var r = f.GetComponent<MeshRenderer>();
+            if (!r || !r.enabled || !f.sharedMesh || !f.sharedMesh.isReadable || r.sharedMaterials.Length != 1 || f.sharedMesh.subMeshCount != 1) continue;
+            Transform owner = transform;
+            for (var t = f.transform; t != null && t != transform; t = t.parent) if (groups.Contains(t)) { owner = t; break; }
+            var key = (owner, r.sharedMaterial);
+            if (!parts.TryGetValue(key, out var list)) { parts[key] = list = new List<CombineInstance>(); shadows[key] = r.shadowCastingMode; }
+            list.Add(new CombineInstance { mesh = f.sharedMesh, transform = owner.worldToLocalMatrix * f.transform.localToWorldMatrix });
+            r.enabled = false;
+        }
+        foreach (var kv in parts)
+        {
+            var go = new GameObject("Merged", typeof(MeshFilter), typeof(MeshRenderer));
+            go.layer = gameObject.layer;
+            go.transform.SetParent(kv.Key.Item1, false);
+            var mesh = new Mesh { name = "OreMerged", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+            mesh.CombineMeshes(kv.Value.ToArray(), true, true);
+            go.GetComponent<MeshFilter>().sharedMesh = mesh;
+            var mr = go.GetComponent<MeshRenderer>();
+            mr.sharedMaterial = kv.Key.Item2;
+            mr.shadowCastingMode = shadows[kv.Key];
+        }
     }
 
     GameObject Child(string n)

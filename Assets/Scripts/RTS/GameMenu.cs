@@ -35,6 +35,7 @@ public class GameMenu : MonoBehaviour
     {
         IsOpen = open;
         panel.SetActive(open);
+        if (!Net.Online) Time.timeScale = open ? 0f : 1f;
         surrender.gameObject.SetActive(Net.Online);
         saveButton.gameObject.SetActive(!Net.Online);
         loadButton.gameObject.SetActive(!Net.Online);

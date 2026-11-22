@@ -22,6 +22,7 @@ public class MapDressing : MonoBehaviour
     void Start()
     {
         cam = GetComponent<Camera>();
+        foreach (var g in gameObject.scene.GetRootGameObjects()) Health.TrimShadows(g);
         additive = Shader.Find("Legacy Shaders/Particles/Additive");
         root = new GameObject("MapDressing").transform;
         Ground();
@@ -37,7 +38,7 @@ public class MapDressing : MonoBehaviour
     Material Glow(Texture tex, Color c, float hdr)
     {
         var m = new Material(additive) { mainTexture = tex };
-        m.SetColor("_TintColor", new Color(c.r * hdr, c.g * hdr, c.b * hdr, c.a));
+        m.SetColor(TintId, new Color(c.r * hdr, c.g * hdr, c.b * hdr, c.a));
         return m;
     }
 
@@ -326,10 +327,12 @@ public class MapDressing : MonoBehaviour
     }
 
 
+    static readonly int MainTexId = Shader.PropertyToID("_MainTex"), TintId = Shader.PropertyToID("_TintColor");
+
     void Update()
     {
         float t = Time.time, dt = Time.deltaTime;
-        foreach (var (m, speed) in flowing) m.mainTextureOffset = new Vector2(t * speed, 0f);
+        foreach (var (m, speed) in flowing) m.SetTextureOffset(MainTexId, new Vector2(t * speed, 0f));
 
         Vector3 camPos = cam != null ? cam.transform.position : Vector3.zero;
         Quaternion face = cam != null ? cam.transform.rotation : Quaternion.identity;
@@ -350,7 +353,7 @@ public class MapDressing : MonoBehaviour
         foreach (var (tr, m, phase, c) in billboards)
         {
             float flick = Mathf.PerlinNoise(t * 3f + phase, phase) > 0.78f ? Random.Range(0.1f, 0.6f) : 1f;
-            m.SetColor("_TintColor", new Color(c.r * 1.8f, c.g * 1.8f, c.b * 1.8f, 0.55f * flick));
+            m.SetColor(TintId, new Color(c.r * 1.8f, c.g * 1.8f, c.b * 1.8f, 0.55f * flick));
         }
 
         foreach (var (pivot, speed) in searchlights) pivot.Rotate(0f, speed * dt, 0f, Space.World);
@@ -363,7 +366,7 @@ public class MapDressing : MonoBehaviour
             foreach (var o in nodes) if (o != null) amount += o.amount;
             float k = max > 0f ? amount / max : 0f;
             float pulse = 0.85f + 0.15f * Mathf.Sin(t * 1.3f + centre.x);
-            m.SetColor("_TintColor", new Color(c.r, c.g, c.b, (0.05f + 0.25f * k) * pulse));
+            m.SetColor(TintId, new Color(c.r, c.g, c.b, (0.05f + 0.25f * k) * pulse));
         }
         foreach (var (at, pad, hex) in pads)
         {

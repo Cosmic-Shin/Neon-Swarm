@@ -186,6 +186,7 @@ public class Harvester : MonoBehaviour
         if (refinery) refinery.Release(this);
         LeaveOre();
         autoHarvest = false;
+        lastDestination = new Vector3(float.MaxValue, 0f, 0f);
         if (agent) agent.stoppingDistance = 0f;
         Play("Idle");
         state = State.Idle;
@@ -195,6 +196,7 @@ public class Harvester : MonoBehaviour
     public void OrderHarvest(OreNode target)
     {
         if (!target) return;
+        lastDestination = new Vector3(float.MaxValue, 0f, 0f);
         autoHarvest = true;
         if (refinery) refinery.Release(this);
         LeaveOre();
@@ -204,6 +206,9 @@ public class Harvester : MonoBehaviour
     }
 
     // ---------- movement ----------
+    Vector3 lastDestination = new(float.MaxValue, 0f, 0f);
+    void OnEnable() => lastDestination = new Vector3(float.MaxValue, 0f, 0f);
+
     bool MoveTo(Vector3 target, float stopDistance)
     {
         Vector3 to = target - transform.position; to.y = 0f;
@@ -218,7 +223,7 @@ public class Harvester : MonoBehaviour
         {
             agent.speed = moveSpeed;
             agent.stoppingDistance = stopDistance;
-            agent.SetDestination(target);
+            if ((target - lastDestination).sqrMagnitude > 0.04f || (!agent.hasPath && !agent.pathPending)) { lastDestination = target; agent.SetDestination(target); }
             SetSpeed(agent.velocity.magnitude);
             return !agent.pathPending && agent.remainingDistance <= stopDistance;
         }

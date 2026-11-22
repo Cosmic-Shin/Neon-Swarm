@@ -67,6 +67,7 @@ MonoBehaviour:
   waveGrowth: 1.25
   defendRadius: 55
   upgrades: 1
+  coreUpgradeAt: 420
   research: 1
   counterPick: 0.5
   expandBelow: 2000

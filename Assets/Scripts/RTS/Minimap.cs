@@ -40,12 +40,18 @@ public class Minimap : MonoBehaviour, IPointerDownHandler, IDragHandler
         outposts = FindObjectsByType<OutpostCapture>(FindObjectsSortMode.None);
     }
 
+    float nextDots;
+    static readonly Vector2[] Corners = { Vector2.zero, Vector2.right, Vector2.up, Vector2.one };
+
     void LateUpdate()
     {
         var fog = FogOfWar.Instance;
         if (fog != null && fogOverlay.texture == null) fogOverlay.texture = fog.MinimapTexture;
         bool Explored(Vector3 p) => fog == null || fog.IsExplored(p);
 
+        if (Time.unscaledTime >= nextDots)
+        {
+        nextDots = Time.unscaledTime + 0.05f;
         used = 0;
         foreach (var o in OreNode.All)
             if (!o.IsDepleted && Explored(o.transform.position)) Dot(o.transform.position, 3f, o.valueMultiplier > 1f ? RedOre : GreenOre);
@@ -74,9 +80,10 @@ public class Minimap : MonoBehaviour, IPointerDownHandler, IDragHandler
         }
         DrawAttacks();
         for (int i = used; i < pool.Count; i++) pool[i].enabled = false;
+        }
 
         Vector2 min = new(float.MaxValue, float.MaxValue), max = new(float.MinValue, float.MinValue);
-        foreach (var v in new[] { Vector2.zero, Vector2.right, Vector2.up, Vector2.one })
+        foreach (var v in Corners)
         {
             Vector2 p = ToMap(GroundPoint(cam.ViewportPointToRay(v)));
             min = Vector2.Min(min, p);

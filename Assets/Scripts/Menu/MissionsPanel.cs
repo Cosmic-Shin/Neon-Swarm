@@ -54,23 +54,25 @@ public class MissionsPanel : MonoBehaviour
 
         preview = new GameObject("Preview", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
         preview.transform.SetParent(win, false);
-        preview.rectTransform.anchoredPosition = new Vector2(410f, 120f);
-        preview.rectTransform.sizeDelta = new Vector2(220f, 220f);
+        preview.rectTransform.anchoredPosition = new Vector2(440f, 168f);
+        preview.rectTransform.sizeDelta = new Vector2(190f, 190f);
         preview.preserveAspect = true;
         HoloSkin.Brackets(preview.rectTransform, HoloUI.Cyan);
-        map = Text(win, "", new Vector2(410f, -8f), 16, TextAnchor.MiddleCenter, 240f, false);
+        map = Text(win, "", new Vector2(440f, 58f), 16, TextAnchor.MiddleCenter, 240f, false);
         map.color = Dim;
 
-        heading = Text(win, "", new Vector2(80f, 220f), 34, TextAnchor.MiddleLeft, 400f, true);
+        heading = Text(win, "", new Vector2(100f, 226f), 34, TextAnchor.MiddleLeft, 440f, true);
         heading.color = HoloUI.Cyan;
-        tagline = Text(win, "", new Vector2(80f, 178f), 20, TextAnchor.MiddleLeft, 400f, false);
+        tagline = Text(win, "", new Vector2(100f, 168f), 18, TextAnchor.UpperLeft, 440f, false);
+        tagline.horizontalOverflow = HorizontalWrapMode.Wrap;
+        tagline.rectTransform.sizeDelta = new Vector2(440f, 60f);
         tagline.color = Dim;
         briefing = Text(win, "", new Vector2(160f, -60f), 21, TextAnchor.UpperLeft, 560f, false);
-        briefing.rectTransform.sizeDelta = new Vector2(560f, 260f);
+        briefing.rectTransform.sizeDelta = new Vector2(700f, 270f);
         briefing.horizontalOverflow = HorizontalWrapMode.Wrap;
-        briefing.rectTransform.anchoredPosition = new Vector2(160f, -10f);
+        briefing.rectTransform.anchoredPosition = new Vector2(200f, -100f);
 
-        start = SettingsPanel.Button(win, "START MISSION", new Vector2(160f, -280f), new Vector2(300f, 56f));
+        start = SettingsPanel.Button(win, "START MISSION", new Vector2(200f, -280f), new Vector2(300f, 56f));
         HoloSkin.Button(start, HoloUI.ButtonStyle.Gold);
         start.onClick.AddListener(() => { if (Mission.Unlocked(picked)) Mission.Begin(picked); });
         SettingsPanel.Button(win, "BACK", new Vector2(-370f, -280f), new Vector2(200f, 56f)).onClick.AddListener(() => Destroy(gameObject));
@@ -86,14 +88,14 @@ public class MissionsPanel : MonoBehaviour
         for (int r = 0; r < rows.Length; r++)
         {
             var m = Mission.All[r];
-            string state = Mission.Done(r) ? $"<color=#{Hex(Green)}>COMPLETE</color>" : Mission.Unlocked(r) ? $"<color=#{Hex(Dim)}>{m.tagline}</color>" : $"<color=#{Hex(Locked)}>LOCKED</color>";
+            string state = Mission.Done(r) ? $"<color=#{Hex(Green)}>COMPLETE</color>" : Mission.Unlocked(r) ? $"<color=#{(r == i ? "0A2F3A" : Hex(Dim))}>{m.tagline}</color>" : $"<color=#{(r == i ? "8A1424" : Hex(Locked))}>LOCKED</color>";
             rows[r].GetComponentInChildren<Text>().text = $"<size=16><color=#{Hex(Dim)}>{r + 1:00}</color></size>   <b>{m.name}</b>\n<size=16>       {state}</size>";
             HoloSkin.SetOn(rows[r], r == i);
         }
         var info = Mission.All[i];
         bool open = Mission.Unlocked(i);
         heading.text = info.name;
-        tagline.text = info.tagline.ToUpper() + (info.ai is Skirmish.Difficulty d ? $"   ·   ENEMY AI: {d.ToString().ToUpper()}" : "") + $"   ·   ${info.credits:N0}";
+        tagline.text = info.tagline.ToUpper() + "\n" + (info.ai is Skirmish.Difficulty d ? $"ENEMY AI: {d.ToString().ToUpper()}   ·   " : "") + $"STARTING CREDITS: ${info.credits:N0}";
         briefing.text = open ? info.briefing : $"<color=#{Hex(Locked)}>Complete {Mission.All[i - 1].name} to unlock this mission.</color>";
         var gm = GameMaps.At(info.map);
         preview.sprite = GameMaps.Preview(gm);

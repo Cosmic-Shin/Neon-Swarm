@@ -13,8 +13,17 @@ public class GameMap
     public int[] startAi = { 0 };
     public int startYou = 1;
     public Chasm[] chasms = new Chasm[0];
+    public Weather weather = new();
     public int Players => bases.Length;
     public float Half => size * 0.5f;
+}
+
+public class Weather
+{
+    public string name = "NEON RAIN";
+    public float rain = 1f, storm = 1f, motes = 1f, moteSize = 1f, fogFar = 1f, fogNear = 1f;
+    public Color fog = new(0.05f, 0.03f, 0.1f), ambient = Color.white, sun = Color.white, mote = new(0.7f, 0.9f, 1f, 0.6f);
+    public Vector3 drift = new(0.3f, 0.05f, 0f);
 }
 
 public class Chasm
@@ -49,6 +58,7 @@ public static class GameMaps
         new GameMap
         {
             name = "WASTELAND  ·  8", scene = "RTSSelection", preview = "MapPreview", size = 600f,
+            weather = new Weather { name = "ASH STORM", rain = 0f, storm = 0.5f, motes = 7f, moteSize = 2.5f, fogNear = 0.6f, fog = new(0.2f, 0.09f, 0.05f), ambient = new(1.25f, 0.9f, 0.75f), sun = new(1.25f, 0.8f, 0.55f), mote = new(1f, 0.55f, 0.25f, 0.7f), drift = new(1.4f, -1.2f, 0.5f) },
             bases = new Vector2[] { new(-90, -218), new(90, -218), new(218, -90), new(218, 90), new(90, 218), new(-90, 218), new(-218, 90), new(-218, -90) },
             fill = new[] { 4, 2, 6, 1, 7, 3, 5 }, allies = new[] { 1, 7, 2, 6 }, enemies = new[] { 4, 3, 5, 2, 6, 1, 7 },
             chasms = new[] { Chasm.Ring(95f, new[] { 0f, 90f, 180f, 270f }, new[] { 22.5f, 67.5f, 112.5f, 157.5f, 202.5f, 247.5f, 292.5f, 337.5f }) },
@@ -56,6 +66,7 @@ public static class GameMaps
         new GameMap
         {
             name = "DUEL  ·  1V1", scene = "Map_Duel", preview = "MapPreview_Duel", size = 320f,
+            weather = new Weather { name = "THUNDERSTORM", rain = 1.7f, storm = 3f, motes = 0.5f, fogNear = 0.75f, fog = new(0.05f, 0.07f, 0.17f), ambient = new(0.8f, 0.9f, 1.15f), sun = new(0.7f, 0.82f, 1.15f) },
             bases = new Vector2[] { new(0, -118), new(0, 118) },
             fill = new[] { 1 }, allies = new int[0], enemies = new[] { 1 },
             chasms = new[]
@@ -67,6 +78,7 @@ public static class GameMaps
         new GameMap
         {
             name = "TWIN FRONT  ·  2V2", scene = "Map_TwinFront", preview = "MapPreview_TwinFront", size = 440f,
+            weather = new Weather { name = "CLEAR NIGHT", rain = 0f, storm = 0f, motes = 1.5f, fogNear = 1.3f, fog = new(0.03f, 0.06f, 0.13f), ambient = new(0.9f, 1f, 1.2f), sun = new(0.85f, 0.95f, 1.25f), mote = new(0.85f, 0.9f, 1f, 0.5f), drift = new(0.1f, 0.15f, 0f) },
             bases = new Vector2[] { new(-75, -168), new(75, -168), new(75, 168), new(-75, 168) },
             fill = new[] { 3, 1, 2 }, allies = new[] { 1 }, enemies = new[] { 3, 2, 1 },
             keep = new[] { "Centre", "1", "5" }, startAi = new[] { 1, 2, 2 },
@@ -79,6 +91,7 @@ public static class GameMaps
         new GameMap
         {
             name = "BREACH LINE  ·  3V3", scene = "Map_BreachLine", preview = "MapPreview_BreachLine", size = 560f,
+            weather = new Weather { name = "TOXIC FOG", rain = 0.4f, storm = 0.5f, motes = 3f, moteSize = 2f, fogFar = 0.6f, fogNear = 0.45f, fog = new(0.08f, 0.18f, 0.08f), ambient = new(0.85f, 1.15f, 0.8f), sun = new(0.8f, 1.15f, 0.75f), mote = new(0.5f, 1f, 0.4f, 0.6f), drift = new(0.2f, 0.25f, 0.1f) },
             bases = new Vector2[] { new(-150, -215), new(0, -228), new(150, -215), new(150, 215), new(0, 228), new(-150, 215) },
             fill = new[] { 3, 1, 4, 2, 5 }, allies = new[] { 1, 2 }, enemies = new[] { 5, 4, 3 },
             keep = new[] { "Centre", "1", "5" }, startAi = new[] { 1, 1, 2, 2, 2 },

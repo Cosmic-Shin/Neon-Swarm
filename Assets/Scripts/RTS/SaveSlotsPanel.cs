@@ -54,7 +54,7 @@ public class SaveSlotsPanel : MonoBehaviour
             info[s] = SettingsPanel.Label(row, "", new Vector2(-120f, 0f), 18, TextAnchor.MiddleLeft, 520f);
             info[s].rectTransform.sizeDelta = new Vector2(520f, 72f);
             info[s].supportRichText = true;
-            act[s] = SettingsPanel.Button(row, "", new Vector2(270f, 0f), new Vector2(190f, 52f));
+            act[s] = SettingsPanel.Button(row, "", new Vector2(245f, 0f), new Vector2(190f, 52f));
             if (!saving) HoloSkin.Button(act[s], HoloUI.ButtonStyle.Gold);
             act[s].onClick.AddListener(() => Act(slot));
             del[s] = SettingsPanel.Button(row, "DELETE", new Vector2(400f, 0f), new Vector2(100f, 52f));

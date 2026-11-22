@@ -47,7 +47,7 @@ public class Tutorial : MonoBehaviour
 
         Add("WELCOME, COMMANDER", "Your Core Nexus is powering up and the Assembly Hive is sending out harvesters. Watch for a moment.",
             () => Time.timeSinceLevelLoad > 6f);
-        Add("MOVE THE CAMERA", "Pan with <b>W A S D</b> or the arrow keys, or push the mouse against the screen edge. Scroll to zoom.",
+        Add("MOVE THE CAMERA", "Pan with the <b>arrow keys</b>, or push the mouse against the screen edge. Scroll to zoom.",
             () => Vector3.Distance(CameraPan.LookingAt, cameraStart) > 20f, () => cameraStart = CameraPan.LookingAt);
         Add("SELECT A HARVESTER", "<b>Left-click</b> one of your harvesters. They mine ore and bring credits home on their own.",
             () => Selected(u => u.TryGetComponent(out Harvester _)));

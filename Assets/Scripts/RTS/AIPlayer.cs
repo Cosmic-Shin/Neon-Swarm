@@ -53,8 +53,9 @@ public partial class AIPlayer : MonoBehaviour
         Survey();
         if (buildings.Count == 0 && sites.Count == 0) { enabled = false; return; }
         Harvesters();
-        Build();
-        Produce();
+        bool saving = SaveForCore();
+        if (!saving) Build();
+        if (!saving) Produce();
         Army();
         Harass();
     }
@@ -63,7 +64,9 @@ public partial class AIPlayer : MonoBehaviour
     {
         buildings.Clear(); sites.Clear(); army.Clear(); workers.Clear();
         foreach (var s in Structure.All) if (s != null && s.Health.team == team && !s.Health.IsDead) buildings.Add(s);
-        foreach (var c in FindObjectsByType<Construction>(FindObjectsSortMode.None)) if (TeamEconomy.TeamOf(c) == team) sites.Add(c);
+        refineries.Clear();
+        foreach (var s in buildings) if (s.TryGetComponent(out Refinery _)) refineries.Add(s.transform.position);
+        foreach (var c in Construction.All) if (TeamEconomy.TeamOf(c) == team) sites.Add(c);
         foreach (var h in Health.All)
         {
             if (h.team != team || !h.TryGetComponent(out SelectableUnit u) || u.Data == null) continue;
@@ -133,6 +136,19 @@ public partial class AIPlayer : MonoBehaviour
         foreach (var b in Factories())
             for (int i = 0; i < b.OptionCount; i++)
                 if (b.UnitOf(i) is UnitData d && d.role == UnitData.Role.Worker && b.CanQueue(i) && b.CostOf(i) <= BuildFunds) { b.Enqueue(i); return; }
+    }
+
+    bool SaveForCore()
+    {
+        if (!profile.upgrades || profile.coreUpgradeAt <= 0f || Time.time - started < profile.coreUpgradeAt) return false;
+        foreach (var s in buildings)
+            if (s.isHQ && s.TryGetComponent(out BuildingUpgrade core) && core.CanUpgrade && core.level == 1)
+            {
+                int credits = TeamEconomy.Credits(team);
+                if (core.NextCost <= credits) { armyFund = Mathf.Min(armyFund, credits - core.NextCost); core.Upgrade(); }
+                return true;
+            }
+        return false;
     }
 
     BuildingData nextBuilding;
@@ -287,19 +303,22 @@ public partial class AIPlayer : MonoBehaviour
         float best = float.MaxValue;
         foreach (var o in OreNode.All)
         {
-            if (o == null || o.amount < 300f || giveUp.Contains(o) || NearRefinery(o.transform.position)) continue;
+            if (o == null || o.amount < 300f) continue;
             Vector3 p = o.transform.position;
+            float d = (p - home).sqrMagnitude;
+            if (d >= best || giveUp.Contains(o) || NearRefinery(p)) continue;
             if (OreNode.IsDangerous != null && OreNode.IsDangerous(p, team)) continue;
             if (EnemyBuildingNear(p, 60f)) continue;
-            float d = (p - home).sqrMagnitude;
-            if (d < best) { best = d; expandTo = o; }
+            best = d; expandTo = o;
         }
         if (expandTo != null && (old == null || !Near(old.transform.position, expandTo.transform.position, 25f))) expandSteps = 0;
     }
 
+    readonly List<Vector3> refineries = new();
+
     bool NearRefinery(Vector3 p)
     {
-        foreach (var s in buildings) if (s.TryGetComponent(out Refinery _) && Near(p, s.transform.position, RefineryReach)) return true;
+        foreach (var r in refineries) if (Near(p, r, RefineryReach)) return true;
         return false;
     }
 

@@ -5,7 +5,7 @@ using UnityEngine.AI;
 public class WorldFX : MonoBehaviour
 {
     const float Near = 70f;
-    static readonly int TintId = Shader.PropertyToID("_TintColor"), StId = Shader.PropertyToID("_MainTex_ST"), EmissionId = Shader.PropertyToID("_EmissionColor");
+    static readonly int MainTexId = Shader.PropertyToID("_MainTex"), TintId = Shader.PropertyToID("_TintColor"), StId = Shader.PropertyToID("_MainTex_ST"), EmissionId = Shader.PropertyToID("_EmissionColor");
     static readonly Color Rail = new Color(0.2f, 0.9f, 1f) * 1.6f, ChasmMote = new(1f, 0.35f, 0.85f, 0.7f);
 
     Camera cam;
@@ -79,10 +79,11 @@ public class WorldFX : MonoBehaviour
 
     void Lightning()
     {
-        if (!GameSettings.Rain) return;
-        if (nextFlash < 0f) { nextFlash = Time.time + Random.Range(12f, 30f); return; }
+        float storm = GameMaps.Current.weather.storm;
+        if (!GameSettings.Rain || storm <= 0f) return;
+        if (nextFlash < 0f) { nextFlash = Time.time + Random.Range(12f, 30f) / storm; return; }
         if (Time.time < nextFlash) return;
-        nextFlash = Time.time + Random.Range(30f, 75f);
+        nextFlash = Time.time + Random.Range(30f, 75f) / storm;
         if (sun == null) { sun = RenderSettings.sun != null ? RenderSettings.sun : FindFirstObjectByType<Light>(); if (sun != null) sunBase = sun.intensity; }
         if (sun == null) return;
         float near = Random.value;
@@ -156,7 +157,7 @@ public class WorldFX : MonoBehaviour
     void Chasms()
     {
         if (flow == null || chasms.Count == 0) return;
-        flow.mainTextureOffset = new Vector2(0f, -Time.time * 0.6f);
+        flow.SetTextureOffset(MainTexId, new Vector2(0f, -Time.time * 0.6f));
         for (moteDebt += 30f * Time.deltaTime; moteDebt >= 1f; moteDebt--)
         {
             var c = chasms[Random.Range(0, chasms.Count)];

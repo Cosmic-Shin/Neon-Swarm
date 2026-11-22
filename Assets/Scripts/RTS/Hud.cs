@@ -193,7 +193,7 @@ public class Hud : MonoBehaviour
             ("Click, drag, release", "place and turn a building"),
             ("Right-click a unit button", "cancel one from the queue"),
             ("", "CAMERA & GAME"),
-            ($"{K(Act.CamUp)}{K(Act.CamLeft)}{K(Act.CamDown)}{K(Act.CamRight)} / arrows / edge", "scroll"),
+            (Controls.KeyOf(Act.CamUp) == UnityEngine.InputSystem.Key.UpArrow ? "Arrows / screen edge" : $"{K(Act.CamUp)}{K(Act.CamLeft)}{K(Act.CamDown)}{K(Act.CamRight)} / arrows / edge", "scroll"),
             ("Mouse wheel", "zoom"),
             (K(Act.JumpAlert), "jump to the last attack"),
             (K(Act.QuickSave) + "  /  " + K(Act.QuickLoad), "quick save  /  load (offline)"),
@@ -390,7 +390,7 @@ public class Hud : MonoBehaviour
             if (s.TryGetComponent(out BuildingUpgrade up) && up.IsUpgrading)
                 jobs.Add((s.transform, s, s.data != null ? s.data.icon : null, up.Progress, "MK+"));
         }
-        foreach (var c in FindObjectsByType<Construction>(FindObjectsSortMode.None))
+        foreach (var c in Construction.All)
         {
             if (c.remote || TeamEconomy.TeamOf(c) != 0) continue;
             var st = c.GetComponent<Structure>();

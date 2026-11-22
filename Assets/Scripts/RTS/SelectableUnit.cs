@@ -198,6 +198,7 @@ public class SelectableUnit : MonoBehaviour
         manager.OnHoldCommand += HandleHoldCommand;
         manager.OnPatrolCommand += HandlePatrolCommand;
         if (selectionRing != null) { selectionRing.SetActive(true); if (isActiveAndEnabled) StartCoroutine(PopRing()); }
+        UnitMotion.Pop(this, 1.4f);
     }
 
     Vector3? ringScale;
@@ -310,6 +311,7 @@ public class SelectableUnit : MonoBehaviour
     void HandlePatrolCommand(List<Vector3> slots)
     {
         if (formationIndex < 0 || formationIndex >= slots.Count) return;
+        UnitMotion.Pop(this, 0.9f);
         garrisonTarget = null;
         boardTarget = null;
         if (harvester != null) harvester.Stop();
@@ -326,6 +328,7 @@ public class SelectableUnit : MonoBehaviour
     {
         if (formationIndex < 0 || formationIndex >= slots.Count) return;
         if (Queued(slots[formationIndex], false)) return;
+        UnitMotion.Pop(this, 0.9f);
         boardTarget = null;
         garrisonTarget = null;
         if (harvester != null) harvester.Stop();
@@ -339,6 +342,7 @@ public class SelectableUnit : MonoBehaviour
         if (attacker == null) { HandleMoveCommand(slots); return; }
         if (formationIndex < 0 || formationIndex >= slots.Count) return;
         if (Queued(slots[formationIndex], true)) return;
+        UnitMotion.Pop(this, 0.9f);
         garrisonTarget = null;
         attacker.AttackMove(slots[formationIndex]);
         faceOnArrive = manager.Facing;
@@ -369,6 +373,7 @@ public class SelectableUnit : MonoBehaviour
 
     void HandleAttackCommand(Health target)
     {
+        UnitMotion.Pop(this, 1.2f);
         queue.Clear();
         patrol = false;
         faceOnArrive = Vector3.zero;

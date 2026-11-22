@@ -38,6 +38,8 @@ public class AIProfile : ScriptableObject
     [Header("Tech")]
     [Tooltip("After the build order: upgrade the Core Nexus (research tiers, elite units), then other buildings.")]
     public bool upgrades = true;
+    [Tooltip("Seconds into the match when it upgrades the Core Nexus ahead of the build order (saving up for it). 0 = only after the build order.")]
+    public float coreUpgradeAt;
     [Tooltip("After the build order: research in its labs.")]
     public bool research = true;
 

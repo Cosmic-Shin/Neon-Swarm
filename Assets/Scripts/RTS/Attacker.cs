@@ -187,6 +187,9 @@ public class Attacker : MonoBehaviour
     {
         if (t == null) return;
         if (kick != null) kick.Kick(t.transform.position - transform.position);
+        float heft = Mathf.Clamp01(data.damage / 80f);
+        UnitMotion.Pop(this, -(0.25f + 0.8f * heft));
+        UnitMotion.Knock(this, transform.position - t.transform.position, 1.5f + 4f * heft);
         switch (data.style)
         {
             case UnitData.WeaponStyle.ShockPulse: Pulse(real); return;
@@ -319,11 +322,13 @@ public class Attacker : MonoBehaviour
             case DamageTable.Weapon.Cannon:
                 Juice.Burst(ground, DirtChunk, 7, 5f, 0.14f, 0.8f, 1.4f, gravity: true);
                 for (int i = 0; i < 2; i++) Particles.Emit("Dust", ground, Vector3.up * 1.5f + Random.insideUnitSphere * 1.2f, 1.4f, 1f, Dirt);
+                if (at.y < 3f) Juice.Scorch(ground, 1.2f, 5f);
                 break;
             case DamageTable.Weapon.Explosive:
                 Juice.Flash(at, Fireball, 3f, Mathf.Max(6f, splash * 2f), 0.25f);
                 Juice.Burst(at, Juice.Fire, 10, 6f, 0.16f, 0.5f, 0.9f, gravity: true);
                 for (int i = 0; i < 2; i++) Particles.Emit("Smoke", at + Random.insideUnitSphere * 0.5f, Vector3.up * 1.8f, Mathf.Max(1.2f, splash * 0.5f), 1.4f, Smoke);
+                if (at.y < 3f) Juice.Scorch(ground, Mathf.Max(1.5f, splash * 0.9f), 9f);
                 break;
         }
     }
@@ -336,6 +341,7 @@ public class Attacker : MonoBehaviour
         if (v.impact != null) Fx.Spawn(v.impact, at, Quaternion.identity, splash > 0f ? r * 0.6f : r);
         if (splash > 0f) Sfx.At(Snd.BoomSmall, at, 0.4f);
         ImpactByWeapon(data.weapon, at, splash);
+        if (t != null && !t.IsDead) UnitMotion.Knock(t, flat, 2f + 8f * Mathf.Clamp01(dmg / t.MaxHealth * 5f));
         bool rapid = data.attackCooldown < 1f;
         if (v.scorch != null && (!rapid || Random.value < 0.25f))
             Fx.Spawn(v.scorch, new Vector3(at.x, 0.04f, at.z), flat.sqrMagnitude > 0.01f ? Quaternion.LookRotation(flat) : Quaternion.identity, r * 0.8f);

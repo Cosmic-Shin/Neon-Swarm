@@ -104,7 +104,7 @@ public class LoadingScreen : MonoBehaviour
         preview.gameObject.SetActive(sprite != null);
         info.anchoredPosition = new Vector2(0f, sprite != null ? 0f : 330f);
         mapName.text = map != null ? map.name : sceneName != null ? MapTitle(sceneName) : "";
-        status.text = map != null ? "DEPLOYING TO BATTLEFIELD" : "LOADING";
+        status.text = map != null ? $"DEPLOYING TO BATTLEFIELD   ·   CONDITIONS: {map.weather.name}" : "LOADING";
         tip.text = "<color=#FF40E0><b>TIP</b></color>   " + MenuExtras.Tips[Random.Range(0, MenuExtras.Tips.Length)];
         SetProgress(0f);
         group.alpha = 1f;

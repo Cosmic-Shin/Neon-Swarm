@@ -27,9 +27,17 @@ public class Health : MonoBehaviour
             gameObject.AddComponent<UnitMotion>();
         }
         hitFx = gameObject.AddComponent<HitFX>();
+        TrimShadows(gameObject);
     }
 
     HitFX hitFx;
+
+    public static void TrimShadows(GameObject root)
+    {
+        foreach (var r in root.GetComponentsInChildren<MeshRenderer>(true))
+            if (r.shadowCastingMode == UnityEngine.Rendering.ShadowCastingMode.On && Vector3.Scale(r.localBounds.extents, r.transform.lossyScale).sqrMagnitude < 0.36f)
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+    }
 
     void PlayDeath(UnitDeath death) { if (!AirCrash.Begin(this, death)) death.Die(); }
 
@@ -130,6 +138,7 @@ public class Health : MonoBehaviour
         {
             if (killer.TryGetComponent(out NetEntity kn) && kn.IsRemote) kn.RPC_AddKill();
             else killer.CreditKill();
+            UnitMotion.Pop(killer, 1.1f);
             if (killer.team == 0 && team != Creep.Team && TryGetComponent(out Structure _)) Sfx.Say(Line.Destroyed, 12f);
         }
         if (onDeath != null) { onDeath(); return; }

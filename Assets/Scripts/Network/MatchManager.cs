@@ -31,6 +31,7 @@ public class MatchManager : MonoBehaviour
 
     System.Collections.IEnumerator Start()
     {
+        Time.timeScale = 1f;
         ResearchManager.Clear();
         Health.LastBuildingDeath = null;
         endPanel.SetActive(false);
@@ -291,7 +292,7 @@ public class MatchManager : MonoBehaviour
         var sides = new HashSet<int>();
         bool mine = false;
         foreach (var s in Structure.All) if (s != null && !s.Health.IsDead && s.Health.team != Creep.Team) { sides.Add(Skirmish.SideOf(s.Health.team)); mine |= s.Health.team == 0; }
-        foreach (var c in FindObjectsByType<Construction>(FindObjectsSortMode.None)) { int t = TeamEconomy.TeamOf(c); sides.Add(Skirmish.SideOf(t)); mine |= t == 0; }
+        foreach (var c in Construction.All) { int t = TeamEconomy.TeamOf(c); sides.Add(Skirmish.SideOf(t)); mine |= t == 0; }
         if (!mine) End("DEFEAT", "All your buildings were destroyed.");
         else if (sides.Count == 1) End("VICTORY", "Every enemy base is destroyed.");
         else if (Skirmish.Minutes > 0 && SkirmishTimeLeft <= 0f) SkirmishTimeUp();
@@ -452,6 +453,7 @@ public class MatchManager : MonoBehaviour
     void End(string title, string detail, bool canSpectate = false)
     {
         Debug.Log($"[GD5] end {title}: {detail}");
+        if (spectateBanner == null) BuildEndScreen();
         if (title != "DISCONNECTED") RoomService.ForgetRejoin();
         if (!recorded && (title == "VICTORY" || title == "DEFEAT")) { recorded = true; RecordResult(title == "VICTORY"); }
         over = true;
@@ -469,6 +471,7 @@ public class MatchManager : MonoBehaviour
             again = missionNext < Mission.All.Length;
             playAgainButton.GetComponentInChildren<Text>().text = missionNext == Mission.Current ? "RETRY" : "NEXT MISSION";
         }
+        else if (Skirmish.Active && !Tutorial.Active && !Net.InMatch && title != "DISCONNECTED") { again = true; playAgainButton.GetComponentInChildren<Text>().text = "PLAY AGAIN"; }
         playAgainButton.gameObject.SetActive(again);
         var row = new System.Collections.Generic.List<Button>();
         if (canSpectate) row.Add(spectateButton);
@@ -527,10 +530,13 @@ public class MatchManager : MonoBehaviour
         endDetail.color = detail;
         var cam = Camera.main;
         if (cam != null) Juice.Shake(cam.transform.position + cam.transform.forward * 30f, 0.4f);
+        Sfx.Play(Snd.Place, 0.7f, 0.8f);
+        float nextTick = 0f;
         for (float t = 0f; t < count; t += Time.unscaledDeltaTime)
         {
             float k = t / count;
             FillStats(1f - (1f - k) * (1f - k));
+            if (t >= nextTick && k < 0.85f) { nextTick = t + 0.075f; Sfx.Play(Snd.Hover, 0.22f, 0.9f + k * 0.8f); }
             yield return null;
         }
         FillStats(1f);
@@ -572,6 +578,7 @@ public class MatchManager : MonoBehaviour
 
     void BuildEndScreen()
     {
+        if (endPanel.TryGetComponent(out Image shade)) shade.color = new Color(0.01f, 0.01f, 0.03f, 0.92f);
         ((RectTransform)endTitle.transform).anchoredPosition = new Vector2(0f, 330f);
         ((RectTransform)endDetail.transform).anchoredPosition = new Vector2(0f, 240f);
 
@@ -588,6 +595,7 @@ public class MatchManager : MonoBehaviour
         {
             playAgainButton.interactable = false;
             if (Mission.Active) { Mission.Begin(missionNext); return; }
+            if (!Net.InMatch && Skirmish.Active) { Skirmish.ElapsedBefore = 0f; LoadingScreen.Load(gameObject.scene.name); return; }
             RoomService.Instance.SetUpPlayAgain();
             BackToMenu();
         });
@@ -610,7 +618,7 @@ public class MatchManager : MonoBehaviour
 
     Text Column(float x, float width, string header, TextAnchor align)
     {
-        var head = MakeText(endPanel.transform, header, 20, align == TextAnchor.UpperLeft ? TextAnchor.LowerLeft : TextAnchor.LowerCenter, new Color(0.6f, 0.68f, 0.8f));
+        var head = MakeText(endPanel.transform, header, 20, align == TextAnchor.UpperLeft ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter, new Color(0.6f, 0.68f, 0.8f));
         head.rectTransform.anchoredPosition = new Vector2(x, 160f);
         head.rectTransform.sizeDelta = new Vector2(width, 56f);
         var body = MakeText(endPanel.transform, "", 26, align, Color.white);

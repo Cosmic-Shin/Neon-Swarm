@@ -49,8 +49,8 @@ public class FogOfWar : MonoBehaviour
 
     void LateUpdate()
     {
-        if (Time.time < next) return;
-        next = Time.time + interval;
+        if (Time.unscaledTime < next) return;
+        next = Time.unscaledTime + interval;
         Recompute();
     }
 
@@ -67,7 +67,7 @@ public class FogOfWar : MonoBehaviour
 
     void Recompute()
     {
-        if (RevealAll) { System.Array.Fill(visible, true); System.Array.Fill(explored, true); }
+        if (RevealAll) { System.Array.Fill(visible, true); if (!allExplored) { System.Array.Fill(explored, true); allExplored = exploredDirty = true; } }
         else
         {
             System.Array.Clear(visible, 0, visible.Length);
@@ -76,7 +76,7 @@ public class FogOfWar : MonoBehaviour
         }
 
         Blur(visible, softVisible, ease: 0.55f);
-        Blur(explored, softExplored, ease: 1f);
+        if (exploredDirty) { exploredDirty = false; Blur(explored, softExplored, ease: 1f); }
         Color fog = GameSettings.Fog;
         if (fog != shownFog) { shownFog = fog; fogPlane.material.SetColor("_Color", fog); }
         Color32 tint = fog, clear = new(0, 0, 0, 0), dim = new(tint.r, tint.g, tint.b, 120), dark = new(tint.r, tint.g, tint.b, 190);
@@ -145,6 +145,8 @@ public class FogOfWar : MonoBehaviour
         return reach;
     }
 
+    bool exploredDirty = true, allExplored;
+
     void Stamp(Vector3 p, float radius)
     {
         float cell = mapSize / resolution;
@@ -157,7 +159,8 @@ public class FogOfWar : MonoBehaviour
             {
                 if ((x - cx) * (x - cx) + (z - cz) * (z - cz) > r2) continue;
                 int i = z * resolution + x;
-                visible[i] = explored[i] = true;
+                visible[i] = true;
+                if (!explored[i]) { explored[i] = true; exploredDirty = true; }
             }
     }
 

@@ -8,10 +8,10 @@ public static class Controls
 {
     public static readonly (Act act, string name, Key key)[] All =
     {
-        (Act.CamUp, "Scroll up", Key.W),
-        (Act.CamDown, "Scroll down", Key.S),
-        (Act.CamLeft, "Scroll left", Key.A),
-        (Act.CamRight, "Scroll right", Key.D),
+        (Act.CamUp, "Scroll up", Key.UpArrow),
+        (Act.CamDown, "Scroll down", Key.DownArrow),
+        (Act.CamLeft, "Scroll left", Key.LeftArrow),
+        (Act.CamRight, "Scroll right", Key.RightArrow),
         (Act.AttackMove, "Attack-move", Key.A),
         (Act.Patrol, "Patrol", Key.P),
         (Act.Stop, "Stop", Key.S),
@@ -63,6 +63,10 @@ public static class Controls
     {
         Key.None => "-",
         Key.Space => "Space",
+        Key.UpArrow => "Up",
+        Key.DownArrow => "Down",
+        Key.LeftArrow => "Left",
+        Key.RightArrow => "Right",
         Key.Period => ".",
         Key.Comma => ",",
         Key.Minus => "-",

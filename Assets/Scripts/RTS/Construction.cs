@@ -10,6 +10,10 @@ public class Construction : MonoBehaviour
     public bool remote;
     public bool intro;
 
+    public static readonly System.Collections.Generic.List<Construction> All = new();
+    void OnEnable() => All.Add(this);
+    void OnDisable() => All.Remove(this);
+
     public float Progress => site != null ? site.Progress : startProgress;
     public Vector3 PlacedAt { get; private set; }
 

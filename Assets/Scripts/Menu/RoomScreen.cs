@@ -89,7 +89,7 @@ public class RoomScreen : MonoBehaviour
         var players = (RectTransform)playerTemplate.transform.parent;
         botRect.anchorMin = botRect.anchorMax = botRect.pivot = new Vector2(0.5f, 0.5f);
         botRect.sizeDelta = new Vector2(130f, 30f);
-        botRect.anchoredPosition = players.anchoredPosition + new Vector2(players.sizeDelta.x * 0.5f - 65f, players.sizeDelta.y * 0.5f + 12f);
+        botRect.anchoredPosition = players.anchoredPosition + new Vector2(players.sizeDelta.x * 0.5f - 65f, players.sizeDelta.y * 0.5f + 18f);
         addBot.GetComponentInChildren<Text>().rectTransform.sizeDelta = botRect.sizeDelta;
         addBot.GetComponentInChildren<Text>().text = "+ ADD BOT";
         for (int b = 0; b < bases.Length; b++)
@@ -190,6 +190,10 @@ public class RoomScreen : MonoBehaviour
         b.GetComponentInChildren<Text>().rectTransform.sizeDelta = rt.sizeDelta;
         header.gameObject.SetActive(false);
         HoloSkin.Button(b);
+        rt.anchoredPosition += Vector2.down * 14f;
+        foreach (var n in new[] { "MapFrame", "Map" })
+            if (panel.Find(n) is RectTransform r) { r.localScale = Vector3.one * 0.86f; r.anchoredPosition += Vector2.down * 7f; }
+        if (panel.Find("Hint") is RectTransform hint) hint.anchoredPosition += Vector2.up * 5f;
         return b;
     }
 

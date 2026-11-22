@@ -4,7 +4,7 @@ using UnityEngine;
 public class Ambience : MonoBehaviour
 {
     static readonly Color RainColor = new(0.6f, 0.75f, 1f, 0.3f), RippleColor = new(0.55f, 0.75f, 1f, 0.45f),
-        SteamColor = new(0.7f, 0.75f, 0.85f, 0.22f), MoteColor = new(0.7f, 0.9f, 1f, 0.6f),
+        SteamColor = new(0.7f, 0.75f, 0.85f, 0.22f),
         Green = new(0.4f, 1f, 0.5f), Red = new(1f, 0.3f, 0.3f);
     static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
     const float AreaX = 75f, AreaZ = 55f;
@@ -16,13 +16,22 @@ public class Ambience : MonoBehaviour
     {
         cam = GetComponent<Camera>();
         FindCity();
+        var w = GameMaps.Current.weather;
+        RenderSettings.fogColor = w.fog;
+        RenderSettings.fogEndDistance *= w.fogFar;
+        RenderSettings.fogStartDistance *= w.fogNear;
+        var sunLight = RenderSettings.sun != null ? RenderSettings.sun : FindFirstObjectByType<Light>();
+        if (sunLight != null) sunLight.color *= w.sun;
+        RenderSettings.fogDensity /= Mathf.Max(0.1f, w.fogFar);
+        RenderSettings.ambientLight *= w.ambient;
+        if (cam != null && cam.clearFlags == CameraClearFlags.SolidColor) cam.backgroundColor = w.fog;
     }
 
     void Update()
     {
         Vector3 focus = Focus();
         float dt = Time.deltaTime;
-        if (GameSettings.Rain) Rain(focus, dt);
+        if (GameSettings.Rain && GameMaps.Current.weather.rain > 0f) Rain(focus, dt * GameMaps.Current.weather.rain);
         Motes(focus, dt);
         Ores(dt);
         Signs();
@@ -66,15 +75,16 @@ public class Ambience : MonoBehaviour
 
     void Motes(Vector3 focus, float dt)
     {
-        for (moteDebt += 25f * dt; moteDebt >= 1f; moteDebt--)
+        var w = GameMaps.Current.weather;
+        for (moteDebt += 25f * w.motes * dt; moteDebt >= 1f; moteDebt--)
         {
-            Vector3 at = Around(focus, Random.Range(0.5f, 10f));
-            if (Juice.Seen(at)) Particles.Emit("Mote", at, Random.insideUnitSphere * 0.4f + new Vector3(0.3f, 0.05f, 0f), Random.Range(0.05f, 0.12f), 6f, MoteColor);
+            Vector3 at = Around(focus, w.drift.y < 0f ? Random.Range(4f, 14f) : Random.Range(0.5f, 10f));
+            if (Juice.Seen(at)) Particles.Emit("Mote", at, Random.insideUnitSphere * 0.4f + w.drift, Random.Range(0.05f, 0.12f) * w.moteSize, 6f, w.mote);
         }
     }
 
 
-    class OreLook { public Vector3 scale; public int stage; public float popAt = -10f; }
+    class OreLook { public Vector3 scale, shown; public int stage; public float popAt = -10f; }
     readonly Dictionary<OreNode, OreLook> ores = new();
 
     static int Stage(float f) => f > 0.66f ? 3 : f > 0.33f ? 2 : f > 0.001f ? 1 : 0;
@@ -106,7 +116,8 @@ public class Ambience : MonoBehaviour
             float inStage = st == 3 ? (f - 0.66f) / 0.34f : st == 2 ? (f - 0.33f) / 0.33f : st == 1 ? f / 0.33f : 1f;
             float k = Mathf.Clamp01((Time.time - look.popAt) / 0.35f);
             float spring = 1f + 0.2f * (1f - k) * Mathf.Sin(k * Mathf.PI * 2f);
-            o.transform.localScale = look.scale * (0.85f + 0.15f * Mathf.Clamp01(inStage)) * spring;
+            Vector3 scale = look.scale * (0.85f + 0.15f * Mathf.Clamp01(inStage)) * spring;
+            if (scale != look.shown) { look.shown = scale; o.transform.localScale = scale; }
 
             if (seen && st > 0 && Random.value < dt * 0.5f)
                 Juice.Burst(p + new Vector3(Random.Range(-1.5f, 1.5f), Random.Range(0.8f, 2.5f), Random.Range(-1.5f, 1.5f)), Color.Lerp(c, Color.white, 0.7f), 1, 0.2f, 0.4f, 0.4f, 0f);

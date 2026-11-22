@@ -80,9 +80,10 @@ public class Turret : MonoBehaviour
     {
         found.Clear();
         float r2 = Range * Range;
+        Vector3 me = transform.position;
         foreach (var h in Health.All)
-            if (!Net.Allied(h.team, self.team) && (Flyer.IsAir(h) ? hitsAir : hitsGround) && (h.transform.position - transform.position).sqrMagnitude <= r2 && !h.CloakedFrom(transform.position)) found.Add(h);
-        found.Sort((a, b) => (a.transform.position - transform.position).sqrMagnitude.CompareTo((b.transform.position - transform.position).sqrMagnitude));
+            if (!Net.Allied(h.team, self.team) && (h.transform.position - me).sqrMagnitude <= r2 && (Flyer.IsAir(h) ? hitsAir : hitsGround) && !h.CloakedFrom(me)) found.Add(h);
+        if (found.Count > 1) found.Sort((a, b) => (a.transform.position - me).sqrMagnitude.CompareTo((b.transform.position - me).sqrMagnitude));
         if (found.Count > targets) found.RemoveRange(targets, found.Count - targets);
     }
 

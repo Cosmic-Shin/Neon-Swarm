@@ -238,12 +238,12 @@ public class SettingsPanel : MonoBehaviour
         y -= RowStep;
     }
 
-    const float RowStep = 53f;
+    const float RowStep = 48f;
 
     public static Text Cycle(Transform box, string name, ref float y, System.Func<string> show, System.Action next)
     {
         Label(box, name, new Vector2(-145f, y), 22, TextAnchor.MiddleLeft, 260f);
-        var b = Button(box, show(), new Vector2(140f, y), new Vector2(230f, 44f));
+        var b = Button(box, show(), new Vector2(140f, y), new Vector2(230f, 40f));
         HoloSkin.Button(b, HoloUI.ButtonStyle.Small);
         var text = b.GetComponentInChildren<Text>();
         HoloSkin.SetOn(b, text.text == "ON");

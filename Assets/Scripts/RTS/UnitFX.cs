@@ -42,6 +42,12 @@ public static class Particles
                 break;
             case "Rain": pr.renderMode = ParticleSystemRenderMode.Stretch; pr.velocityScale = 0.035f; pr.lengthScale = 1f; size.enabled = false; col.enabled = false; break;
             case "Mote": size.enabled = false; col.color = Fade(0.3f, 0.3f); break;
+            case "Scorch":
+                pr.renderMode = ParticleSystemRenderMode.HorizontalBillboard;
+                pr.sharedMaterial = new Material(pr.sharedMaterial) { name = "Scorch", mainTexture = BurnTexture() };
+                size.enabled = false;
+                col.color = Fade(0.01f, 0.85f);
+                break;
         }
         made[kind] = ps;
         return ps;
@@ -55,6 +61,25 @@ public static class Particles
         g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
                   new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, fadeIn), new GradientAlphaKey(1f, 1f - fadeOut), new GradientAlphaKey(0f, 1f) });
         return g;
+    }
+
+    static Texture2D BurnTexture()
+    {
+        const int n = 64;
+        var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                Vector2 v = new(x - n / 2 + 0.5f, y - n / 2 + 0.5f);
+                Vector2 u = v.normalized;
+                float edge = 0.75f + 0.25f * Mathf.PerlinNoise(u.x * 1.6f + 10f, u.y * 1.6f + 10f);
+                float d = v.magnitude / (n / 2f) / edge;
+                float a = Mathf.Clamp01(1f - d) * (0.6f + 0.4f * Mathf.PerlinNoise(x * 0.15f, y * 0.15f));
+                a = Mathf.Pow(a, 0.8f);
+                t.SetPixel(x, y, new Color(a, a, a, a));
+            }
+        t.Apply();
+        return t;
     }
 
     static Texture2D RingTexture()
@@ -100,7 +125,11 @@ public class HitFX : MonoBehaviour
         if (amount <= 0f || !Juice.Seen(transform.position)) return;
         if (!collected) Collect();
         if (status == null) status = GetComponent<StatusFX>();
-        if (Time.time - lastFlash > 0.12f && (status == null || !status.Cloaked)) Flash();
+        if (Time.time - lastFlash > 0.12f && (status == null || !status.Cloaked))
+        {
+            Flash();
+            if (unit != null) UnitMotion.Pop(unit, -(0.5f + 1.5f * Mathf.Clamp01(amount / health.MaxHealth * 6f)));
+        }
         if (GameSettings.DamageNumbers) { if (pending <= 0f) pendingSince = Time.time; pending += amount; }
     }
 
@@ -253,14 +282,55 @@ public class UnitMotion : MonoBehaviour
     Transform model;
     Quaternion rest;
     Vector3 lastPos, vel;
-    float lastYaw, pitch, roll, walked, stride, radius, nextDust, leanScale;
-    bool heavy, left;
+    float lastYaw, pitch, roll, walked, stride, radius, nextDust, leanScale, punch, punchVel;
+    bool heavy, left, ground, springing;
+    Vector3 restScale;
+    Vector2 tilt, tiltVel;
+
+    public static void Pop(Component unit, float amount)
+    {
+        if (unit != null && unit.TryGetComponent(out UnitMotion m) && m.model != null && m.health != null && Juice.Seen(unit.transform.position)) m.Kick(amount);
+    }
+
+    public static void Knock(Component unit, Vector3 push, float degrees)
+    {
+        if (unit == null || !unit.TryGetComponent(out UnitMotion m) || !m.ground || m.model == null || !Juice.Seen(unit.transform.position)) return;
+        push.y = 0f;
+        if (push.sqrMagnitude < 0.0001f) return;
+        Vector3 d = unit.transform.InverseTransformDirection(push.normalized);
+        float k = degrees * 17f * m.leanScale * (GameSettings.ReduceFlashing ? 0.5f : 1f);
+        m.tiltVel = Vector2.ClampMagnitude(m.tiltVel + new Vector2(d.z, -d.x) * k, 400f);
+    }
+
+    void Kick(float amount)
+    {
+        if (!springing) { restScale = model.localScale; springing = true; }
+        punchVel = Mathf.Clamp(punchVel + amount * (GameSettings.ReduceFlashing ? 0.5f : 1f), -3f, 3f);
+    }
+
+    void Spring(float dt)
+    {
+        if (!springing) return;
+        dt = Mathf.Min(dt, 0.05f);
+        punchVel += (-punch * 260f - punchVel * 13f) * dt;
+        punch += punchVel * dt;
+        if (Mathf.Abs(punch) < 0.002f && Mathf.Abs(punchVel) < 0.02f)
+        {
+            model.localScale = restScale;
+            springing = false;
+            punch = punchVel = 0f;
+            return;
+        }
+        model.localScale = Vector3.Scale(restScale, new Vector3(1f - punch * 0.5f, 1f + punch, 1f - punch * 0.5f));
+    }
 
     void Start()
     {
         model = transform.Find("Model");
-        if (model == null || TryGetComponent(out Flyer _) || model.localPosition.y > 1f) { enabled = false; return; }
         health = GetComponent<Health>();
+        if (model == null) { enabled = false; return; }
+        ground = !TryGetComponent(out Flyer _) && model.localPosition.y <= 1f;
+        if (!ground) return;
         rest = model.localRotation;
         radius = TryGetComponent(out NavMeshAgent agent) ? agent.radius * transform.lossyScale.x : 1f;
         stride = Mathf.Max(0.8f, radius * 1.3f);
@@ -275,6 +345,8 @@ public class UnitMotion : MonoBehaviour
     {
         float dt = Time.deltaTime;
         if (dt <= 0f || !health.enabled) return;
+        Spring(dt);
+        if (!ground) return;
         Vector3 p = transform.position;
         Vector3 v = (p - lastPos) / dt;
         v.y = 0f;
@@ -289,7 +361,10 @@ public class UnitMotion : MonoBehaviour
 
         pitch = Mathf.Lerp(pitch, Mathf.Clamp(accel * 0.3f, -7f, 7f) * leanScale, 8f * dt);
         roll = Mathf.Lerp(roll, Mathf.Clamp(-turn * speed * 0.005f, -8f, 8f) * leanScale, 8f * dt);
-        model.localRotation = Quaternion.Euler(pitch, 0f, roll) * rest;
+        float sdt = Mathf.Min(dt, 0.05f);
+        tiltVel += (-tilt * 280f - tiltVel * 14f) * sdt;
+        tilt += tiltVel * sdt;
+        model.localRotation = Quaternion.Euler(pitch + tilt.x, 0f, roll + tilt.y) * rest;
 
         if (speed < 0.5f || !Juice.Seen(p)) return;
         walked += speed * dt;

@@ -71,7 +71,9 @@ public class LobbyMenu : MonoBehaviour
         float top = panel.sizeDelta.y / 2f - 135f;
         for (int i = 0; i < order.Length; i++)
         {
-            ((RectTransform)order[i].transform).anchoredPosition = new Vector2(0f, top - i * gap);
+            var rt = (RectTransform)order[i].transform;
+            rt.anchoredPosition = new Vector2(0f, top - i * gap);
+            rt.sizeDelta = new Vector2(rt.sizeDelta.x, gap - 6f);
             if (order[i].TryGetComponent(out HoloButtonFX fx)) fx.index = $"{i + 1:00}";
             foreach (var t in order[i].GetComponentsInChildren<Text>(true)) if (t.name == "HoloIndex") t.text = $"{i + 1:00}";
         }

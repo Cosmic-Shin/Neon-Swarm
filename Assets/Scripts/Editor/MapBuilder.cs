@@ -28,6 +28,7 @@ public static class MapBuilder
         var clear = new List<(Vector3 at, float r)>();
         BuildFeatures(m, clear);
         ClearRuins(scene, clear, m.Half);
+        MarkBatching(scene);
         var surface = Object.FindFirstObjectByType<NavMeshSurface>();
         string asset = AssetDatabase.GetAssetPath(surface.navMeshData);
         Bake(surface, string.IsNullOrEmpty(asset) ? "Assets/Scenes/RTSSelection/NavMesh-NavMesh.asset" : asset);
@@ -41,6 +42,15 @@ public static class MapBuilder
     {
         foreach (var g in scene.GetRootGameObjects())
             if (g.name == "MapFeatures" || g.name == "ChasmNav") Object.DestroyImmediate(g);
+    }
+
+    static void MarkBatching(UnityEngine.SceneManagement.Scene scene)
+    {
+        foreach (var g in scene.GetRootGameObjects())
+            if (g.name == "City" || g.name == "MapFeatures")
+                foreach (var r in g.GetComponentsInChildren<MeshRenderer>(true))
+                    if (r.GetComponentInParent<Health>(true) == null)
+                        GameObjectUtility.SetStaticEditorFlags(r.gameObject, GameObjectUtility.GetStaticEditorFlags(r.gameObject) | StaticEditorFlags.BatchingStatic);
     }
 
     static void ClearRuins(UnityEngine.SceneManagement.Scene scene, List<(Vector3 at, float r)> clear, float half)
@@ -132,6 +142,7 @@ public static class MapBuilder
         foreach (var o in outposts) clear.Add((o, 18f));
         BuildFeatures(m, clear);
         ClearRuins(scene, clear, half);
+        MarkBatching(scene);
 
         Root("Ground").transform.localScale = new Vector3(m.size / 10f, 1f, m.size / 10f);
         var grid = Root("City").transform.Find("CityGrid");

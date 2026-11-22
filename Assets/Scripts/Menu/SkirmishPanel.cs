@@ -177,6 +177,8 @@ public class SkirmishPanel : MonoBehaviour
         picked = -1;
         RoomScreen.ShowMap(mapRect, bases, M);
         Setup(M.startAi, M.startYou);
+        UIJuice.Flash(mapButton, HoloUI.Cyan);
+        UIJuice.Stagger(mapRect);
     }
 
     void Update()

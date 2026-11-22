@@ -391,7 +391,9 @@ public class BuildingLife : MonoBehaviour
     Transform visual;
     Vector3 rest;
     float punch, punchVel;
-    bool springing;
+    bool springing, landing;
+
+    public void Land() => landing = true;
     Collider body;
 
     void Common()
@@ -441,11 +443,17 @@ public class BuildingLife : MonoBehaviour
                     Juice.Burst(Roof(), new Color(0.6f, 0.6f, 0.7f), 10, 3f, 0.12f, 0.7f, 0.5f, true);
                 }
             }
+            if (landing && !TryGetComponent(out Construction _))
+            {
+                landing = false;
+                Kick(-1.3f);
+                Juice.Burst(Roof(), team, 16, 6f, 0.12f, 0.5f, 1.2f);
+            }
             Spring(dt);
         });
     }
 
-    void Kick(float amount)
+    public void Kick(float amount)
     {
         if (visual == null || TryGetComponent(out Construction _)) return;
         if (!springing) { rest = visual.localScale; springing = true; }

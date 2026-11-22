@@ -11,7 +11,6 @@ public static class Juice
 
     public static bool Seen(Vector3 at) => FogOfWar.Instance == null || FogOfWar.Instance.IsVisible(at);
 
-
     public static void Ring(Vector3 at, Color c, float from, float to, float time, float width = 0.25f, Transform follow = null)
     {
         var lr = new GameObject("JuiceRing").AddComponent<LineRenderer>();
@@ -31,7 +30,7 @@ public static class Juice
                 float a = i * Mathf.PI * 2f / lr.positionCount;
                 lr.SetPosition(i, centre + new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r));
             }
-            lr.startColor = lr.endColor = new Color(c.r, c.g, c.b, 1f - k);
+            lr.startColor = lr.endColor = new Color(c.r, c.g, c.b, c.a * (1f - k));
         });
     }
 
@@ -99,7 +98,6 @@ public static class Juice
         return ps;
     }
 
-
     public static void BuildingExplosion(GameObject building)
     {
         Sfx.At(Snd.BoomBig, building.transform.position);
@@ -119,6 +117,7 @@ public static class Juice
     }
 
     static readonly Color Soot = new(0.12f, 0.11f, 0.12f, 0.85f);
+    static readonly Color Ember = new(1f, 0.45f, 0.15f, 0.9f);
 
     public static void PlacedRipple(GameObject building)
     {
@@ -179,6 +178,7 @@ public static class Juice
                 Vector3 feet = unit.transform.position + Vector3.up * 0.15f;
                 Ring(feet, c, radius * scale * 0.4f, radius * scale * 2f, 0.45f, 0.15f);
                 Flash(feet + Vector3.up, c, 3f, radius * scale * 5f, 0.3f);
+                UnitMotion.Pop(unit.transform, 1.8f);
             }
             float p = Mathf.Clamp01(t / 0.75f);
             go.transform.localPosition = Vector3.up * height * p;
@@ -189,11 +189,18 @@ public static class Juice
         });
     }
 
+    public static void Scorch(Vector3 at, float size, float life)
+    {
+        Particles.Emit("Scorch", new Vector3(at.x, 0.075f + Random.value * 0.01f, at.z), Vector3.zero, size, life, Ember);
+    }
+
     static void Aftermath(Bounds b)
     {
         float size = Mathf.Max(b.extents.x, b.extents.z);
         var fires = new Vector3[Mathf.Clamp(Mathf.RoundToInt(size / 3f), 2, 5)];
         for (int i = 0; i < fires.Length; i++) fires[i] = new Vector3(Random.Range(b.min.x, b.max.x), 0.3f, Random.Range(b.min.z, b.max.z));
+        Scorch(b.center, size * 2.6f, 45f);
+        foreach (var f in fires) Scorch(f, size * 0.9f, 30f);
         var anchor = new GameObject("BuildingAftermath");
         float nextPop = 0.15f, nextFire = 0f;
         Play(anchor, 9f, k =>
@@ -276,7 +283,7 @@ public static class Juice
                 lr.SetPosition(0, tip + dir * 0.6f + side * 0.6f);
                 lr.SetPosition(1, tip);
                 lr.SetPosition(2, tip + dir * 0.6f - side * 0.6f);
-                lr.startColor = lr.endColor = new Color(c.r, c.g, c.b, 1f - k);
+                lr.startColor = lr.endColor = new Color(c.r, c.g, c.b, c.a * (1f - k));
             });
         }
     }
@@ -309,7 +316,7 @@ public static class Juice
     public static void ConstructionDone(GameObject building)
     {
         var b = ConstructionSite.RendererBounds(building);
-        Sfx.At(Snd.Cannon, b.center, 0.5f);
+        Sfx.At(Snd.Cannon, b.center, 0.7f);
         if (!Seen(b.center)) return;
         float size = Mathf.Max(b.extents.x, b.extents.z);
         Vector3 ground = new(b.center.x, 0.15f, b.center.z);
@@ -323,7 +330,8 @@ public static class Juice
         }
         Burst(new Vector3(b.center.x, b.max.y, b.center.z), ProductionFX.HoloColor(building), 25, 5f, 0.15f, 0.7f, 1f);
         Flash(b.center + Vector3.up * b.extents.y, ProductionFX.HoloColor(building), 4f, size * 3f, 0.4f);
-        Shake(b.center, 0.2f);
+        Shake(b.center, 0.3f);
+        if (building.TryGetComponent(out BuildingLife life)) life.Land();
     }
 
     public static void UnitDeath(SelectableUnit unit)
@@ -338,9 +346,11 @@ public static class Juice
         Burst(c, Fire, Mathf.RoundToInt(10 * big), 4f * big, 0.12f, 0.45f, 0.6f, true);
         Burst(c, team, Mathf.RoundToInt(8 * big), 3f * big, 0.1f, 0.6f, 0.4f);
         Particles.Emit("Smoke", c, Vector3.up * 1.2f, 0.8f * big, 1.4f, Soot);
+        Ring(ground, Fire, 0.4f, 2.4f * big, 0.4f, 0.15f + 0.1f * big);
+        Ring(ground, new Color(team.r, team.g, team.b, 0.45f), 0.2f, 1.2f * big, 0.3f, 0.05f);
+        Scorch(ground, 1.6f * big, 12f);
         if (big > 1f)
         {
-            Ring(ground, Fire, 0.5f, 3f * big, 0.45f, 0.3f);
             Shake(c, 0.12f * big);
             if (big > 2f) Aftermath(new Bounds(c, new Vector3(4f, 3f, 4f)));
         }

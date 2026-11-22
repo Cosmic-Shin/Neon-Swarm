@@ -54,14 +54,14 @@ public class MenuExtras : MonoBehaviour
         x.tip = Label(root, "", Vector2.zero, 19, TextAnchor.MiddleLeft, 900f, new Color(0.8f, 0.88f, 1f), false);
         var tr = x.tip.rectTransform;
         tr.anchorMin = tr.anchorMax = tr.pivot = new Vector2(0f, 0f);
-        tr.anchoredPosition = new Vector2(110f, 26f);
+        tr.anchoredPosition = new Vector2(110f, 10f);
         tr.sizeDelta = new Vector2(900f, 30f);
 
         var music = Label(root, $"NOW PLAYING  <color=#FFFFFF>{Sfx.Credits[0]}</color>  ·  Kevin MacLeod      <color=#5A6680>v{Application.version}</color>",
             Vector2.zero, 15, TextAnchor.MiddleRight, 700f, new Color(0.55f, 0.6f, 0.75f), false);
         var mr = music.rectTransform;
         mr.anchorMin = mr.anchorMax = mr.pivot = new Vector2(1f, 0f);
-        mr.anchoredPosition = new Vector2(-36f, 26f);
+        mr.anchoredPosition = new Vector2(-36f, 10f);
         mr.sizeDelta = new Vector2(700f, 24f);
         music.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(1.5f, -1.5f);
         x.tip.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(1.5f, -1.5f);

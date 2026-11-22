@@ -13,7 +13,8 @@ public class Structure : MonoBehaviour
     public float sight;
     [SerializeField] float repairSpeed = 0.05f;
 
-    public bool IsSelected { get; set; }
+    bool selected;
+    public bool IsSelected { get => selected; set { if (value && !selected && TryGetComponent(out BuildingLife life)) life.Kick(0.6f); selected = value; } }
     public bool Repairing { get; private set; }
     public bool RemoteRepairing { get; set; }
     public Health Health { get; private set; }
