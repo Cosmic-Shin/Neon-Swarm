@@ -19,7 +19,7 @@ MonoBehaviour:
   cost: 3000
   buildTime: 30
   squadSize: 1
-  maxHealth: 3200
+  maxHealth: 2000
   damage: 160
   range: 20
   attackCooldown: 2.5

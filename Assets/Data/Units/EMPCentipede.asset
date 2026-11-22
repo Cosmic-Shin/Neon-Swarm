@@ -27,7 +27,7 @@ MonoBehaviour:
   hitsAir: 0
   moveSpeed: 9
   sight: 0
-  splash: 5
+  splash: 3.5
   stunOnHit: 1.5
   slowOnHit: 0
   buildingDamage: 1

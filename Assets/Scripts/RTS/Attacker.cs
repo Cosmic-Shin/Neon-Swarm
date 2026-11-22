@@ -245,7 +245,7 @@ public class Attacker : MonoBehaviour
 
     void Pulse(bool real)
     {
-        float r = data.splash > 0f ? Stats.Value(Stat.Splash, data.splash, this) : 8f;
+        float r = Mathf.Max(data.splash > 0f ? Stats.Value(Stat.Splash, data.splash, this) : 8f, Range + 0.5f);
         Vector3 ground = new(transform.position.x, 0.3f, transform.position.z);
         Color c = ProductionFX.HoloColor(gameObject);
         Juice.Ring(ground, c, 1f, r, 0.4f, 0.4f);
@@ -255,8 +255,11 @@ public class Attacker : MonoBehaviour
         hits.Clear();
         foreach (var h in Health.All)
         {
+            if (h == null || Net.Allied(h.team, self.team) || Flyer.IsAir(h)) continue;
             Vector3 d = h.transform.position - transform.position; d.y = 0f;
-            if (!Net.Allied(h.team, self.team) && !Flyer.IsAir(h) && d.sqrMagnitude <= r * r) hits.Add(h);
+            if (d.sqrMagnitude > (r + 40f) * (r + 40f)) continue;
+            d = AimPoint(h, transform.position) - transform.position; d.y = 0f;
+            if (d.magnitude - Radius(h) <= r) hits.Add(h);
         }
         for (int i = 0; i < Mathf.Min(6, muzzles.Count) && data.extra != null; i++)
         {
@@ -347,6 +350,7 @@ public class Attacker : MonoBehaviour
             Vector3 d = h.transform.position - at; d.y = 0f;
             if (!Net.Allied(h.team, self.team) && d.sqrMagnitude <= s2 && Flyer.IsAir(h) == air) hits.Add(h);
         }
+        if (t != null && t.isActiveAndEnabled && !t.IsDead && !hits.Contains(t)) hits.Add(t);
         foreach (var h in hits) Hit(h, dmg, stun);
     }
 

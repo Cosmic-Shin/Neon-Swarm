@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Hornet Interceptor
   role: 1
-  description: Fast air interceptors, two per order. Shreds other flyers and light
-    units.
+  description: Fast anti-air interceptors, two per order. Cannons tear through gunships,
+    bombers and titans, but they can't hit ground and lose to swarms.
   icon: {fileID: 21300000, guid: d8e322ae7ab2d7a448db209a9fc46331, type: 3}
   cost: 500
   buildTime: 7
@@ -24,7 +24,7 @@ MonoBehaviour:
   damage: 10
   range: 14
   attackCooldown: 0.4
-  hitsGround: 1
+  hitsGround: 0
   hitsAir: 1
   moveSpeed: 18
   sight: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
   slowOnHit: 0
   buildingDamage: 0.5
   armor: 0
-  weapon: 1
+  weapon: 2
   ability: 0
   visual:
     projectile: {fileID: 1058419780056461119, guid: 4cad3a03ccfbfbb4280f6ce00f2f8c38, type: 3}

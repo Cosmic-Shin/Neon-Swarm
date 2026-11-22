@@ -100,6 +100,7 @@ public partial class AIPlayer : MonoBehaviour
     float Counter(UnitData d)
     {
         float total = enemyLight + enemyHeavy;
+        if (!d.hitsGround) return Mathf.Clamp01(AirShare * 2f) * (1f + AirNeed * 2f);
         if (total < 1f) return 1f;
         float f = (enemyLight * DamageTable.Factor(d.weapon, DamageTable.Armor.Light) + enemyHeavy * DamageTable.Factor(d.weapon, DamageTable.Armor.Heavy)) / total;
         f *= d.hitsAir ? 1f + AirNeed * 2f : 1f - AirShare * 0.5f;
