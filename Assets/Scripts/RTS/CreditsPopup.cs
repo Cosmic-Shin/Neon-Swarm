@@ -10,10 +10,11 @@ public class CreditsPopup : MonoBehaviour
 
     public float Age => Time.time - born;
 
-    public void Restart(string message)
+    public void Restart(string message, Vector3? at = null)
     {
         text.text = message;
         born = Time.time - 0.05f;
+        if (at is Vector3 p) transform.position = p;
     }
 
     public static CreditsPopup Show(Vector3 at, string message, Color color)

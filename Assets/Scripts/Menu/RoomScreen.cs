@@ -78,8 +78,8 @@ public class RoomScreen : MonoBehaviour
         var startRect = (RectTransform)startGame.transform;
         var watchRect = (RectTransform)watchButton.transform;
         watchRect.anchorMin = startRect.anchorMin; watchRect.anchorMax = startRect.anchorMax; watchRect.pivot = startRect.pivot;
-        watchRect.sizeDelta = new Vector2(130f, startRect.sizeDelta.y);
-        watchRect.anchoredPosition = startRect.anchoredPosition - new Vector2(startRect.sizeDelta.x * 0.5f + 82f, 0f);
+        watchRect.sizeDelta = new Vector2(160f, startRect.sizeDelta.y);
+        watchRect.anchoredPosition = startRect.anchoredPosition - new Vector2(startRect.sizeDelta.x * 0.5f + 97f, 0f);
         watchButton.GetComponentInChildren<Text>().rectTransform.sizeDelta = watchRect.sizeDelta;
         addBot = Instantiate(watchButton, transform);
         addBot.name = "AddBotButton";

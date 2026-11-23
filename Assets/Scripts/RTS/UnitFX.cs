@@ -189,7 +189,7 @@ public class HitFX : MonoBehaviour
 
         if (pending > 0f && Time.time - pendingSince > 0.25f)
         {
-            if (live != null && live.Age < 0.9f) { liveTotal += pending; live.Restart(Mathf.CeilToInt(liveTotal).ToString()); }
+            if (live != null && live.Age < 0.9f) { liveTotal += pending; live.Restart(Mathf.CeilToInt(liveTotal).ToString(), transform.position + Vector3.up * (top + 0.5f)); }
             else
             {
                 liveTotal = pending;

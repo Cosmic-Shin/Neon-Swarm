@@ -368,11 +368,12 @@ public class MapDressing : MonoBehaviour
             float pulse = 0.85f + 0.15f * Mathf.Sin(t * 1.3f + centre.x);
             m.SetColor(TintId, new Color(c.r, c.g, c.b, (0.05f + 0.25f * k) * pulse));
         }
+        bool over = MatchManager.Instance != null && MatchManager.Instance.IsOver;
         foreach (var (at, pad, hex) in pads)
         {
             bool taken = false;
             foreach (var s in Structure.All) if (s != null && (s.transform.position - at).sqrMagnitude < 45f * 45f) { taken = true; break; }
-            pad.SetActive(!taken);
+            pad.SetActive(!taken && !over);
             if (!taken) hex.rotation = Quaternion.Euler(90f, t * 6f, 0f);
         }
     }
