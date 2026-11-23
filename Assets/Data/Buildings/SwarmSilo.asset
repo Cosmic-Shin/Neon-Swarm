@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
+  m_Name: SwarmSilo
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  displayName: Swarm Silo
+  description: 'Superweapon. Charges for 7:00, then launches a pod anywhere on the
+    map: an EMP blast followed by 40 Locust drones that tear apart everything in
+    a 22 m radius. Everyone gets a 5 second warning.'
+  prefab: {fileID: 4184802917020076504, guid: d7c5b3f5493d62640b570b60e3ccc49d, type: 3}
+  icon: {fileID: 21300000, guid: edcb6ec8132f1054e9c566a863b39fed, type: 3}
+  cost: 5000
+  buildTime: 60
+  dragLine: 0
+  requires:
+  - {fileID: 11400000, guid: 9f84673475348ea43bf26d48423a57db, type: 2}
+  coreLevel: 3
+  onePerPlayer: 1

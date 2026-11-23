@@ -37,6 +37,7 @@ public class Tutorial : MonoBehaviour
     bool moved;
     Vector3 cameraStart;
     int unitsBefore, structuresBefore;
+    const int WaitStep = 4;
 
     void Start()
     {
@@ -59,7 +60,7 @@ public class Tutorial : MonoBehaviour
             () => Selected(u => !u.TryGetComponent(out Harvester _)));
         Add("MOVE OUT", "<b>Right-click</b> the ground to move the selected units there. Hold Shift to queue several orders.",
             () => moved, () => moved = false);
-        Add("BUILD A STRUCTURE", "Click <b>BUILDINGS</b>, pick one, then click the ground to place it. Drag while holding the button to rotate it. Power Plants keep your base running.",
+        Add("BUILD A STRUCTURE", "Click <b>BUILDINGS</b>, pick one, then click the ground to place it. Drag while holding the button to rotate it. Power Pylons keep your base running.",
             () => Structure.All.Count > structuresBefore || FindObjectsByType<Construction>(FindObjectsSortMode.None).Length > 0,
             () => structuresBefore = Structure.All.Count);
         Add("ENEMY SCOUTS!", "Enemy scouts are coming. Select your units and <b>right-click an enemy</b> to attack it. Press <b>A</b> then click the ground to attack-move.",
@@ -72,6 +73,7 @@ public class Tutorial : MonoBehaviour
     void Update()
     {
         if (index < 0 || index >= steps.Count || Time.time - stepStarted < 1f) return;
+        if (index == WaitStep && hive != null && hive.QueueLength == 0 && MyUnits() <= unitsBefore) { index = WaitStep - 2; Next(); return; }
         if (steps[index].done()) Next();
     }
 

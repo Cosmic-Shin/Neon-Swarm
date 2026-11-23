@@ -6,6 +6,8 @@ public class Building : MonoBehaviour
 {
     [SerializeField] SelectableUnit[] unitPrefabs;
     [SerializeField] ResearchData[] upgrades;
+    public SelectableUnit[] Trains => unitPrefabs ?? System.Array.Empty<SelectableUnit>();
+    public ResearchData[] Researches => upgrades ?? System.Array.Empty<ResearchData>();
     [SerializeField] Transform spawnPoint;
     [SerializeField] float spawnSpread = 1.5f;
     [SerializeField] float exitSpeed = 4f;
@@ -154,7 +156,7 @@ public class Building : MonoBehaviour
         RallyFlag(showRally);
 
         ShowProduction(Producing, Progress01);
-        if (queue.Count == 0) return;
+        if (queue.Count == 0 || (structure != null && structure.IsStunned)) return;
         progress += Time.deltaTime * (Structure.LowPowerOf(Team) ? 0.5f : 1f);
         if (progress < TimeOf(queue[0])) return;
 

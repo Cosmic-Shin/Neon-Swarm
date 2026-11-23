@@ -14,7 +14,7 @@ public enum Snd
 
 public enum Line
 {
-    Ready, Built, UnderAttack, Destroyed, Research, Upgrade, Start, Hurry, TimeUp, Win, Lose,
+    Ready, Built, UnderAttack, Destroyed, Research, Upgrade, Start, Hurry, TimeUp, Win, Lose, Launch, Incoming, TakeCover,
 }
 
 public class Sfx : MonoBehaviour
@@ -53,9 +53,20 @@ public class Sfx : MonoBehaviour
         }
         lastPlayed = new float[count];
         for (int i = 0; i < lastPlayed.Length; i++) lastPlayed[i] = -1f;
-        music = gameObject.AddComponent<AudioSource>();
+        var musicObject = new GameObject("Music");
+        musicObject.transform.SetParent(transform, false);
+        music = musicObject.AddComponent<AudioSource>();
         music.playOnAwake = false;
         music.ignoreListenerPause = true;
+        musicFilter = musicObject.AddComponent<AudioLowPassFilter>();
+        musicFilter.cutoffFrequency = MaxCutoff;
+        var barkObject = new GameObject("Barks");
+        barkObject.transform.SetParent(transform, false);
+        bark = barkObject.AddComponent<AudioSource>();
+        bark.playOnAwake = false;
+        barkObject.AddComponent<AudioHighPassFilter>().cutoffFrequency = 450f;
+        barkObject.AddComponent<AudioLowPassFilter>().cutoffFrequency = 4200f;
+        barkObject.AddComponent<AudioDistortionFilter>().distortionLevel = 0.35f;
         rain = gameObject.AddComponent<AudioSource>();
         rain.playOnAwake = false;
         rain.loop = true;
@@ -68,6 +79,11 @@ public class Sfx : MonoBehaviour
         announcer = gameObject.AddComponent<AudioSource>();
         announcer.playOnAwake = false;
         announcer.ignoreListenerPause = true;
+        for (int i = 0; i < cues.Length; i++) { cues[i] = gameObject.AddComponent<AudioSource>(); cues[i].playOnAwake = false; }
+        swarmLoop = gameObject.AddComponent<AudioSource>();
+        swarmLoop.playOnAwake = false;
+        swarmLoop.loop = true;
+        swarmLoop.clip = engine.clip;
         lines = System.Array.ConvertAll(LineFiles, f => Resources.Load<AudioClip>("Sfx/Voice/" + f));
         SceneManager.sceneLoaded += (s, _) => { PickMusic(s.buildIndex == 0); inMatch = s.buildIndex != 0; System.Array.Clear(lineReady, 0, lineReady.Length); };
         GameSettings.Changed += ApplyVolume;
@@ -76,7 +92,38 @@ public class Sfx : MonoBehaviour
 
     void OnDestroy() => GameSettings.Changed -= ApplyVolume;
 
-    void ApplyVolume() => music.volume = 0.45f * GameSettings.Music * fade * duck;
+    void ApplyVolume() => music.volume = 0.45f * GameSettings.Music * fade * duck * Mathf.Lerp(0.68f, 1f, intensity);
+
+    const float MinCutoff = 650f, MaxCutoff = 22000f;
+    AudioLowPassFilter musicFilter;
+    AudioSource bark;
+    float heat, intensity = 1f, lastBattle = -100f;
+
+    public static void Battle(float share)
+    {
+        if (I == null) return;
+        I.heat = Mathf.Clamp01(I.heat + 0.08f + share);
+        I.lastBattle = Time.unscaledTime;
+    }
+
+    void UpdateIntensity()
+    {
+        if (Time.unscaledTime - lastBattle > 5f) heat = Mathf.MoveTowards(heat, 0f, Time.unscaledDeltaTime * 0.12f);
+        bool calmable = inMatch && !(MatchManager.Instance != null && MatchManager.Instance.IsOver);
+        float target = calmable ? heat : 1f;
+        intensity = Mathf.MoveTowards(intensity, target, Time.unscaledDeltaTime * (target > intensity ? 1.2f : 0.25f));
+        musicFilter.cutoffFrequency = MinCutoff * Mathf.Pow(MaxCutoff / MinCutoff, intensity);
+    }
+
+    public static bool Bark(AudioClip clip, float pitch)
+    {
+        if (I == null || clip == null || I.bark.isPlaying || I.announcer.isPlaying) return false;
+        I.bark.clip = clip;
+        I.bark.pitch = pitch;
+        I.bark.volume = 0.8f * GameSettings.Effects;
+        I.bark.Play();
+        return true;
+    }
 
 
     static readonly (Snd, string[])[] Files =
@@ -147,7 +194,7 @@ public class Sfx : MonoBehaviour
     AudioSource engine;
 
 
-    static readonly string[] LineFiles = { "ready", "objective_achieved", "war_call_for_backup", "war_target_destroyed", "level_up", "power_up", "war_go_go_go", "hurry_up", "time_over", "you_win", "you_lose" };
+    static readonly string[] LineFiles = { "ready", "objective_achieved", "war_call_for_backup", "war_target_destroyed", "level_up", "power_up", "war_go_go_go", "hurry_up", "time_over", "you_win", "you_lose", "war_fire_in_the_hole", "war_look_out", "war_get_down" };
     AudioSource announcer;
     AudioClip[] lines;
     readonly float[] lineReady = new float[LineFiles.Length];
@@ -156,7 +203,7 @@ public class Sfx : MonoBehaviour
     {
         if (I == null) return;
         int i = (int)line;
-        bool final = line == Line.Win || line == Line.Lose;
+        bool final = line == Line.Win || line == Line.Lose || line >= Line.Launch;
         if (I.lines[i] == null || Time.unscaledTime < I.lineReady[i] || (I.announcer.isPlaying && !final)) return;
         I.lineReady[i] = Time.unscaledTime + cooldown;
         I.announcer.Stop();
@@ -165,7 +212,66 @@ public class Sfx : MonoBehaviour
         I.announcer.Play();
     }
 
-    public static void Stinger(bool won) { if (I != null) I.StartCoroutine(I.PlayStinger(won)); }
+    readonly AudioSource[] cues = new AudioSource[8];
+    readonly Dictionary<string, AudioClip> cueClips = new();
+    AudioSource swarmLoop;
+    Coroutine ducking;
+
+    public static void Cue(string file, float volume = 1f, float pitch = 1f)
+    {
+        if (I == null) return;
+        if (!I.cueClips.TryGetValue(file, out var clip)) I.cueClips[file] = clip = Resources.Load<AudioClip>("Sfx/" + file);
+        if (clip == null) { Debug.LogWarning($"[Sfx] no cue {file}"); return; }
+        foreach (var a in I.cues)
+        {
+            if (a.isPlaying) continue;
+            a.clip = clip;
+            a.volume = Mathf.Clamp01(volume) * GameSettings.Effects;
+            a.pitch = pitch;
+            a.Play();
+            return;
+        }
+    }
+
+    public static void CueAt(string file, Vector3 at, float volume, float pitch, float floor)
+    {
+        var cam = Camera.main;
+        if (cam == null) return;
+        Vector3 focus = cam.transform.position + cam.transform.forward * 30f;
+        float d = Vector2.Distance(new Vector2(at.x, at.z), new Vector2(focus.x, focus.z));
+        float k = Juice.Seen(at) ? Mathf.Clamp01(1.15f - d / 110f) : 0f;
+        k = Mathf.Max(k, floor);
+        if (k > 0.03f) Cue(file, volume * k, pitch);
+    }
+
+    public static void Duck(float level, float seconds)
+    {
+        if (I == null) return;
+        if (I.ducking != null) I.StopCoroutine(I.ducking);
+        I.ducking = I.StartCoroutine(I.DuckFor(level, seconds));
+    }
+
+    System.Collections.IEnumerator DuckFor(float level, float seconds)
+    {
+        duck = level;
+        yield return new WaitForSecondsRealtime(seconds);
+        for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime) { duck = Mathf.Lerp(level, 1f, t); yield return null; }
+        duck = 1f;
+        ducking = null;
+    }
+
+    public static void SwarmLoop(float volume, float pitch)
+    {
+        if (I == null || I.swarmLoop == null) return;
+        var a = I.swarmLoop;
+        if (Time.timeScale <= 0f) volume = 0f;
+        a.volume = Mathf.Clamp01(volume) * 0.55f * GameSettings.Effects;
+        a.pitch = pitch;
+        if (volume > 0f && !a.isPlaying && a.clip != null) a.Play();
+        else if (volume <= 0f && a.isPlaying) a.Stop();
+    }
+
+    public static void Stinger(bool won) { if (I != null) { if (I.ducking != null) { I.StopCoroutine(I.ducking); I.ducking = null; } I.StartCoroutine(I.PlayStinger(won)); } }
 
     System.Collections.IEnumerator PlayStinger(bool won)
     {
@@ -225,6 +331,7 @@ public class Sfx : MonoBehaviour
             music.Play();
         }
         else if (!inMenu && !music.isPlaying && music.clip != null && Application.isFocused) want = NextMatchTrack();
+        UpdateIntensity();
         ApplyVolume();
     }
 

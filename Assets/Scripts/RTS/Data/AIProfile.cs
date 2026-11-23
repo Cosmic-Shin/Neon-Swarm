@@ -40,6 +40,8 @@ public class AIProfile : ScriptableObject
     public bool upgrades = true;
     [Tooltip("Seconds into the match when it upgrades the Core Nexus ahead of the build order (saving up for it). 0 = only after the build order.")]
     public float coreUpgradeAt;
+    [Tooltip("Seconds into the match when it saves up for Core Nexus Mk III (unlocks the Swarm Silo). 0 = only after the build order.")]
+    public float coreMk3At;
     [Tooltip("After the build order: research in its labs.")]
     public bool research = true;
 
@@ -51,6 +53,8 @@ public class AIProfile : ScriptableObject
     [Tooltip("Seconds between raids on enemy harvesters with its fastest units. 0 = never.")]
     public float harassEvery;
     public int harassSize = 3;
+    [Tooltip("Builds a Swarm Silo once unlocked and fires it at the richest enemy cluster.")]
+    public bool superweapon;
 
     [Header("Battle")]
     [Tooltip("The squad shoots the most valuable, most damaged enemy unit nearby together.")]
@@ -61,4 +65,8 @@ public class AIProfile : ScriptableObject
     public bool regroup;
     [Tooltip("Ranged units step back from melee units.")]
     public bool kite;
+    [Tooltip("Waves go for valuable, poorly defended buildings instead of the nearest one.")]
+    public bool weakSpot;
+    [Tooltip("Share of a wave sent around the side as a second prong. 0 = one direct push.")]
+    [Range(0f, 0.5f)] public float flankShare;
 }

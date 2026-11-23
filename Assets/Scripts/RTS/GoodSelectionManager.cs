@@ -142,6 +142,7 @@ public class GoodSelectionManager : MonoBehaviour
             }
             isDragging = false;
             if (selected.Exists(u => u != null) || selectedStructure != null) Sfx.Play(Snd.Select, 0.45f);
+            Barks.Say(selected, Barks.Kind.Select);
         }
 
         if (mouse.rightButton.wasPressedThisFrame && !overUI)
@@ -276,7 +277,7 @@ public class GoodSelectionManager : MonoBehaviour
     public void ArmAttackMove() { attackMoveArmed = true; patrolArmed = false; Alerts.Show("Attack-move: left-click a spot", Alerts.Warn); }
     public void ArmPatrol() { patrolArmed = true; attackMoveArmed = false; Alerts.Show("Patrol: left-click the far end", Alerts.Warn); }
     public void StopOrder() { attackMoveArmed = patrolArmed = false; OnStopCommand?.Invoke(); }
-    public void HoldOrder() { attackMoveArmed = patrolArmed = false; OnHoldCommand?.Invoke(); }
+    public void HoldOrder() { attackMoveArmed = patrolArmed = false; OnHoldCommand?.Invoke(); Barks.Say(selected, Barks.Kind.Hold); }
 
     public List<SelectableUnit> Group(int i) => groups[i];
     public void SelectGroup(int i) { if (groups[i] != null) SelectOnly(groups[i]); }
@@ -321,6 +322,7 @@ public class GoodSelectionManager : MonoBehaviour
         {
             OnAttackCommand?.Invoke(enemy);
             Juice.TargetLock(enemy);
+            Barks.Say(selected, Barks.Kind.Attack);
             return;
         }
         if (!GroundAt(screenPos, out Vector3 point)) return;
@@ -428,6 +430,7 @@ public class GoodSelectionManager : MonoBehaviour
             {
                 OnAttackCommand?.Invoke(enemy);
                 Juice.TargetLock(enemy);
+                Barks.Say(selected, Barks.Kind.Attack);
                 return;
             }
         }
@@ -455,6 +458,7 @@ public class GoodSelectionManager : MonoBehaviour
     void ShowMarker(Vector3 point, Color? color = null)
     {
         Sfx.Play(Snd.Ack, 0.5f);
+        Barks.Say(selected, color == Juice.Danger ? Barks.Kind.Attack : Barks.Kind.Move);
         Color c = color ?? MoveColor;
         Juice.MoveMarker(point, c);
         foreach (var u in selected) if (u != null) Juice.OrderLine(Flyer.Center(u), point, c);

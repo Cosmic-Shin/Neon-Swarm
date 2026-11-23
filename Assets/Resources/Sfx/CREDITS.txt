@@ -23,3 +23,6 @@ Freesound.org, CC0 1.0 (via the CC-Sounds pack, github.com/Fris0uman/CDDA-Soundp
   thunder_far.ogg = by chromakei                 https://freesound.org/people/chromakei/sounds/398287/
 
 Used in Sfx.cs (Files table): every game sound comes from these files; nothing is synthesised.
+
+Kenney Voiceover Pack (male), CC0: Voice/Units/*.ogg unit barks (from github.com/electronstudio/godot_space audio/voiceover_male/source). Downloaded 2026-11-23.
+Kenney Voiceover Pack (female), CC0: Voice/war_fire_in_the_hole, war_look_out, war_get_down (from github.com/pigdevstudio/godot-sandbox source/audio/voiceover_female/source). Downloaded 2026-11-23.

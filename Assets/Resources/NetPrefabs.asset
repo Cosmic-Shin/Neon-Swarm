@@ -105,5 +105,7 @@ MonoBehaviour:
     net: {fileID: 4347514938271174735, guid: ee64bc9bc17c28e42893a3b6c8cca7d7, type: 3}
   - original: {fileID: 3510008407332807053, guid: 6ba107ed72d45b743b116381ab3f8449, type: 3}
     net: {fileID: 7895002837872540998, guid: 0abe84979a7f45c48a4ac704e4f0175d, type: 3}
+  - original: {fileID: 4184802917020076504, guid: d7c5b3f5493d62640b570b60e3ccc49d, type: 3}
+    net: {fileID: 5339189647895930364, guid: ba6a7c28fa04f54468f285443a50daa2, type: 3}
   - original: {fileID: 6527225675829629699, guid: f617a70329d83a942b75afd6d830f51e, type: 3}
     net: {fileID: 4710908318105215032, guid: 101243d46dfe6954ea88ca11bffba6db, type: 3}

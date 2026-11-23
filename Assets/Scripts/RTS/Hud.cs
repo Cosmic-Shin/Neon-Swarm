@@ -19,6 +19,7 @@ public class Hud : MonoBehaviour
     void Start()
     {
         manager = FindFirstObjectByType<GoodSelectionManager>();
+        gameObject.AddComponent<SiloHud>();
         template = transform.Find("BuildingsButton").GetComponent<Button>();
         font = template.GetComponentInChildren<Text>().font;
         if (transform.Find("SelectedUnits") is Transform old) old.gameObject.SetActive(false);

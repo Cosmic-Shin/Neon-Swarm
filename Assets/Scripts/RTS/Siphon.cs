@@ -13,6 +13,7 @@ public class Siphon : MonoBehaviour
 
     void Update()
     {
+        if (Structure.Stunned(this)) { next += Time.deltaTime; return; }
         if (Time.time < next) return;
         next = Time.time + interval;
         LastPayout = Time.time;

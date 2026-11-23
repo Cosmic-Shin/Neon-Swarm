@@ -73,7 +73,10 @@ MonoBehaviour:
   expandBelow: 2000
   harassEvery: 180
   harassSize: 2
+  superweapon: 1
   focusFire: 1
   retreatBelow: 0.2
   regroup: 1
   kite: 0
+  weakSpot: 1
+  flankShare: 0

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public enum Act { CamUp, CamDown, CamLeft, CamRight, AttackMove, Patrol, Stop, Hold, Formation, Unload, NextIdle, BuildMenu, JumpAlert, Help, QuickSave, QuickLoad }
+public enum Act { CamUp, CamDown, CamLeft, CamRight, AttackMove, Patrol, Stop, Hold, Formation, Unload, NextIdle, BuildMenu, JumpAlert, Help, QuickSave, QuickLoad, FireSilo }
 
 public static class Controls
 {
@@ -24,6 +24,7 @@ public static class Controls
         (Act.Help, "Hotkey sheet", Key.F1),
         (Act.QuickSave, "Quick save", Key.F5),
         (Act.QuickLoad, "Quick load", Key.F9),
+        (Act.FireSilo, "Fire Swarm Silo", Key.G),
     };
 
     public const string Grid = "QWERTYUIOPASDFGHJKL";

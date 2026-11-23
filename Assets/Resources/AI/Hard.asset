@@ -87,12 +87,16 @@ MonoBehaviour:
   defendRadius: 65
   upgrades: 1
   coreUpgradeAt: 240
+  coreMk3At: 540
   research: 1
   counterPick: 1
   expandBelow: 3000
   harassEvery: 90
   harassSize: 3
+  superweapon: 1
   focusFire: 1
   retreatBelow: 0.35
   regroup: 1
   kite: 1
+  weakSpot: 1
+  flankShare: 0.35

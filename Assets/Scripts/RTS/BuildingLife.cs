@@ -38,6 +38,7 @@ public class BuildingLife : MonoBehaviour
 
     void Update()
     {
+        if (s != null && (s.Health.IsDead || !s.Health.enabled)) { enabled = false; return; }
         if (eye != null && !eye.isVisible) return;
         if (!Juice.Seen(transform.position)) return;
         float dt = Time.deltaTime;

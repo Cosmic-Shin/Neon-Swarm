@@ -34,8 +34,8 @@ public class BuildingPlacer : MonoBehaviour
     public RectTransform ProgressBarTemplate => progressBarTemplate;
 
     static readonly Key[] Hotkeys = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5, Key.Digit6,
-        Key.Digit7, Key.Digit8, Key.Digit9, Key.Digit0, Key.Minus, Key.Equals, Key.Z, Key.X, Key.C };
-    static readonly string[] HotkeyLabels = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Z", "X", "C" };
+        Key.Digit7, Key.Digit8, Key.Digit9, Key.Digit0, Key.Minus, Key.Equals, Key.Z, Key.X, Key.C, Key.V, Key.N };
+    static readonly string[] HotkeyLabels = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Z", "X", "C", "V", "N" };
     bool[] lockedShown;
 
     Camera cam;
@@ -54,6 +54,8 @@ public class BuildingPlacer : MonoBehaviour
 
     void Awake()
     {
+        if (PrefabList.Find("SwarmSilo") is GameObject silo && silo.TryGetComponent(out Structure siloInfo) && System.Array.IndexOf(buildings, siloInfo.data) < 0)
+            buildings = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Append(buildings, siloInfo.data));
         buildings = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.OrderBy(buildings, b => b.cost));
         cam = Camera.main;
         menuPanel.gameObject.SetActive(false);
@@ -104,15 +106,16 @@ public class BuildingPlacer : MonoBehaviour
     string Tip(int i, bool locked)
     {
         var d = buildings[i];
-        if (d.requires == null || d.requires.Length == 0) return Tooltip.For(d);
-        string names = string.Join(", ", System.Linq.Enumerable.Select(d.requires, r => r.displayName));
+        if ((d.requires == null || d.requires.Length == 0) && d.coreLevel <= 1) return Tooltip.For(d);
+        string names = string.Join(", ", System.Linq.Enumerable.Select(d.requires ?? new BuildingData[0], r => r.displayName));
+        if (d.coreLevel > 1) names = names == "" ? d.CoreName : d.CoreName + ", " + names;
         return Tooltip.For(d) + $"\n<color={(locked ? "#FF5050" : "#8899AA")}>Requires: {names}</color>";
     }
 
     void HandleHotkeys()
     {
         var kb = Chat.Keys;
-        if (kb == null || ghost != null) return;
+        if (kb == null || ghost != null || SiloTargeting.Active) return;
         if (Controls.Down(Act.BuildMenu)) ToggleMenu();
         if (!menuPanel.gameObject.activeSelf) return;
         if (kb.escapeKey.wasPressedThisFrame) { menuPanel.gameObject.SetActive(false); return; }

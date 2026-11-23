@@ -30,7 +30,7 @@ public class Radar : MonoBehaviour
     void OnEnable() => active.Add(this);
     void OnDisable() { active.Remove(this); sweep.enabled = false; }
 
-    public static bool Active => !Structure.LowPower && active.Exists(r => r.health.team == 0);
+    public static bool Active => !Structure.LowPower && active.Exists(r => r.health.team == 0 && !Structure.Stunned(r));
 
     void Update()
     {

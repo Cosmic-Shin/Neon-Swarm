@@ -19,8 +19,19 @@ public class StructureBar : MonoBehaviour
     RectTransform panelRect;
     float baseHeight;
 
+    Button fireButton;
+    Text fireText;
+    Image fireFill;
+
     void Awake()
     {
+        fireButton = Instantiate(upgradeButton, upgradeButton.transform.parent);
+        fireButton.name = "FireSiloButton";
+        fireText = fireButton.GetComponentInChildren<Text>();
+        fireFill = fireButton.transform.Find("Fill").GetComponent<Image>();
+        HoloSkin.Button(fireButton, HoloUI.ButtonStyle.Danger);
+        fireButton.onClick.AddListener(() => { if (Silo(manager.SelectedStructure) is SwarmSilo silo) SiloTargeting.Begin(silo, manager); });
+        fireButton.gameObject.SetActive(false);
         sellText = sellButton.GetComponentInChildren<Text>();
         repairText = repairButton.GetComponentInChildren<Text>();
         upgradeText = upgradeButton.GetComponentInChildren<Text>();
@@ -54,6 +65,18 @@ public class StructureBar : MonoBehaviour
     }
 
     static UpgradeEffects Upgrades(Structure s) => s != null && s.TryGetComponent(out UpgradeEffects fx) ? fx : null;
+    static SwarmSilo Silo(Structure s) => s != null && s.TryGetComponent(out SwarmSilo silo) && silo.Built && silo.Team == 0 ? silo : null;
+
+    void ShowSilo(SwarmSilo silo)
+    {
+        fireButton.gameObject.SetActive(silo != null);
+        if (silo == null) return;
+        panelRect.sizeDelta = new Vector2(panelRect.sizeDelta.x, baseHeight + upgradeRowHeight);
+        fireButton.interactable = silo.Ready && !SiloTargeting.Active;
+        fireFill.fillAmount = silo.Ready ? 0f : silo.Charge01;
+        fireText.text = SiloTargeting.Active ? "SELECT TARGET" : silo.Ready ? $"FIRE  [{Controls.Label(Act.FireSilo)}]" : silo.Firing ? "LAUNCHING" : silo.Paused ? $"PAUSED: LOW POWER  {SwarmSilo.Clock(silo.Left)}" : $"CHARGING  {SwarmSilo.Clock(silo.Left)}";
+        if (silo.Ready && Controls.Down(Act.FireSilo)) SiloTargeting.Begin(silo, manager);
+    }
 
     void LateUpdate()
     {
@@ -72,6 +95,7 @@ public class StructureBar : MonoBehaviour
         repairButton.interactable = s.Health.IsDamaged;
         repairText.text = s.Repairing ? "REPAIRING" : "REPAIR";
         ShowUpgrade(Upgrades(s));
+        ShowSilo(Silo(s));
     }
 
     void ShowUpgrade(UpgradeEffects fx)

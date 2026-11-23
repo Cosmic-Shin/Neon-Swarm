@@ -26,7 +26,10 @@ public class SaveData
     public List<int> aiCredits = new();
     public List<EntitySave> entities = new();
     public List<OreSave> ores = new();
+    public List<SiloSave> silos = new();
 }
+
+[System.Serializable] public class SiloSave { public string building; public float seconds; public bool podGone; }
 
 [System.Serializable] public class EntitySave { public string prefab; public string origin; public Vector3 position; public Quaternion rotation; public float health; public int team; }
 [System.Serializable] public class OreSave { public string ore; public float amount; }
@@ -161,7 +164,7 @@ public static class SaveSystem
         for (int t = 1; t <= 7; t++) d.aiCredits.Add(TeamEconomy.Credits(t));
         foreach (var h in Object.FindObjectsByType<Health>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
-            if (!IsEntity(h) || h.IsDead || h.TryGetComponent(out Construction _)) continue;
+            if (!IsEntity(h) || h.IsDead || h.onDeath != null || h.TryGetComponent(out Construction _)) continue;
             if (h.transform.position.y < -10f) continue;
             d.entities.Add(new EntitySave
             {
@@ -256,6 +259,7 @@ public static class SaveSystem
 
         foreach (var v in Object.FindObjectsByType<Veterancy>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             if (v.Kills > 0) d.veterans.Add(new VeterancySave { unit = Key(v), kills = v.Kills });
+        foreach (var s in SwarmSilo.All) d.silos.Add(new SiloSave { building = Key(s), seconds = s.Seconds, podGone = s.PodGone });
         CaptureWorld(d);
         return d;
     }
@@ -310,6 +314,9 @@ public static class SaveSystem
                 if (!u.TryGetComponent(out Veterancy vet)) vet = u.gameObject.AddComponent<Veterancy>();
                 vet.SetKills(v.kills, announce: false);
             }
+
+        foreach (var s in d.silos)
+            if (Find<SwarmSilo>(s.building) is SwarmSilo silo) silo.Restore(s.seconds, s.podGone);
     }
 
     const float MatchRadius = 3f;

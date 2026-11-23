@@ -24,7 +24,7 @@ public class Revealer : MonoBehaviour
     void OnEnable() => active.Add(this);
     void OnDisable() => active.Remove(this);
 
-    bool On => ring != null && ring.gameObject.activeInHierarchy && !Net.LowPower(self.team);
+    bool On => ring != null && ring.gameObject.activeInHierarchy && !Net.LowPower(self.team) && !Structure.Stunned(this);
 
     public static bool Reveals(Health h)
     {

@@ -25,6 +25,9 @@ public class NetEntity : NetworkBehaviour, IStateAuthorityChanged
     [Networked] float Cargo { get; set; }
     [Networked] int Producing { get; set; }
     [Networked] float Produced { get; set; }
+    [Networked] float SiloSeconds { get; set; }
+    [Networked] NetworkBool SiloReady { get; set; }
+    [Networked] NetworkBool SiloPodGone { get; set; }
 
     static readonly System.Type[] OwnerOnly =
     {
@@ -143,6 +146,7 @@ public class NetEntity : NetworkBehaviour, IStateAuthorityChanged
         if (TryGetComponent(out Building fac)) { Producing = fac.Producing + 1; Produced = fac.Progress01; }
         if (TryGetComponent(out SelectableUnit su)) Stunned = su.IsStunned;
         if (TryGetComponent(out Structure st)) Repairing = st.Repairing;
+        if (TryGetComponent(out SwarmSilo silo)) { SiloSeconds = silo.Seconds; SiloReady = silo.Ready; SiloPodGone = silo.PodGone; }
     }
 
     public override void Render()
@@ -179,6 +183,7 @@ public class NetEntity : NetworkBehaviour, IStateAuthorityChanged
         if (TryGetComponent(out Building factory)) factory.ShowProduction(Producing - 1, Produced);
         if (TryGetComponent(out StatusFX status)) status.RemoteStunned = Stunned;
         if (TryGetComponent(out Structure building)) building.RemoteRepairing = Repairing;
+        if (TryGetComponent(out SwarmSilo remoteSilo)) remoteSilo.ShowRemote(SiloSeconds, SiloReady, SiloPodGone);
 
         if (Dead) { diedHere = true; Health.DieRemote(); }
     }
@@ -215,10 +220,17 @@ public class NetEntity : NetworkBehaviour, IStateAuthorityChanged
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_Status(float stun, float slow)
     {
+#if DEVELOPMENT_BUILD
+        if (stun > 0f && TryGetComponent(out Structure logged)) Debug.Log($"[GD5] emp stun {logged.Name} {stun}s");
+#endif
+        if (stun > 0f && TryGetComponent(out Structure s)) s.Stun(stun);
         if (!TryGetComponent(out SelectableUnit u)) return;
         if (stun > 0f) u.Stun(stun);
         if (slow > 0f) u.Slow(slow);
     }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_SiloLaunch(Vector3 at) { if (TryGetComponent(out SwarmSilo silo)) silo.Launch(at, HasStateAuthority); }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_AddKill()

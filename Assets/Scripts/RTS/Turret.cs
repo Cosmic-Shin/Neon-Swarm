@@ -52,7 +52,7 @@ public class Turret : MonoBehaviour
     public Health Aim { get; private set; }
     public float LastShot { get; private set; } = -99f;
     public float Charge01 => Mathf.Clamp01(1f - (nextShot - Time.time) / Mathf.Max(0.01f, cooldown / Stats.Value(Stat.FireRate, 1f, this)));
-    public bool Online => !Structure.LowPowerOf(self.team);
+    public bool Online => !Structure.LowPowerOf(self.team) && !Structure.Stunned(this);
     float nextAim;
 
     void Update()

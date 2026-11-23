@@ -15,10 +15,12 @@ public class CameraPan : MonoBehaviour
     bool mouseMoved;
 
     static CameraPan instance;
+    public static bool Frozen;
 
     void Awake()
     {
         instance = this;
+        Frozen = false;
         float h = GameMaps.Of(gameObject.scene).Half;
         minXZ = new Vector2(-h, -h - 35f); maxXZ = new Vector2(h, h - 30f);
         gameObject.AddComponent<Ambience>();
@@ -51,7 +53,7 @@ public class CameraPan : MonoBehaviour
     {
         var kb = Chat.Keys;
         var mouse = Mouse.current;
-        if (kb == null) return;
+        if (kb == null || Frozen) return;
 
         bool letters = !GoodSelectionManager.UnitsSelected && !BuildingPanel.Open;
         Vector2 dir = Vector2.zero;

@@ -63,7 +63,7 @@ public class Harvester : MonoBehaviour
 
     void Update()
     {
-        // Enemies showed up at our ore: bank what we have, or move to a safer field.
+        if (TryGetComponent(out SelectableUnit stunnedUnit) && stunnedUnit.IsStunned) return; // Enemies showed up at our ore: bank what we have, or move to a safer field.
         if ((state == State.ToOre || state == State.Harvesting) && ore && OreNode.IsDangerous != null && Time.time >= nextDangerCheck)
         {
             nextDangerCheck = Time.time + 0.5f;

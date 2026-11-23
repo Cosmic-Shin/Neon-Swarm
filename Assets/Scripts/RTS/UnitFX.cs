@@ -123,6 +123,7 @@ public class HitFX : MonoBehaviour
     public void Hurt(float amount)
     {
         if (amount <= 0f || !Juice.Seen(transform.position)) return;
+        Sfx.Battle(amount / Mathf.Max(1f, health.MaxHealth));
         if (!collected) Collect();
         if (status == null) status = GetComponent<StatusFX>();
         if (Time.time - lastFlash > 0.12f && (status == null || !status.Cloaked))

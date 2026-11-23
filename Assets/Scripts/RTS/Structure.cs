@@ -19,7 +19,7 @@ public class Structure : MonoBehaviour
     public bool RemoteRepairing { get; set; }
     public Health Health { get; private set; }
     public string Name => data != null ? data.displayName : fallbackName;
-    public bool CanSell => data != null;
+    public bool CanSell => data != null && !(TryGetComponent(out SwarmSilo silo) && silo.Firing);
     public int SellValue => data != null ? Mathf.RoundToInt(data.cost * 0.5f * Health.Fraction) : 0;
     int RepairCost => data != null ? data.cost / 2 : 1000;
 
@@ -58,6 +58,11 @@ public class Structure : MonoBehaviour
     }
 
     public void ToggleRepair() => Repairing = !Repairing && Health.IsDamaged;
+
+    float stunnedUntil;
+    public bool IsStunned => Time.time < stunnedUntil;
+    public void Stun(float seconds) => stunnedUntil = Mathf.Max(stunnedUntil, Time.time + seconds);
+    public static bool Stunned(Component c) => c.TryGetComponent(out Structure s) && s.IsStunned;
 
     void Update()
     {

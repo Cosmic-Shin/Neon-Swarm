@@ -18,7 +18,7 @@ public class EmpMine : MonoBehaviour
 
     void Update()
     {
-        if (Time.time < ready) return;
+        if (Time.time < ready || Structure.Stunned(this)) return;
         float r2 = radius * radius;
         bool fired = false;
         foreach (var h in Health.All)

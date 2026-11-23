@@ -60,6 +60,7 @@ public static class CyberpunkRTSSetup
         var mats = CreateMaterials();
         ConfigureImporters(mats);
         SetupIcons();
+        if (File.Exists($"{Models}/Buildings/SwarmSilo.fbx")) SiloController($"{Models}/Buildings/SwarmSilo.fbx");
         BuildPrefabs();
         BuildEnvironmentPrefabs();
         BuildConstructionResources();
@@ -163,6 +164,7 @@ public static class CyberpunkRTSSetup
                     imp.clipAnimations = clips.ToArray();
                 }
             }
+            else if (name == "SwarmSilo") ConfigureSiloClips(imp);
             else
             {
                 imp.importAnimation = false;
@@ -170,6 +172,43 @@ public static class CyberpunkRTSSetup
             }
             imp.SaveAndReimport();
         }
+    }
+
+    public static void ConfigureSiloClips(ModelImporter imp)
+    {
+        imp.importAnimation = true;
+        imp.animationType = ModelImporterAnimationType.Generic;
+        var takes = imp.defaultClipAnimations;
+        if (takes == null || takes.Length == 0) return;
+        var take = takes[0];
+        float off = take.firstFrame - 1f;
+        ModelImporterClipAnimation Make(string clip, float a, float b, bool loop) => new ModelImporterClipAnimation
+            { name = clip, takeName = take.takeName, firstFrame = a + off, lastFrame = b + off, loopTime = loop, loopPose = false };
+        imp.clipAnimations = new[] { Make("Idle", 1, 60, true), Make("Arm", 100, 140, false), Make("Armed", 141, 150, true), Make("Close", 160, 200, false) };
+    }
+
+    public static AnimatorController SiloController(string modelPath)
+    {
+        EnsureFolder(AnimDir);
+        string path = $"{AnimDir}/SwarmSilo.controller";
+        var existing = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+        if (existing != null) return existing;
+        var clips = AssetDatabase.LoadAllAssetsAtPath(modelPath).OfType<AnimationClip>().Where(c => !c.name.StartsWith("__preview__")).ToList();
+        AnimationClip Get(string n) => clips.First(c => c.name == n);
+        var ctrl = AnimatorController.CreateAnimatorControllerAtPath(path);
+        ctrl.AddParameter("Arm", AnimatorControllerParameterType.Trigger);
+        ctrl.AddParameter("Close", AnimatorControllerParameterType.Trigger);
+        var sm = ctrl.layers[0].stateMachine;
+        var idle = sm.AddState("Idle"); idle.motion = Get("Idle");
+        var arm = sm.AddState("Arm"); arm.motion = Get("Arm");
+        var armed = sm.AddState("Armed"); armed.motion = Get("Armed");
+        var close = sm.AddState("Close"); close.motion = Get("Close");
+        sm.defaultState = idle;
+        var toArm = idle.AddTransition(arm); toArm.AddCondition(AnimatorConditionMode.If, 0, "Arm"); toArm.hasExitTime = false; toArm.duration = 0.05f;
+        var toArmed = arm.AddTransition(armed); toArmed.hasExitTime = true; toArmed.exitTime = 1f; toArmed.duration = 0f;
+        var toClose = armed.AddTransition(close); toClose.AddCondition(AnimatorConditionMode.If, 0, "Close"); toClose.hasExitTime = false; toClose.duration = 0.05f;
+        var toIdle = close.AddTransition(idle); toIdle.hasExitTime = true; toIdle.exitTime = 1f; toIdle.duration = 0.05f;
+        return ctrl;
     }
 
     static void SetupIcons()

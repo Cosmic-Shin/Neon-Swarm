@@ -23,6 +23,7 @@ public class CursorContext : MonoBehaviour
 
     CursorKind Pick(Vector2 screen)
     {
+        if (SiloTargeting.Active) return CursorKind.Attack;
         if (BuildingPlacer.Placing) return BuildingPlacer.PlacementOk ? CursorKind.Build : CursorKind.Invalid;
 
         Ray ray = manager.Cam.ScreenPointToRay(screen);

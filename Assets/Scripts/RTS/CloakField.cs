@@ -34,7 +34,7 @@ public class CloakField : MonoBehaviour
     void OnEnable() { active.Add(this); ring.enabled = true; }
     void OnDisable() { active.Remove(this); ring.enabled = false; }
 
-    bool Online => !Net.LowPower(self.team);
+    bool Online => !Net.LowPower(self.team) && !Structure.Stunned(this);
 
     void Update() => ring.enabled = Online;
 

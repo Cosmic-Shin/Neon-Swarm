@@ -60,8 +60,9 @@ public class LobbyMenu : MonoBehaviour
         var tutorial = Entry("TUTORIAL", Tutorial.Begin);
         var missions = Entry("MISSIONS", () => MissionsPanel.Open(transform.parent));
         var board = Entry("LEADERBOARD", () => LeaderboardPanel.Open(transform.parent));
-        var order = new[] { continueButton, tutorial, missions, skirmish, multiplayer, friends, board, settings, account, quit };
-        const float gap = 56f;
+        var database = Entry("DATABASE", () => Encyclopedia.Open(transform.parent));
+        var order = new[] { continueButton, tutorial, missions, skirmish, multiplayer, friends, board, database, settings, account, quit };
+        const float gap = 51f;
         var panel = (RectTransform)transform;
         float grow = (order.Length - 1) * gap - 5 * 72f;
         panel.sizeDelta += new Vector2(0f, grow);

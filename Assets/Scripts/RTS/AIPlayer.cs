@@ -51,13 +51,66 @@ public partial class AIPlayer : MonoBehaviour
         lastEarned = earned;
         armyFund = Mathf.Min(armyFund, TeamEconomy.Credits(team));
         Survey();
+        int factories = 0;
+        foreach (var s in buildings) if (s.TryGetComponent(out Building b) && b.Trains.Length > 0) factories++;
+        armyFund = Mathf.Min(armyFund, 3000 + 1500 * factories);
         if (buildings.Count == 0 && sites.Count == 0) { enabled = false; return; }
         Harvesters();
         bool saving = SaveForCore();
         if (!saving) Build();
-        if (!saving) Produce();
+        if (!saving && !SavingForSilo) Produce();
         Army();
         Harass();
+        FireSilo();
+    }
+
+    bool SavingForSilo => nextBuilding != null && nextBuilding.prefab.TryGetComponent(out SwarmSilo _) && Mode != State.Defending && HomeArmyWorth() >= 1500;
+
+    BuildingData SiloStep()
+    {
+        if (!profile.superweapon || profile.coreMk3At <= 0f || Time.time - started < profile.coreMk3At || placer == null) return null;
+        var silo = System.Array.Find(placer.Buildings, d => d.prefab != null && d.prefab.TryGetComponent(out SwarmSilo _));
+        if (silo == null || Owned(silo) > 0) return null;
+        var step = MissingStep(silo);
+        return step != null && step.Unlocked(team) ? step : null;
+    }
+
+    BuildingData MissingStep(BuildingData d)
+    {
+        if (d.requires != null)
+            foreach (var r in d.requires)
+                if (r != null && Owned(r) == 0) return MissingStep(r);
+        return d;
+    }
+
+    void FireSilo()
+    {
+        foreach (var silo in SwarmSilo.All)
+        {
+            if (silo.Team != team || !silo.Ready) continue;
+            if (BestStrike(out Vector3 at)) silo.Fire(at);
+            return;
+        }
+    }
+
+    bool BestStrike(out Vector3 at)
+    {
+        at = default;
+        var targets = new List<(Vector3 p, float worth)>();
+        foreach (var h in Health.All)
+        {
+            if (h.IsDead || Net.Allied(h.team, team) || h.team == Creep.Team) continue;
+            if (h.TryGetComponent(out Structure s)) targets.Add((h.transform.position, s.isHQ ? 3000f : s.data != null ? s.data.cost : 500f));
+            else if (h.TryGetComponent(out SelectableUnit u) && u.Data != null) targets.Add((h.transform.position, u.Data.cost / (float)Mathf.Max(1, u.Data.squadSize)));
+        }
+        float best = 0f;
+        foreach (var (p, _) in targets)
+        {
+            float worth = 0f;
+            foreach (var (q, w) in targets) if (Near(p, q, SwarmSilo.StrikeRadius)) worth += w;
+            if (worth > best) { best = worth; at = p; }
+        }
+        return best > 0f;
     }
 
     void Survey()
@@ -141,8 +194,10 @@ public partial class AIPlayer : MonoBehaviour
     bool SaveForCore()
     {
         if (!profile.upgrades || profile.coreUpgradeAt <= 0f || Time.time - started < profile.coreUpgradeAt) return false;
+        float age = Time.time - started;
         foreach (var s in buildings)
-            if (s.isHQ && s.TryGetComponent(out BuildingUpgrade core) && core.CanUpgrade && core.level == 1)
+            if (s.isHQ && s.TryGetComponent(out BuildingUpgrade core) && core.CanUpgrade &&
+                (core.level == 1 || (core.level == 2 && profile.coreMk3At > 0f && age >= profile.coreMk3At && Mode != State.Defending)))
             {
                 int credits = TeamEconomy.Credits(team);
                 if (core.NextCost <= credits) { armyFund = Mathf.Min(armyFund, credits - core.NextCost); core.Upgrade(); }
@@ -163,6 +218,8 @@ public partial class AIPlayer : MonoBehaviour
         int need = nextBuilding.prefab.TryGetComponent(out Structure st) ? st.power : 0;
         if (need < 0 && spare + need < 0) nextBuilding = Pylon() ?? nextBuilding;
 
+        if (nextBuilding.prefab.TryGetComponent(out SwarmSilo _) && TeamEconomy.Credits(team) >= nextBuilding.cost)
+            armyFund = Mathf.Min(armyFund, TeamEconomy.Credits(team) - nextBuilding.cost);
         if (BuildFunds < nextBuilding.cost) return;
         if (!FindSpot(nextBuilding, out Vector3 pos, out Quaternion rot, buildToward))
         {
@@ -207,6 +264,7 @@ public partial class AIPlayer : MonoBehaviour
         buildToward = null;
         teching = false;
         if (profile.counterPick > 0f && AirShare > 0.2f && AntiAir() is BuildingData flak && Owned(flak) < 2 && flak.Unlocked(team)) return flak;
+        if (SiloStep() is BuildingData rush) return rush;
         var seen = new Dictionary<BuildingData, int>();
         foreach (var d in profile.buildOrder)
         {
@@ -217,6 +275,7 @@ public partial class AIPlayer : MonoBehaviour
             if (d.Unlocked(team)) return d;
         }
         if (Expansion() is BuildingData step) return step;
+        if (profile.superweapon && FirstBuilding(d => d.prefab.TryGetComponent(out SwarmSilo _)) is BuildingData silo) return silo;
         if (teching = Tech()) return null;
         lateGamePick = null;
         if (profile.lateGame == null || profile.lateGame.Length == 0) return null;
@@ -476,17 +535,31 @@ public partial class AIPlayer : MonoBehaviour
 
         if (Time.time - started >= profile.firstAttack && worth >= waveValue)
         {
-            foreach (var u in army) if (!Away(u) && Fit(u)) wave.Add(u);
+            bool fresh = wave.Count == 0;
+            if (fresh) prey = null;
+            var joining = new List<SelectableUnit>();
+            foreach (var u in army) if (!Away(u) && Fit(u)) joining.Add(u);
+            wave.AddRange(joining);
             waveValue = Mathf.RoundToInt(waveValue * profile.waveGrowth);
             Mode = State.Attacking;
-            foreach (var u in wave) u.GetComponent<Attacker>().Stop();
+            foreach (var u in joining) u.GetComponent<Attacker>().Stop();
         }
 
-        if (wave.Count == 0) { if (Mode == State.Attacking) Mode = State.Gathering; return; }
+        if (wave.Count == 0)
+        {
+            prey = null;
+            flankers.Clear();
+            if (Mode == State.Attacking) Mode = State.Gathering;
+            return;
+        }
+        flankers.RemoveWhere(u => u == null || !wave.Contains(u));
+        if (Time.time > flankUntil) flankers.Clear();
         Vector3 centre = Vector3.zero;
-        foreach (var u in wave) centre += u.transform.position;
-        centre /= wave.Count;
-        var target = NearestEnemyBuilding(centre);
+        int body = 0;
+        foreach (var u in wave) if (!flankers.Contains(u)) { centre += u.transform.position; body++; }
+        if (body == 0) { flankers.Clear(); foreach (var u in wave) { centre += u.transform.position; body++; } }
+        centre /= body;
+        var target = WaveTarget(centre);
         if (target == null) return;
         Vector3 edge = target.TryGetComponent(out Collider col) ? col.ClosestPoint(centre) : target.transform.position;
         Vector3 stand = NavMesh.SamplePosition(edge, out NavMeshHit hit, 12f, NavMesh.AllAreas) ? hit.position : edge;
@@ -494,11 +567,84 @@ public partial class AIPlayer : MonoBehaviour
         {
             var a = u.GetComponent<Attacker>();
             if (a.HasTarget) continue;
+            if (flankers.Contains(u))
+            {
+                if (!Near(u.transform.position, flankPoint, 16f)) { if (!a.Busy) a.AttackMove(flankPoint); continue; }
+                if (!Near(centre, stand, 60f)) continue;
+                flankers.Remove(u);
+            }
             if (Near(u.transform.position, stand, 30f)) a.Attack(target);
             else if (!a.Busy) a.AttackMove(stand);
         }
         Tactics(wave);
         if (profile.regroup && wave.Count > 3) Regroup(centre, stand);
+    }
+
+    Health prey;
+    Vector3 flankPoint;
+    float flankUntil;
+    readonly HashSet<SelectableUnit> flankers = new();
+
+    Health WaveTarget(Vector3 from)
+    {
+        if (!profile.weakSpot) return NearestEnemyBuilding(from);
+        if (prey != null && !prey.IsDead) return prey;
+        prey = WeakestBuilding(from);
+        if (prey != null) PlanFlank(from, prey.transform.position);
+        return prey;
+    }
+
+    Health WeakestBuilding(Vector3 from)
+    {
+        Health best = null;
+        float bestScore = 0f;
+        foreach (var h in Health.All)
+        {
+            if (h.IsDead || Net.Allied(h.team, team) || h.team == Creep.Team || !h.TryGetComponent(out Structure s)) continue;
+            if (s.data != null && s.data.dragLine) continue;
+            float value = h.TryGetComponent(out Refinery _) && !s.isHQ ? 3f : s.power > 0 && !s.isHQ ? 2.2f : h.TryGetComponent(out Building _) ? 1.8f : s.isHQ ? 1.6f : h.TryGetComponent(out Turret _) ? 0.5f : 1f;
+            float score = value / (1f + Defense(h.transform.position) / 1200f) / (1f + (h.transform.position - from).magnitude / 300f);
+            if (score > bestScore) { bestScore = score; best = h; }
+        }
+        return best != null ? best : NearestEnemyBuilding(from);
+    }
+
+    float Defense(Vector3 at)
+    {
+        float total = 0f;
+        foreach (var h in Health.All)
+        {
+            if (h.IsDead || Net.Allied(h.team, team) || h.team == Creep.Team || !Near(h.transform.position, at, 30f)) continue;
+            if (h.TryGetComponent(out Turret _)) total += h.TryGetComponent(out Structure s) && s.data != null ? s.data.cost : 800f;
+            else if (h.TryGetComponent(out SelectableUnit u) && u.Data != null && u.Data.damage > 0f) total += u.Data.cost / Mathf.Max(1f, u.Data.squadSize);
+        }
+        return total;
+    }
+
+    void PlanFlank(Vector3 from, Vector3 to)
+    {
+        flankers.Clear();
+        if (profile.flankShare <= 0f || wave.Count < 6) return;
+        Vector3 dir = to - from;
+        dir.y = 0f;
+        if (dir.magnitude < 60f || !NavMesh.SamplePosition(from, out NavMeshHit start, 20f, NavMesh.AllAreas)) return;
+        dir.Normalize();
+        Vector3 side = Vector3.Cross(Vector3.up, dir) * 45f, back = to - dir * 12f;
+        Vector3 first = back + side, second = back - side;
+        if (Defense(second) < Defense(first)) (first, second) = (second, first);
+        var path = new NavMeshPath();
+        foreach (var spot in new[] { first, second })
+        {
+            if (!NavMesh.SamplePosition(spot, out NavMeshHit hit, 14f, NavMesh.AllAreas)) continue;
+            if (!NavMesh.CalculatePath(start.position, hit.position, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete) continue;
+            flankPoint = hit.position;
+            flankUntil = Time.time + 25f + (to - from).magnitude / 5f;
+            var fastest = new List<SelectableUnit>(wave);
+            fastest.Sort((x, y) => y.Data.moveSpeed.CompareTo(x.Data.moveSpeed));
+            int count = Mathf.RoundToInt(wave.Count * profile.flankShare);
+            for (int i = 0; i < count; i++) { flankers.Add(fastest[i]); fastest[i].GetComponent<Attacker>().Stop(); }
+            return;
+        }
     }
 
     readonly HashSet<SelectableUnit> retreating = new();
@@ -580,7 +726,7 @@ public partial class AIPlayer : MonoBehaviour
         foreach (var u in wave)
         {
             var a = u.GetComponent<Attacker>();
-            if (a.HasTarget || Near(u.transform.position, stand, 40f) || Near(u.transform.position, centre, 22f)) continue;
+            if (flankers.Contains(u) || a.HasTarget || Near(u.transform.position, stand, 40f) || Near(u.transform.position, centre, 22f)) continue;
             if ((stand - u.transform.position).magnitude > centreLeft - 15f) continue;
             a.Stop();
             if (u.TryGetComponent(out NavMeshAgent agent) && agent.enabled && agent.isOnNavMesh) agent.ResetPath();

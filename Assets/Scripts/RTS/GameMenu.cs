@@ -26,7 +26,7 @@ public class GameMenu : MonoBehaviour
         var kb = Chat.Keys;
         if (Controls.Down(Act.QuickSave)) QuickSave();
         if (Controls.Down(Act.QuickLoad)) QuickLoad();
-        if (kb == null || !kb.escapeKey.wasPressedThisFrame || match.IsOver || SettingsPanel.IsOpen || SaveSlotsPanel.IsOpen || Hud.HelpOpen) return;
+        if (kb == null || !kb.escapeKey.wasPressedThisFrame || match.IsOver || SettingsPanel.IsOpen || SaveSlotsPanel.IsOpen || Encyclopedia.IsOpen || Hud.HelpOpen || SiloTargeting.Active) return;
         if (!IsOpen && (BuildingPlacer.MenuOpen || BuildingPlacer.Placing)) return;
         Show(!IsOpen);
     }
@@ -59,6 +59,7 @@ public class GameMenu : MonoBehaviour
             return b;
         }
         Add("Settings", () => SettingsPanel.Open(panel.transform));
+        Add("Database", () => Encyclopedia.Open(panel.transform));
         saveButton = Add("Save game", () => { if (!Offline()) return; SaveSlotsPanel.Open(panel.transform, saving: true, onSaved: () => Show(false)); });
         loadButton = Add("Load game", () => { if (!Offline()) return; SaveSlotsPanel.Open(panel.transform, saving: false); });
         HoloSkin.Button(loadButton, HoloUI.ButtonStyle.Gold);

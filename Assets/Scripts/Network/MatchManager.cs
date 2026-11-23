@@ -481,9 +481,10 @@ public class MatchManager : MonoBehaviour
             ((RectTransform)row[i].transform).anchoredPosition = new Vector2((i - (row.Count - 1) / 2f) * 420f, -330f);
         if (Net.InMatch && !friendButtons) { friendButtons = true; FriendsPanel.AddButtons(endButton.transform.parent, new Vector2(0f, -262f)); }
         if (title == "DEFEAT" || title == "MATCH OVER") FogOfWar.RevealAll = true;
+        endShot?.Invoke();
         StopAllCoroutines();
         if (title == "VICTORY" || title == "DEFEAT") Sfx.Stinger(title == "VICTORY");
-        StartCoroutine(Finale(title == "VICTORY" || title == "DEFEAT"));
+        StartCoroutine(Finale(title == "VICTORY" || title == "DEFEAT", title == "VICTORY"));
 #if DEVELOPMENT_BUILD
         if (again && FriendsHub.DevArg("-playagain")) Invoke(nameof(DevPlayAgain), 4f);
 #endif
@@ -493,9 +494,96 @@ public class MatchManager : MonoBehaviour
     void DevPlayAgain() { Debug.Log("[GD5] play again"); playAgainButton.onClick.Invoke(); }
 #endif
 
-    System.Collections.IEnumerator Finale(bool decided)
+    System.Action endShot;
+
+    System.Collections.IEnumerator VictoryShot(Vector3 boom)
     {
-        if (decided && Health.LastBuildingDeath is Vector3 boom && Time.time - Health.LastBuildingDeathAt < 3f)
+        var cam = Camera.main;
+        if (cam == null) yield break;
+        const float length = 4.6f;
+        var t = cam.transform;
+        Vector3 startPos = t.position;
+        Quaternion startRot = t.rotation;
+        var root = endPanel.transform.root.gameObject;
+        var hud = root.GetComponent<CanvasGroup>();
+        bool addedGroup = hud == null;
+        if (addedGroup) hud = root.AddComponent<CanvasGroup>();
+        float hudAlpha = hud.alpha;
+        bool hudRaycasts = hud.blocksRaycasts;
+        var bars = new GameObject("VictoryBars", typeof(Canvas));
+        var barCanvas = bars.GetComponent<Canvas>();
+        barCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        barCanvas.sortingOrder = 800;
+        RectTransform Bar(float y)
+        {
+            var r = new GameObject("Bar", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+            r.SetParent(bars.transform, false);
+            r.GetComponent<Image>().color = Color.black;
+            r.GetComponent<Image>().raycastTarget = false;
+            r.anchorMin = new Vector2(0f, y); r.anchorMax = new Vector2(1f, y);
+            r.pivot = new Vector2(0.5f, y);
+            r.anchoredPosition = Vector2.zero;
+            r.sizeDelta = Vector2.zero;
+            return r;
+        }
+        var top = Bar(1f);
+        var bottom = Bar(0f);
+
+        FogOfWar.RevealAll = true;
+        CameraPan.Frozen = true;
+        hud.alpha = 0f;
+        hud.blocksRaycasts = false;
+        if (!Net.InMatch) Time.timeScale = 0.35f;
+        endShot = () =>
+        {
+            endShot = null;
+            t.SetPositionAndRotation(startPos, startRot);
+            CameraPan.Frozen = false;
+            if (addedGroup) Destroy(hud);
+            else { hud.alpha = hudAlpha; hud.blocksRaycasts = hudRaycasts; }
+            if (!Net.InMatch) Time.timeScale = 1f;
+            Destroy(bars);
+        };
+
+        Vector3 flat = startPos - boom;
+        flat.y = 0f;
+        float radius = flat.magnitude, yaw = Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg;
+        float[] blasts = { 0.35f, 0.9f, 1.5f, 2.3f };
+        int next = 0;
+        var kb = UnityEngine.InputSystem.Keyboard.current;
+        var mouse = UnityEngine.InputSystem.Mouse.current;
+        for (float s = 0f; s < length; s += Time.unscaledDeltaTime)
+        {
+            if (s > 0.3f && ((kb != null && kb.anyKey.wasPressedThisFrame) || (mouse != null && mouse.leftButton.wasPressedThisFrame))) break;
+            float k = Mathf.SmoothStep(0f, 1f, s / length);
+            float angle = (yaw + 55f * k) * Mathf.Deg2Rad, r = Mathf.Lerp(radius, 30f, k);
+            Vector3 pos = boom + new Vector3(Mathf.Sin(angle) * r, 0f, Mathf.Cos(angle) * r);
+            pos.y = Mathf.Lerp(startPos.y, 12f, k);
+            var look = Quaternion.LookRotation(boom + Vector3.up * 3f - pos);
+            t.SetPositionAndRotation(pos, Quaternion.Slerp(startRot, look, Mathf.SmoothStep(0f, 1f, s / 0.9f)));
+            float bar = Screen.height / ((RectTransform)bars.transform).lossyScale.y * 0.11f * Mathf.Clamp01(s / 0.4f);
+            top.sizeDelta = bottom.sizeDelta = new Vector2(0f, bar);
+            if (next < blasts.Length && s >= blasts[next])
+            {
+                next++;
+                Vector2 off = Random.insideUnitCircle * 9f;
+                Vector3 at = boom + new Vector3(off.x, 2f, off.y);
+                Juice.Flash(at, Juice.Fire, 9f, 30f, 0.6f);
+                Juice.Ring(new Vector3(at.x, 0.15f, at.z), Juice.Fire, 2f, 16f, 0.7f, 0.5f);
+                Juice.Burst(at, Juice.Fire, 60, 14f, 0.2f, 1f, 0.7f, true);
+                Juice.Shake(at, 0.45f);
+                Sfx.Play(Snd.BoomBig, 0.8f, Random.Range(0.8f, 1.05f));
+            }
+            yield return null;
+        }
+        endShot?.Invoke();
+    }
+
+    System.Collections.IEnumerator Finale(bool decided, bool won)
+    {
+        if (won && Health.LastBuildingDeath is Vector3 finalBoom && Time.time - Health.LastBuildingDeathAt < 3f)
+            yield return VictoryShot(finalBoom);
+        else if (decided && Health.LastBuildingDeath is Vector3 boom && Time.time - Health.LastBuildingDeathAt < 3f)
         {
             Vector3 from = CameraPan.LookingAt;
             float slow = Net.InMatch ? 1f : 0.3f, before = Time.timeScale;

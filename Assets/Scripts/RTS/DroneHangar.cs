@@ -41,7 +41,7 @@ public class DroneHangar : MonoBehaviour
         drones.RemoveAll(d => d == null || !d.TryGetComponent(out Health h) || h.IsDead);
         if (self.IsDead) { foreach (var d in drones) d.GetComponent<Health>().TakeDamage(1e6f); drones.Clear(); enabled = false; return; }
 
-        bool powered = !Structure.LowPowerOf(self.team);
+        bool powered = !Structure.LowPowerOf(self.team) && !Structure.Stunned(this);
         if (stock + drones.Count < capacity && powered) { if (Time.time >= rebuildAt) { stock++; rebuildAt = Time.time + rebuildTime; } }
         else if (stock + drones.Count >= capacity) rebuildAt = Time.time + rebuildTime;
 
