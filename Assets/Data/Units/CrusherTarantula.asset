@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
   m_Name: CrusherTarantula
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
-  displayName: CrusherTarantula
+  displayName: Crusher Tarantula
   role: 3
   description: Siege tank. Very tough, 2.5x damage to buildings. Leads an assault
     on a base.

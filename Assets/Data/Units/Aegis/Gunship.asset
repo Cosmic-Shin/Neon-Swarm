@@ -17,7 +17,7 @@ MonoBehaviour:
   role: 2
   description: Strafing gunship. Rakes ground targets with twin cannons.
   icon: {fileID: 21300000, guid: 07756013003c2444c88eebec1f25282e, type: 3}
-  cost: 800
+  cost: 725
   buildTime: 9
   squadSize: 1
   maxHealth: 370

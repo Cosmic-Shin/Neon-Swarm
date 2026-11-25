@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
   m_Name: DataRefinery
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
-  displayName: DataRefinery
+  displayName: Data Refinery
   description: Harvesters unload ore here for credits, 3x faster than at the Core
     Nexus. Comes with a free harvester.
   prefab: {fileID: 8107110130783171902, guid: 316c6a095c935c24e96f4a5b18508bfc, type: 3}

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
   m_Name: WireWeaver
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
-  displayName: WireWeaver
+  displayName: Wire Weaver
   role: 4
   description: 'Snare. Each hit halves the target''s speed for 3s: stops raiders
     and chases runners down.'

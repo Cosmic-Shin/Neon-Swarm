@@ -12,10 +12,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Aegis_TechCenter_Net
       objectReference: {fileID: 0}
-    - target: {fileID: 4756607404184118498, guid: 13afb7f7a94f5b24ca8a9fdd59394485, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 0}
     - target: {fileID: 8002181416628652996, guid: 13afb7f7a94f5b24ca8a9fdd59394485, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

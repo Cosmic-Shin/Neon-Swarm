@@ -159,14 +159,26 @@ public static partial class AegisBuilder
         }
     }
 
+    // per-unit tuning from equal-squad duels vs the Hive twins (2026-11-26)
+    static readonly Dictionary<string, System.Action<UnitData>> Tuning = new()
+    {
+        ["Lancer"] = d => d.maxHealth = 760f,        // 3 vs 3 Crushers: 2 alive at 920, still 2 alive at 820
+        ["Paladin"] = d => d.maxHealth = 320f,       // Bulwark parity: the shield is its edge (won 8 then 5 of 12 left with more HP)
+        ["Suppressor"] = d => d.damage = 10.5f,      // stun-splash is swingy: lost at 10, won 5-of-6 at 11
+        ["Watcher"] = d => d.maxHealth = 75f,
+        ["Interceptor"] = d => d.damage = 11f,       // attack clip (0.46 s) is longer than its 0.4 s cooldown
+        ["StrikeBike"] = d => d.maxHealth = 160f,    // 12 vs 12 Striders: 6 left
+    };
+
     static void Balance(U u, UnitData d)
     {
         float hp = d.maxHealth, speed = d.moveSpeed;
         int cost = d.cost;
         d.maxHealth = Mathf.Round(d.maxHealth * 1.15f / 5f) * 5f;
-        d.cost = Mathf.RoundToInt(d.cost * 1.15f / 25f) * 25;
+        d.cost = Mathf.RoundToInt(d.cost * 1.05f / 25f) * 25;   // was x1.15: with +15% HP that left Aegis ~13% worse value per credit (and 10% slower)
         if (d.moveSpeed > 0f) d.moveSpeed *= 0.9f;
         if (Muzzles.TryGetValue(u.name, out var m)) d.muzzles = m;
+        if (Tuning.TryGetValue(u.name, out var tune)) tune(d);
         balance.Add($"| {u.display} | {u.twin} | {d.role} | {hp:0} -> {d.maxHealth:0} | {cost} -> {d.cost} | {(speed > 0f ? $"{speed:0.#} -> {d.moveSpeed:0.#}" : "agent x0.9")} | {d.damage:0.#} / {d.range:0.#} m |");
     }
 
@@ -249,7 +261,7 @@ public static partial class AegisBuilder
         {
             var shield = root.TryGetComponent(out ShieldField had) ? had : root.AddComponent<ShieldField>();
             shield.radius = 3.5f;
-            shield.reduction = 0.3f;
+            shield.reduction = 0.15f;  // 0.3: Paladins won with 8 of 12 left vs equal Bulwarks, 0.2: 5 of 12
             shield.needsPower = false;
             shield.showRing = false;
             shield.domePart = "PAL_ShieldDome";

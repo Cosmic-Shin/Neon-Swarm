@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
   m_Name: NetrunnerHive
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
-  displayName: NetrunnerHive
+  displayName: Netrunner Hive
   role: 5
   description: 'Hacker. Each hit stuns the target for 1.2s: locks down a dangerous
     unit.'

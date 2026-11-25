@@ -18,10 +18,10 @@ MonoBehaviour:
   description: Heavy assault mech with a shield dome. Soaks fire for the squad and
     hits back with an arm cannon.
   icon: {fileID: 21300000, guid: bdc87bf37c1bfdc46abb81a7ca0d23f2, type: 3}
-  cost: 700
+  cost: 650
   buildTime: 7
   squadSize: 2
-  maxHealth: 370
+  maxHealth: 320
   damage: 8
   range: 8
   attackCooldown: 1

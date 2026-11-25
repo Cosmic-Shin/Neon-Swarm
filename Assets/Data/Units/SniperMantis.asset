@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
   m_Name: SniperMantis
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
-  displayName: SniperMantis
+  displayName: Sniper Mantis
   role: 2
   description: Sniper. Longest range and huge single shots. Kills key units, fragile
     up close.

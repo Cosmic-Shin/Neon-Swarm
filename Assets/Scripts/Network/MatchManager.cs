@@ -497,7 +497,7 @@ public class MatchManager : MonoBehaviour
         if (Mission.Active)
         {
             missionNext = title == "MISSION COMPLETE" ? Mission.Current + 1 : Mission.Current;
-            again = missionNext < Mission.All.Length;
+            again = missionNext < Mission.All.Length && Mission.All[missionNext].faction == Mission.All[Mission.Current].faction;
             playAgainButton.GetComponentInChildren<Text>().text = missionNext == Mission.Current ? "RETRY" : "NEXT MISSION";
         }
         else if (Skirmish.Active && !Tutorial.Active && !Net.InMatch && title != "DISCONNECTED") { again = true; playAgainButton.GetComponentInChildren<Text>().text = "PLAY AGAIN"; }
@@ -774,7 +774,7 @@ public class MatchManager : MonoBehaviour
             bool me = slot == Net.LocalSlot;
             var rp = RoomPlayer.Of(player);
             int team = room.TeamOf(slot);
-            names.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(slot))}>{room.NameOf(slot)}</color>"
+            names.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(slot))}>{room.NameOf(slot)}</color>" + Faction.Tag(Net.ToTeam(slot))
                 + (team > 0 ? $"  <size=18>T{team}</size>" : "") + (me ? "  <size=18>(you)</size>" : ""));
             for (int k = 0; k < cols.Length; k++)
             {
@@ -789,7 +789,7 @@ public class MatchManager : MonoBehaviour
     void FillSkirmishStats(float amount)
     {
         if (statsNames == null) return;
-        var names = new System.Text.StringBuilder($"<color=#{ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(0))}>You</color>\n");
+        var names = new System.Text.StringBuilder($"<color=#{ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(0))}>You</color>{Faction.Tag(0)}\n");
         var cols = new System.Text.StringBuilder[statsColumns.Length];
         for (int k = 0; k < cols.Length; k++)
         {
@@ -799,7 +799,7 @@ public class MatchManager : MonoBehaviour
         foreach (var ai in Skirmish.Opponents)
         {
             bool alive = Structure.All.Exists(s => s != null && s.Health.team == ai.team);
-            names.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(ai.team))}>{ai.Name}</color>  <color=#{(alive ? "60FF90" : "FF6070")}>{(alive ? "standing" : "destroyed")}</color>");
+            names.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(TeamMember.ColorOf(ai.team))}>{ai.Name}</color>{Faction.Tag(ai.team)}  <color=#{(alive ? "60FF90" : "FF6070")}>{(alive ? "standing" : "destroyed")}</color>");
             for (int k = 0; k < cols.Length; k++) cols[k].AppendLine("<color=#6A7690>-</color>");
         }
         statsNames.text = names.ToString();

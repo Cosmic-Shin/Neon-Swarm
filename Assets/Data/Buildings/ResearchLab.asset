@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
   m_Name: ResearchLab
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
-  displayName: ResearchLab
+  displayName: Research Lab
   description: 'Researches upgrades: Weapons +25%, Armor +25%, Harvest +25%. Select
     it to open research.'
   prefab: {fileID: 8679242110783809866, guid: dc1426b038585f8419e57545943cf845, type: 3}

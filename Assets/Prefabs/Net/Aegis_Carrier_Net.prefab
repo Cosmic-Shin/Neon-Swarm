@@ -12,10 +12,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Aegis_Carrier_Net
       objectReference: {fileID: 0}
-    - target: {fileID: 2912182851243919057, guid: 0b36443e6326f8a49a5ca52476ef7bd2, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 0}
     - target: {fileID: 5887757252881549300, guid: 0b36443e6326f8a49a5ca52476ef7bd2, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

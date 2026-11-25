@@ -17,11 +17,11 @@ MonoBehaviour:
   role: 1
   description: Air-superiority fighter. Missiles only hit other flyers.
   icon: {fileID: 21300000, guid: c4531131d466f8a48a3ec28296636bd1, type: 3}
-  cost: 575
+  cost: 525
   buildTime: 7
   squadSize: 2
   maxHealth: 125
-  damage: 10
+  damage: 11
   range: 14
   attackCooldown: 0.4
   hitsGround: 0

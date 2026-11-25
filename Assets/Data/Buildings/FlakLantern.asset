@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
   m_Name: FlakLantern
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
-  displayName: FlakLantern
+  displayName: Flak Lantern
   description: 'Defence tower. Flak bursts hit everything within 5m of the target:
     great against groups. 12 damage every 1.4s, 24m range. Offline when low on power.
     Anti-air only.'

@@ -17,11 +17,11 @@ MonoBehaviour:
   role: 3
   description: Crowd-control walker. Its EMP pulse stuns everything around the target.
   icon: {fileID: 21300000, guid: 5e09c7e637fdefa4ba7d32108cfb0bbe, type: 3}
-  cost: 925
+  cost: 850
   buildTime: 9
   squadSize: 1
   maxHealth: 300
-  damage: 10
+  damage: 10.5
   range: 12
   attackCooldown: 2.5
   hitsGround: 1

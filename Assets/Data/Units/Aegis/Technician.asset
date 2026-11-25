@@ -17,7 +17,7 @@ MonoBehaviour:
   role: 4
   description: Field engineer with a repair arc. Mends nearby units in the field.
   icon: {fileID: 21300000, guid: ae7e7c22189573b4594762d261810cd8, type: 3}
-  cost: 350
+  cost: 325
   buildTime: 5
   squadSize: 2
   maxHealth: 90

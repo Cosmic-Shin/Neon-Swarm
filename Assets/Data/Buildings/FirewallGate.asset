@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
   m_Name: FirewallGate
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
-  displayName: FirewallGate
+  displayName: Firewall Gate
   description: Wall piece. Blocks enemy paths. No weapon. Press and drag to lay a
     whole line.
   prefab: {fileID: 8577752489419877482, guid: d67c433880abdd34fa987b8ca290608f, type: 3}

@@ -12,10 +12,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Aegis_OrbitalLance_Net
       objectReference: {fileID: 0}
-    - target: {fileID: 3129949996487289246, guid: ec1c7b595d5f74044821d4c5766d7b5b, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 0}
     - target: {fileID: 4350461809853323037, guid: ec1c7b595d5f74044821d4c5766d7b5b, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

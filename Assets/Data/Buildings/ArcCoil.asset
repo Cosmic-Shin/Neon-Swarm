@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
   m_Name: ArcCoil
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
-  displayName: ArcCoil
+  displayName: Arc Coil
   description: 'Defence tower. Arc chains to 3 enemies at once: 7 damage every 0.35s,
     short 13m range. Offline when low on power. Ground only.'
   prefab: {fileID: 4590054623459727554, guid: 2a90e1362ea4eb64da4e2199da385e6c, type: 3}

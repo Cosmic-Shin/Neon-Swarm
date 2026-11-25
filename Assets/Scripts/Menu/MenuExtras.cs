@@ -17,6 +17,13 @@ public class MenuExtras : MonoBehaviour
         "<b>F5</b> quick-saves a skirmish. CONTINUE loads your newest save.",
         "Press <b>F1</b> in a match to see every hotkey.",
         "Hard AI scouts early and counters your army. Bring anti-air.",
+        "Pick <b>Aegis Corp</b> with the FACTION button in Skirmish or a multiplayer room.",
+        "Aegis <b>Bastions</b> must deploy before they fire. Keep them behind the line.",
+        "An Aegis <b>Shield Projector</b> cuts damage to nearby buildings. Kill it first.",
+        "The <b>Orbital Lance</b> warns its target for five seconds. Scatter when you see the rings.",
+        "The Aegis <b>Skylift</b> can carry vehicles, not just infantry.",
+        "Aegis <b>Technicians</b> repair buildings and heavy vehicles in the field.",
+        "Two Aegis campaign missions wait in <b>MISSIONS</b>, open from the start.",
     };
     const float TipTime = 7f;
 

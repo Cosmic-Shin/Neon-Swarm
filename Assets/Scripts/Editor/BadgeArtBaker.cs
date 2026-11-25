@@ -18,8 +18,10 @@ public static class BadgeArtBaker
         {
             ["kills"] = Crosshair, ["wins"] = Crown, ["swarm"] = Swarm, ["build"] = Tower, ["credits"] = Crystal, ["research"] = Flask,
             ["hard"] = RobotSkull, ["online"] = Network, ["streak"] = Flame, ["speed"] = Bolt, ["hours"] = Hourglass, ["killer"] = Burst,
+            ["hivewins"] = HiveMind, ["aegiswins"] = Shield, ["bothwins"] = DoubleAgent,
         };
         foreach (var kv in icons) Save("icon_" + kv.Key, Render(kv.Value, 0.035f, true));
+        HiveEmblem();
         if (File.Exists(Folder + "/plate.png")) AssetDatabase.DeleteAsset(Folder + "/plate.png");
         AssetDatabase.Refresh();
         foreach (var path in Directory.GetFiles(Folder, "*.png"))
@@ -32,6 +34,38 @@ public static class BadgeArtBaker
             imp.SaveAndReimport();
         }
         Debug.Log("[Badges] baked " + icons.Count + " sprites to " + Folder);
+    }
+
+    // The Hive had no faction emblem (Aegis ships one): the hive-cell icon in Hive cyan on a dark hex plate
+    const string HiveEmblemPath = "Assets/CyberpunkRTS/UI/Faction/Hive_Emblem_256.png";
+    static void HiveEmblem()
+    {
+        var icon = Render(HiveMind, 0.035f, true);
+        var plate = Render(p => Hex(p, 0.96f), 0.05f, true);
+        var px = plate.GetPixels32();
+        var ic = icon.GetPixels32();
+        Color cyan = new(0f, 1f, 0.9f), dark = new(0.04f, 0.06f, 0.1f);
+        for (int i = 0; i < px.Length; i++)
+        {
+            float a = px[i].a / 255f, v = px[i].r / 255f;
+            Color c = Color.Lerp(dark, cyan * 0.55f, Mathf.Pow(1f - v, 3f));   // bevel edge glints cyan, plate stays dark
+            float ia = ic[i].a / 255f;
+            c = Color.Lerp(c, cyan * (0.6f + 0.4f * ic[i].r / 255f), ia * 0.92f);
+            c.a = a;
+            px[i] = c;
+        }
+        plate.SetPixels32(px);
+        plate.Apply();
+        File.WriteAllBytes(HiveEmblemPath, plate.EncodeToPNG());
+        AssetDatabase.ImportAsset(HiveEmblemPath);
+        var imp = (TextureImporter)AssetImporter.GetAtPath(HiveEmblemPath);
+        imp.textureType = TextureImporterType.Sprite;
+        imp.spriteImportMode = SpriteImportMode.Single;
+        imp.alphaIsTransparency = true;
+        imp.mipmapEnabled = false;
+        imp.SaveAndReimport();
+        var hive = AssetDatabase.LoadAssetAtPath<Faction>("Assets/Resources/Factions/Hive.asset");
+        if (hive != null && hive.emblem == null) { hive.emblem = AssetDatabase.LoadAssetAtPath<Sprite>(HiveEmblemPath); EditorUtility.SetDirty(hive); AssetDatabase.SaveAssets(); }
     }
 
     static void Save(string name, Texture2D tex) => File.WriteAllBytes($"{Folder}/{name}.png", tex.EncodeToPNG());
@@ -193,6 +227,30 @@ public static class BadgeArtBaker
             Seg(p, a, b, 0.04f), Seg(p, b, c, 0.04f), Seg(p, c, a, 0.04f), Seg(p, m, a, 0.035f), Seg(p, m, b, 0.035f), Seg(p, m, c, 0.035f),
             Ring(p, Vector2.zero, 0.86f, 0.025f));
     }
+
+    // faction badges: hive cell with six links, corporate shield with chevron, two interlocked rings
+    static float HiveMind(Vector2 p)
+    {
+        float shell = Sub(Hex(p, 0.74f), Hex(p, 0.58f));
+        float links = 1e9f;
+        for (int i = 0; i < 6; i++)
+        {
+            float a = (i * 60f + 30f) * Mathf.Deg2Rad;
+            var d = V(Mathf.Cos(a), Mathf.Sin(a));
+            links = Mathf.Min(links, Seg(p, d * 0.26f, d * 0.56f, 0.045f));
+        }
+        return U(shell, Hex(p, 0.24f), links);
+    }
+
+    static float Shield(Vector2 p)
+    {
+        float shield = Poly(p, V(-0.62f, 0.72f), V(0.62f, 0.72f), V(0.62f, 0.05f), V(0f, -0.82f), V(-0.62f, 0.05f));
+        float chevron = Poly(p, V(-0.36f, 0.32f), V(0f, -0.06f), V(0.36f, 0.32f), V(0.36f, 0.08f), V(0f, -0.3f), V(-0.36f, 0.08f));
+        float bar = Box(p, V(0f, 0.52f), V(0.36f, 0.06f));
+        return Sub(shield, U(chevron, bar));
+    }
+
+    static float DoubleAgent(Vector2 p) => U(Ring(p, V(-0.27f, 0f), 0.42f, 0.07f), Ring(p, V(0.27f, 0f), 0.42f, 0.07f), Star(p, 4, 0.2f, 0.07f));
 
     static float Flame(Vector2 p)
     {

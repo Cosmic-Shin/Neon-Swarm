@@ -15,7 +15,12 @@ public class Encyclopedia : MonoBehaviour
         public string name, group, head, body;
         public Sprite icon;
         public int rank, cost;
+        public FactionId faction;
     }
+
+    FactionId shown = FactionId.Hive;
+    int page;
+    readonly List<Button> factionTabs = new();
 
     readonly List<Entry>[] pages = { new(), new(), new() };
     readonly Button[] tabs = new Button[3];
@@ -69,6 +74,20 @@ public class Encyclopedia : MonoBehaviour
             t.fontSize = 15;
             tabs[i].onClick.AddListener(() => ShowPage(page));
         }
+
+        // faction switch: one database per faction (counters still list enemies from both)
+        int k = 0;
+        foreach (var f in Faction.All)
+        {
+            var id = f.id;
+            var b = SettingsPanel.Button(win, f.displayName.ToUpper(), new Vector2(330f + k++ * 200f, 278f), new Vector2(190f, 44f));
+            HoloSkin.Button(b, HoloUI.ButtonStyle.Small);
+            var t = b.GetComponentInChildren<Text>();
+            t.fontSize = 15;
+            b.onClick.AddListener(() => { shown = id; ShowPage(page); });
+            factionTabs.Add(b);
+        }
+        if (Faction.Mine != null) shown = Faction.Mine.id;
 
         BuildList(win);
 
@@ -124,12 +143,14 @@ public class Encyclopedia : MonoBehaviour
         scroll.scrollSensitivity = 30f;
     }
 
-    void ShowPage(int page)
+    void ShowPage(int pageIndex)
     {
+        page = pageIndex;
         for (int i = 0; i < tabs.Length; i++) HoloSkin.SetOn(tabs[i], i == page);
+        for (int i = 0; i < factionTabs.Count && i < Faction.All.Length; i++) HoloSkin.SetOn(factionTabs[i], Faction.All[i].id == shown);
         foreach (Transform c in content) Destroy(c.gameObject);
         rows.Clear();
-        var list = pages[page];
+        var list = pages[page].FindAll(e => e.faction == shown);
         for (int i = 0; i < list.Count; i++)
         {
             int index = i;
@@ -160,6 +181,7 @@ public class Encyclopedia : MonoBehaviour
         }
         scroll.verticalNormalizedPosition = 1f;
         if (list.Count > 0) Pick(list, 0);
+        else { icon.enabled = false; head.text = ""; body.text = "Nothing here for this faction."; }
     }
 
     void Pick(List<Entry> list, int index)
@@ -188,7 +210,7 @@ public class Encyclopedia : MonoBehaviour
             if (!p.TryGetComponent(out Structure s)) continue;
             if (s.data == null)
             {
-                if (s.isHQ && seen.Add(s)) pages[1].Add(CoreEntry(s));
+                if (s.isHQ && seen.Add(s)) pages[1].Add(CoreEntry(s, p));
                 continue;
             }
             p.TryGetComponent(out Building f);
@@ -241,7 +263,9 @@ public class Encyclopedia : MonoBehaviour
         string extra = trainedAt.TryGetValue(d, out var at) ? Section("TRAINED AT", at) : "";
         if (d.damage > 0f) extra += Section("STRONG AGAINST", Names(strong));
         extra += Section("COUNTERED BY", Names(weak));
-        return Make(d.displayName, $"{d.role}  ·  ${d.cost}", d.icon, (int)d.role, d.cost, Tooltip.For(d), extra);
+        var e = Make(d.displayName, $"{d.role}  ·  ${d.cost}", d.icon, (int)d.role, d.cost, Tooltip.For(d), extra);
+        e.faction = d.faction;
+        return e;
     }
 
     static Entry BuildingEntry(BuildingData d, Building factory)
@@ -259,21 +283,31 @@ public class Encyclopedia : MonoBehaviour
             foreach (var r in factory.Researches) if (r != null) research.Add(r.displayName);
             if (research.Count > 0) extra += Section("RESEARCH", string.Join(", ", research));
         }
-        return Make(d.displayName, $"${d.cost}", d.icon, needs.Count, d.cost, Tooltip.For(d), extra);
+        var e = Make(d.displayName, $"${d.cost}", d.icon, needs.Count, d.cost, Tooltip.For(d), extra);
+        e.faction = d.faction;
+        return e;
     }
 
-    static Entry CoreEntry(Structure s)
+    static Entry CoreEntry(Structure s, GameObject prefab)
     {
         float hp = s.TryGetComponent(out Health h) ? h.MaxHealth : 0f;
-        string tip = $"<color={Cyan}><b>Core Nexus</b></color>   Headquarters\nYour command centre. It sets your build radius, accepts ore at a slower rate than a refinery, and its Mk II and Mk III upgrades unlock higher research tiers and elite units. Lose every building and you lose the match.\nHP {hp:0}  ·  Power +{s.power}";
-        return Make("Core Nexus", "Headquarters", null, -1, 0, tip, Section("REQUIRES", "Nothing. Every base starts with one and it cannot be built or sold."));
+        Faction owner = null;
+        foreach (var f in Faction.All) if (f.hq == prefab) owner = f;
+        string name = s.Name;
+        string tip = $"<color={Cyan}><b>{name}</b></color>   Headquarters\nYour command centre. It sets your build radius, accepts ore at a slower rate than a refinery, and its Mk II and Mk III upgrades unlock higher research tiers and elite units. Lose every building and you lose the match.\nHP {hp:0}  ·  Power +{s.power}";
+        var e = Make(name, "Headquarters", owner != null ? owner.emblem : null, -1, 0, tip, Section("REQUIRES", "Nothing. Every base starts with one and it cannot be built or sold."));
+        e.faction = owner != null ? owner.id : FactionId.Hive;
+        return e;
     }
 
     static Entry ResearchEntry(ResearchData r, string lab)
     {
-        string core = r.tier == 1 ? "" : $"Core Nexus Mk {(r.tier == 2 ? "II" : "III")}";
+        string hq = Faction.All.Length > 0 && System.Array.Find(Faction.All, f => f.id == r.faction) is Faction rf && rf.hq != null && rf.hq.TryGetComponent(out Structure hs) ? hs.Name : "Core Nexus";
+        string core = r.tier == 1 ? "" : $"{hq} Mk {(r.tier == 2 ? "II" : "III")}";
         string needs = r.requires != null ? r.requires.displayName + (core != "" ? ", " + core : "") : core != "" ? core : "Nothing";
-        return Make(r.displayName, $"{r.branch}  ·  Tier {r.tier}", r.icon, (int)r.branch * 10 + r.tier, r.cost, Tooltip.For(r), Section("RESEARCHED AT", lab) + Section("REQUIRES", needs));
+        var e = Make(r.displayName, $"{r.branch}  ·  Tier {r.tier}", r.icon, (int)r.branch * 10 + r.tier, r.cost, Tooltip.For(r), Section("RESEARCHED AT", lab) + Section("REQUIRES", needs));
+        e.faction = r.faction;
+        return e;
     }
 
     static Text Label(Transform parent, string text, Vector2 pos, int size, float width, bool bold, TextAnchor align)

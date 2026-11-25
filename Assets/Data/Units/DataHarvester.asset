@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
   m_Name: DataHarvester
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
-  displayName: DataHarvester
+  displayName: Data Harvester
   role: 0
   description: Mines ore and drives it to a refinery for credits. Red ore pays 2.5x.
     Can't fight, but very tough.

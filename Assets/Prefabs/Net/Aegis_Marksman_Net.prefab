@@ -52,10 +52,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Aegis_Marksman_Net
       objectReference: {fileID: 0}
-    - target: {fileID: 9100077096566202403, guid: f97edfa9e17fde645bdf905d2cbd6853, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

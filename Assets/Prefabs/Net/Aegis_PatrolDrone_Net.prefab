@@ -52,10 +52,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Aegis_PatrolDrone_Net
       objectReference: {fileID: 0}
-    - target: {fileID: 4131129499430242144, guid: 7547d0e670cc34345bb19c38e49e069b, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

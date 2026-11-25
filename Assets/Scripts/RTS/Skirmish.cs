@@ -44,7 +44,9 @@ public static class Skirmish
 
     public static bool Allied(int a, int b) => a == b || (a != Creep.Team && b != Creep.Team && Active && SideOf(a) == SideOf(b));
 
-    public static int FactionOf(int team) => Mission.Active || Tutorial.Active ? 0 : team == 0 ? PlayerFaction : Find(team)?.faction ?? 0;
+    public static int FactionOf(int team) => Tutorial.Active ? 0
+        : Mission.Active ? (team == 0 ? (int)Mission.All[Mission.Current].faction : 0)   // mission enemies are the swarm
+        : team == 0 ? PlayerFaction : Find(team)?.faction ?? 0;
 
     public static int ColorIndexOf(int team) => team == 0 ? PlayerColor : Find(team)?.color ?? team;
 }

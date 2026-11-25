@@ -52,10 +52,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Aegis_Watcher_Net
       objectReference: {fileID: 0}
-    - target: {fileID: 8723280978845501845, guid: e3af625c679914744bb3d995c70d2c62, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

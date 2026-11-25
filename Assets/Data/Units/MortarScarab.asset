@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
   m_Name: MortarScarab
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
-  displayName: MortarScarab
+  displayName: Mortar Scarab
   role: 3
   description: 'Artillery. Long-range shells that splash 5m. Fragile: needs a spotter
     and an escort.'

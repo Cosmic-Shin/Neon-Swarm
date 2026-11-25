@@ -30,6 +30,14 @@ public class ClickFX : MonoBehaviour
     void Awake()
     {
         canvasRect = (RectTransform)transform;
+        BuildPool();
+    }
+
+    // a script hot-reload in play mode clears this non-serialized pool without re-running Awake: rebuild it
+    void BuildPool()
+    {
+        foreach (Transform old in transform) Destroy(old.gameObject);
+        canvasRect = (RectTransform)transform;
         Textures();
         for (int i = 0; i < Pool; i++)
         {
@@ -61,6 +69,7 @@ public class ClickFX : MonoBehaviour
 
     void Update()
     {
+        if (bursts[0] == null || bursts[0].root == null) BuildPool();
         var mouse = Mouse.current;
         if (mouse != null)
         {

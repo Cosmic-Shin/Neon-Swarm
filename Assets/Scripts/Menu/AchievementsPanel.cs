@@ -37,17 +37,23 @@ public class AchievementsPanel : MonoBehaviour
         Label(win, $"{points} / {max} TIERS UNLOCKED", new Vector2(0f, 348f), 17, TextAnchor.MiddleCenter, 800f, Dim);
         pinnedText = Label(win, "", new Vector2(560f, 385f), 16, TextAnchor.MiddleCenter, 300f, Dim);
 
-        const int cols = 4;
+        // 15 achievements: 5 columns x 3 rows, cards laid out at full size then scaled to fit the window
+        const int cols = 5;
+        const float scale = 0.8f;
         Vector2 card = new(350f, 210f);
         for (int i = 0; i < Achievements.All.Length; i++)
         {
             var d = Achievements.All[i];
             int t = Achievements.Tier(d, profile);
-            var pos = new Vector2((i % cols - (cols - 1) / 2f) * (card.x + 16f), 220f - i / cols * (card.y + 16f));
+            var pos = new Vector2((i % cols - (cols - 1) / 2f) * (card.x * scale + 14f), 196f - i / cols * (card.y * scale + 30f));
             var c = Box(win, pos, card, CardColor);
+            c.localScale = Vector3.one * scale;
             Badge.Make(c, new Vector2(-108f, 16f), 84f).Show(d, t);
             Color tc = Achievements.TierColors[t];
-            Label(c, d.name, new Vector2(60f, 70f), 20, TextAnchor.MiddleCenter, 210f, t > 0 ? Color.white : Dim, true);
+            var nameLabel = Label(c, d.name, new Vector2(60f, 70f), 20, TextAnchor.MiddleCenter, 210f, t > 0 ? Color.white : Dim, true);
+            nameLabel.horizontalOverflow = HorizontalWrapMode.Wrap;   // "CORPORATE TAKEOVER" was cut off
+            nameLabel.resizeTextForBestFit = true; nameLabel.resizeTextMinSize = 12; nameLabel.resizeTextMaxSize = 20;
+            nameLabel.rectTransform.sizeDelta = new Vector2(210f, 26f);
             Label(c, Achievements.TierNames[t], new Vector2(60f, 44f), 15, TextAnchor.MiddleCenter, 210f, tc, true);
             string goal = t >= d.tiers.Length ? "All tiers complete!" : "Next: " + d.Goal(t);
             var g = Label(c, goal, new Vector2(60f, 8f), 14, TextAnchor.MiddleCenter, 210f, Color.white);

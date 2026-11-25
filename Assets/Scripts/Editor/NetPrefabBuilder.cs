@@ -51,6 +51,12 @@ public static class NetPrefabBuilder
         if (root.GetComponent<NetEntity>() == null) root.AddComponent<NetEntity>();
         if (isUnit && root.GetComponent<NetworkTransform>() == null) root.AddComponent<NetworkTransform>();
 
+        // never keep an animator-controller override: the variant must follow its original. A rebuild that
+        // briefly left controllers missing once saved "m_Controller = none" into 24 Aegis variants (no anims online)
+        var mods = PrefabUtility.GetPropertyModifications(root);
+        if (mods != null && System.Array.Exists(mods, m => m.propertyPath == "m_Controller"))
+            PrefabUtility.SetPropertyModifications(root, System.Array.FindAll(mods, m => m.propertyPath != "m_Controller"));
+
         GameObject saved;
         if (File.Exists(path))
         {

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
   m_Name: RailspikeTower
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
-  displayName: RailspikeTower
+  displayName: Railspike Tower
   description: Defence tower. Huge 70-damage rail shot every 3.5s from 36m, the longest
     range in the game. Offline when low on power. Ground only.
   prefab: {fileID: 2856029492227827674, guid: 8255fce483705144aa0573ed965b7dba, type: 3}

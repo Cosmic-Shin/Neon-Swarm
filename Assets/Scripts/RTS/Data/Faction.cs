@@ -83,5 +83,9 @@ public class Faction : ScriptableObject
     }
     public static string HqName(int team) => Of(team) is Faction f && f.hq != null && f.hq.TryGetComponent(out Structure s) ? s.Name : "Core Nexus";
     public static void Set(int team, Faction f) => teams[team] = f;
+
+    /// <summary>Small coloured faction label ("HIVE" / "AEGIS") for name lists: end screen, spectator panel.</summary>
+    public static string Tag(int team) =>
+        Of(team) is Faction f ? $"  <size=15><color=#{ColorUtility.ToHtmlStringRGB(f.color)}>{f.id.ToString().ToUpper()}</color></size>" : "";
     public static void Clear() => teams.Clear();
 }

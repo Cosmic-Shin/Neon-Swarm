@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
   m_Name: QueenArachne
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
-  displayName: QueenArachne
+  displayName: Queen Arachne
   role: 5
   description: Flagship. The toughest unit, with splash attacks. Expensive, slow
     and devastating. Hatches a Skitter every 15 s (up to 2 at a time).

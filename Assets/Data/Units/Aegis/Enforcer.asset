@@ -18,7 +18,7 @@ MonoBehaviour:
   description: Riot-suit flamer. Sweeps a cone of fire that shreds packed infantry
     and swarms.
   icon: {fileID: 21300000, guid: 49844a6e7f9f2134396e3794171a8d9a, type: 3}
-  cost: 450
+  cost: 400
   buildTime: 6
   squadSize: 1
   maxHealth: 205

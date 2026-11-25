@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
   m_Name: CloakFieldGenerator
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
-  displayName: CloakFieldGenerator
+  displayName: Cloak Field Generator
   description: 'Hides your units and buildings within 28m: enemies can''t target
     them unless they get within 8m. Offline when low on power.'
   prefab: {fileID: 4648560868765458671, guid: e3e2facdcbce65a4c8cd3a8c3e902989, type: 3}

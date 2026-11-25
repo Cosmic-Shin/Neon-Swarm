@@ -18,7 +18,7 @@ MonoBehaviour:
   description: Mobile artillery. Lobs shells at long range with splash damage. Keep
     it behind the line.
   icon: {fileID: 21300000, guid: 1b641cacb9a13b249b8573dfb6f445d5, type: 3}
-  cost: 800
+  cost: 725
   buildTime: 8
   squadSize: 1
   maxHealth: 125

@@ -52,10 +52,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Aegis_SensorArray_Net
       objectReference: {fileID: 0}
-    - target: {fileID: 4749091813793134404, guid: 69f7c93029fd3a84e9317f5c4865ac59, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

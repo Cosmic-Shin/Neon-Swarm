@@ -8,10 +8,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 5238303213434790205, guid: 574988e930212454783803b8e49fc30c, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 0}
     - target: {fileID: 8056984226958208718, guid: 574988e930212454783803b8e49fc30c, type: 3}
       propertyPath: m_Name
       value: Aegis_AATrooper_Net

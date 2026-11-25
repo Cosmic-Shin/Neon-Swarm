@@ -17,10 +17,10 @@ MonoBehaviour:
   role: 1
   description: Fast attack bike. Hits and runs, great against harvesters and stragglers.
   icon: {fileID: 21300000, guid: ba18096b51c16e043bcf02d9da3e8674, type: 3}
-  cost: 750
+  cost: 675
   buildTime: 7
   squadSize: 2
-  maxHealth: 170
+  maxHealth: 160
   damage: 18
   range: 16
   attackCooldown: 1

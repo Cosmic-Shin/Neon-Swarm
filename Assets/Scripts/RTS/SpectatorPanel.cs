@@ -153,7 +153,7 @@ public class SpectatorPanel : MonoBehaviour
         s.color = TeamMember.ColorOf(s.slot >= 0 ? s.slot : s.team);
         s.title.color = s.color;
         foreach (var jb in s.jobBars) jb.color = s.color;
-        s.title.text = s.name + (alive ? "" : "  <color=#FF6070><size=15>DESTROYED</size></color>");
+        s.title.text = s.name + Faction.Tag(s.team) + (alive ? "" : "  <color=#FF6070><size=15>DESTROYED</size></color>");
         s.strip.color = alive ? s.color : s.color * 0.35f;
 
         var (credits, earned) = Money(s);

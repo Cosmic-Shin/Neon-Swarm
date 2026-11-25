@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
   m_Name: NeonTurret
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
-  displayName: NeonTurret
+  displayName: Neon Turret
   description: 'Defence tower. Fast laser: 14 damage every 0.7s, 20m range. Offline
     when low on power. Hits ground and air.'
   prefab: {fileID: 7502497076854759863, guid: 88d61a681ed4f324cb6077bcea5f55c6, type: 3}

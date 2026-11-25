@@ -34,6 +34,9 @@ public static class Achievements
         new() { id = "speed", name = "BLITZ", unit = "", lowerIsBetter = true, tiers = new[] { 1200, 900, 600, 420 }, value = p => p.fastestWin > 0f ? Mathf.CeilToInt(p.fastestWin) : 0 },
         new() { id = "hours", name = "VETERAN", unit = "hours played", tiers = new[] { 1, 10, 50, 200 }, value = p => (int)(p.secondsInGame / 3600f) },
         new() { id = "killer", name = "WAR MACHINE", unit = "kills per match (best avg)", tiers = new[] { 10, 25, 50, 100 }, value = p => p.all.games >= 3 ? p.Total(MatchStats.Kind.Kills) / p.all.games : 0 },
+        new() { id = "hivewins", name = "HIVE MIND", unit = "wins as the Hive", tiers = new[] { 1, 10, 50, 150 }, value = p => p.As(FactionId.Hive).wins },
+        new() { id = "aegiswins", name = "CORPORATE TAKEOVER", unit = "wins as Aegis Corp", tiers = new[] { 1, 10, 50, 150 }, value = p => p.As(FactionId.Aegis).wins },
+        new() { id = "bothwins", name = "DOUBLE AGENT", unit = "wins with each faction", tiers = new[] { 1, 5, 25, 75 }, value = p => Mathf.Min(p.As(FactionId.Hive).wins, p.As(FactionId.Aegis).wins) },
     };
 
     public static Def Find(string id) => Array.Find(All, d => d.id == id);

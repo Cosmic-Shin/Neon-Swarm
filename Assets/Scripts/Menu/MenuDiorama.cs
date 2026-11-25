@@ -467,14 +467,14 @@ public class MenuDiorama : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(Random.Range(2f, 5.5f));
-            Vector3 at = Far(Random.Range(30f, 55f), Random.Range(5f, 22f));
+            Vector3 at = Far(camOffset.magnitude + Random.Range(22f, 45f), Random.Range(5f, 22f));   // beyond the diorama, wherever the camera sits
             float big = Random.Range(0.7f, 1.6f);
             Juice.Flash(at, Juice.Fire, 8f * big, 45f * big, 0.6f);
             Juice.Burst(at, Juice.Fire, Mathf.RoundToInt(18 * big), 6f * big, 0.9f * big, 0.8f, 0.4f, true);
             Juice.Burst(at, Color.white, 6, 3f, 1.4f * big, 0.25f, 0f);
             for (int i = 0; i < 3; i++) Particles.Emit("Smoke", at + Random.insideUnitSphere * 2f, Vector3.up * 2.5f + Vector3.right * 1.5f, 9f * big, 6f, WarSmoke);
             Sfx.Play(Snd.BoomBig, 0.07f * big, Random.Range(0.45f, 0.6f));
-            if (Random.value < 0.65f) StartCoroutine(Flak(Far(Random.Range(45f, 60f), 0f)));
+            if (Random.value < 0.65f) StartCoroutine(Flak(Far(camOffset.magnitude + Random.Range(30f, 42f), 0f)));
         }
     }
 

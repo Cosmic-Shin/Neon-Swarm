@@ -18,7 +18,7 @@ MonoBehaviour:
   description: Sky fortress. Wing turrets and an orbital lance make it the heaviest
     thing in the air. Needs Command Spire Mk III.
   icon: {fileID: 21300000, guid: ad69ade95b32b374fbd368bd273a8a43, type: 3}
-  cost: 3450
+  cost: 3150
   buildTime: 30
   squadSize: 1
   maxHealth: 2300

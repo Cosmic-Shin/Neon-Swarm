@@ -18,7 +18,7 @@ MonoBehaviour:
   description: Heavy dropship. Drops Peacekeeper squads straight onto the target.
     Needs Command Spire Mk III.
   icon: {fileID: 21300000, guid: d7025e47d4807c146bd1ac130f007659, type: 3}
-  cost: 3000
+  cost: 2750
   buildTime: 28
   squadSize: 1
   maxHealth: 1955

@@ -8,10 +8,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 193728461463392974, guid: f40dff5ea9815ba4599da8813205472e, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 0}
     - target: {fileID: 5417146580995011201, guid: f40dff5ea9815ba4599da8813205472e, type: 3}
       propertyPath: m_Name
       value: Aegis_PulseGate_Net

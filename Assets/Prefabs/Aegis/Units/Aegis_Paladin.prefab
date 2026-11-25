@@ -224,7 +224,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShieldField
   radius: 3.5
-  reduction: 0.3
+  reduction: 0.15
   color: {r: 1, g: 0.75, b: 0.3, a: 1}
   buildingsOnly: 0
   needsPower: 0

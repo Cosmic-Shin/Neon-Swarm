@@ -8,10 +8,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 2957310788837213240, guid: 775436d473063264ab1c3f931a65af5a, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 0}
     - target: {fileID: 5710146068425713303, guid: 775436d473063264ab1c3f931a65af5a, type: 3}
       propertyPath: m_Name
       value: Aegis_FusionReactor_Net

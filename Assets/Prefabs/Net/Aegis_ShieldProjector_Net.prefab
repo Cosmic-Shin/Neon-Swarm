@@ -48,10 +48,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2956209515900563517, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 0}
     - target: {fileID: 8240747104116293477, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
       propertyPath: m_Name
       value: Aegis_ShieldProjector_Net

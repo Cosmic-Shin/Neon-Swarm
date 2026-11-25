@@ -12,6 +12,7 @@ public class Mission : MonoBehaviour
         public int map, credits;
         public Skirmish.Difficulty? ai;
         public int aiBase = 4;
+        public FactionId faction;   // what the player commands
     }
 
     public static readonly Info[] All =
@@ -24,6 +25,11 @@ public class Mission : MonoBehaviour
             briefing = "Derelict outposts are scattered across the wasteland. Garrison crews are guarding them, and a rival commander wants them too.\n\nHold three outposts at the same time within 12 minutes." },
         new Info { name = "DECAPITATION", tagline = "Destroy the enemy Core", map = 1, credits = 7000, ai = Skirmish.Difficulty.Normal, aiBase = 1,
             briefing = "One enemy commander holds the far side of the canyon.\n\nYou don't need to wipe out their whole base. Destroy their Core Nexus and their network collapses." },
+        // Aegis Corp campaign (unlocked from the start)
+        new Info { name = "PERIMETER", tagline = "Fortify and hold", map = 0, credits = 7000, faction = FactionId.Aegis,
+            briefing = "Aegis Corp is claiming this sector. The swarm will not give it up quietly.\n\nRaise a Shield Projector and two Sentinel Turrets, then hold your Command Spire for five minutes against the swarm." },
+        new Info { name = "HOSTILE TAKEOVER", tagline = "Destroy the Hive Core", map = 1, credits = 8000, ai = Skirmish.Difficulty.Normal, aiBase = 1, faction = FactionId.Aegis,
+            briefing = "A Hive commander has dug in across the canyon.\n\nThe board wants a clean acquisition: destroy their Core Nexus. Everything else is a write-off." },
     };
 
     public static int Current = -1;
@@ -33,7 +39,8 @@ public class Mission : MonoBehaviour
     static void Reset() => Current = -1;
 
     public static bool Done(int i) => PlayerPrefs.GetInt("mission.done." + i, 0) == 1;
-    public static bool Unlocked(int i) => i == 0 || Done(i - 1);
+    // each faction's first mission is open; the rest unlock in order
+    public static bool Unlocked(int i) => i == 0 || All[i].faction != All[i - 1].faction || Done(i - 1);
 
     public static void Begin(int i)
     {
@@ -69,7 +76,8 @@ public class Mission : MonoBehaviour
     {
         started = Time.time;
         var m = All[Current];
-        failure = () => HQ() == null ? "Your Core Nexus was destroyed." : null;
+        string hq = Faction.HqName(0);
+        failure = () => HQ() == null ? $"Your {hq} was destroyed." : null;
         switch (Current)
         {
             case 0:
@@ -91,10 +99,22 @@ public class Mission : MonoBehaviour
             case 2:
                 Add(() => $"Hold 3 outposts at once  ({Outposts()}/3)", () => Outposts() >= 3);
                 countdown = () => $"Time left {Clock(Mathf.Max(0f, 720f - Elapsed))}";
-                failure = () => HQ() == null ? "Your Core Nexus was destroyed." : Elapsed > 720f ? "Time ran out." : null;
+                failure = () => HQ() == null ? $"Your {hq} was destroyed." : Elapsed > 720f ? "Time ran out." : null;
                 break;
             case 3:
                 Add(() => "Destroy the enemy Core Nexus", () => Elapsed > 10f && EnemyHQ() == null);
+                break;
+            case 4:
+                Add(() => "Build a Shield Projector", () => Built("ShieldProjector"));
+                Add(() => $"Build 2 Sentinel Turrets  ({Count("SentinelTurret")}/2)", () => Count("SentinelTurret") >= 2);
+                Add(() => $"Hold for five minutes  {Clock(Mathf.Max(0f, 300f - Elapsed))}", () => Elapsed >= 300f);
+                Wave(70f, "Skitter", "Skitter", "Skitter", "Hackling", "Hackling");
+                Wave(130f, "Chromejaw", "Chromejaw", "Skitter", "Skitter", "Burner");
+                Wave(190f, "Burner", "Burner", "Strider", "Strider", "Hackling", "Hackling", "Hackling");
+                Wave(250f, "CrusherTarantula", "Chromejaw", "Chromejaw", "MortarScarab", "Skitter", "Skitter", "Skitter");
+                break;
+            case 5:
+                Add(() => $"Destroy the enemy {Faction.HqName(1)}", () => Elapsed > 10f && EnemyHQ() == null);
                 break;
         }
         BuildPanel(m);
@@ -110,6 +130,7 @@ public class Mission : MonoBehaviour
 
     static Structure HQ() => Structure.All.Find(s => s != null && s.isHQ && s.Health.team == 0 && !s.Health.IsDead);
     static Structure EnemyHQ() => Structure.All.Find(s => s != null && s.isHQ && s.Health.team == 1 && !s.Health.IsDead);
+    static int Count(string data) => Structure.All.FindAll(s => s != null && s.Health.team == 0 && s.data != null && s.data.name == data && !s.GetComponent<Construction>() && !s.Health.IsDead).Count;
     static bool Built(string data) => Structure.All.Exists(s => s != null && s.Health.team == 0 && s.data != null && s.data.name == data && !s.GetComponent<Construction>());
     static int Earned() => MatchStats.Values[(int)MatchStats.Kind.Earned];
 
@@ -156,7 +177,7 @@ public class Mission : MonoBehaviour
         {
             PlayerPrefs.SetInt("mission.done." + Current, 1);
             PlayerPrefs.Save();
-            if (Current + 1 < All.Length) detail += $"  {All[Current + 1].name} is now unlocked.";
+            if (Current + 1 < All.Length && All[Current + 1].faction == All[Current].faction) detail += $"  {All[Current + 1].name} is now unlocked.";
         }
         Sfx.Stinger(won);
         match.Finish(won ? "MISSION COMPLETE" : "MISSION FAILED", detail);

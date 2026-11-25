@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
   m_Name: EMPMineField
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
-  displayName: EMPMineField
+  displayName: EMP Mine Field
   description: When enemy units come within 9m it pulses, stunning them for 4s (no
     moving or shooting). Recharges in 15s. Needs no power.
   prefab: {fileID: 2847586738456161406, guid: 694dfdaf6f5fb96488592e785c51fdcd, type: 3}

@@ -20,7 +20,8 @@ public static class Barks
         if (lines.Length == 0) return;
         string pick = lines[Random.Range(0, lines.Length)];
         if (pick == last && lines.Length > 1) pick = lines[(System.Array.IndexOf(lines, pick) + 1) % lines.Length];
-        if (Sfx.Bark(Clip(pick), PitchOf(lead.role)))
+        float pitch = lead.faction == FactionId.Aegis ? 0.92f + (PitchOf(lead.role) - 1f) * 0.4f : PitchOf(lead.role);   // steadier corporate voice
+        if (Sfx.Bark(Clip(pick), pitch))
         {
             last = pick;
             ready = Time.unscaledTime + (kind == Kind.Select ? 2.4f : 1.6f);
@@ -29,7 +30,9 @@ public static class Barks
 
     static AudioClip Clip(string name)
     {
-        if (!clips.TryGetValue(name, out var c) || c == null) clips[name] = c = Resources.Load<AudioClip>("Sfx/Voice/Units/" + name);
+        // "@name" = Aegis corporate voice (the female Kenney set in Sfx/Voice), plain names = the swarm's male set
+        if (!clips.TryGetValue(name, out var c) || c == null)
+            clips[name] = c = Resources.Load<AudioClip>(name.StartsWith("@") ? "Sfx/Voice/" + name.Substring(1) : "Sfx/Voice/Units/" + name);
         return c;
     }
 
@@ -46,6 +49,16 @@ public static class Barks
     static string[] Lines(UnitData d, Kind kind)
     {
         bool worker = d.role == UnitData.Role.Worker;
+        if (d.faction == FactionId.Aegis)
+            return kind switch
+            {
+                Kind.Select => new[] { "@ready" },
+                Kind.Move => worker ? new[] { "@ready" } : new[] { "@war_go_go_go", "@hurry_up" },
+                Kind.Hold => new[] { "@war_get_down" },
+                _ => worker || d.damage <= 0f ? System.Array.Empty<string>()
+                   : d.role == UnitData.Role.Heavy || d.role == UnitData.Role.Elite ? new[] { "@war_fire_in_the_hole", "@war_look_out" }
+                   : new[] { "@war_look_out", "@war_fire_in_the_hole" },
+            };
         switch (kind)
         {
             case Kind.Select:

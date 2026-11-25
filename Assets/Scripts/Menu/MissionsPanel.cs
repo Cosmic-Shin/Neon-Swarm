@@ -39,7 +39,7 @@ public class MissionsPanel : MonoBehaviour
         for (int i = 0; i < rows.Length; i++)
         {
             int index = i;
-            rows[i] = SettingsPanel.Button(win, "", new Vector2(-370f, 200f - i * 104f), new Vector2(380f, 92f));
+            rows[i] = SettingsPanel.Button(win, "", new Vector2(-370f, 222f - i * 76f), new Vector2(380f, 70f));   // 6 missions (Hive + Aegis)
             HoloSkin.Row(rows[i]);
             var label = rows[i].GetComponentInChildren<Text>();
             label.alignment = TextAnchor.MiddleLeft;
@@ -89,7 +89,9 @@ public class MissionsPanel : MonoBehaviour
         {
             var m = Mission.All[r];
             string state = Mission.Done(r) ? $"<color=#{Hex(Green)}>COMPLETE</color>" : Mission.Unlocked(r) ? $"<color=#{(r == i ? "0A2F3A" : Hex(Dim))}>{m.tagline}</color>" : $"<color=#{(r == i ? "8A1424" : Hex(Locked))}>LOCKED</color>";
-            rows[r].GetComponentInChildren<Text>().text = $"<size=16><color=#{Hex(Dim)}>{r + 1:00}</color></size>   <b>{m.name}</b>\n<size=16>       {state}</size>";
+            var f = System.Array.Find(Faction.All, x => x.id == m.faction);
+            string side = f != null ? $"<color=#{Hex(f.color)}>{f.id.ToString().ToUpper()}</color>  " : "";
+            rows[r].GetComponentInChildren<Text>().text = $"<size=16><color=#{Hex(Dim)}>{r + 1:00}</color></size>   <b>{m.name}</b>\n<size=16>       {side}{state}</size>";
             HoloSkin.SetOn(rows[r], r == i);
         }
         var info = Mission.All[i];

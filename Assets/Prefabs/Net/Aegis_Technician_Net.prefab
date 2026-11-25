@@ -48,10 +48,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 3333711884379943731, guid: a6016a402da431e499439489c23256e1, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 0}
     - target: {fileID: 4448566259662613705, guid: a6016a402da431e499439489c23256e1, type: 3}
       propertyPath: m_Name
       value: Aegis_Technician_Net

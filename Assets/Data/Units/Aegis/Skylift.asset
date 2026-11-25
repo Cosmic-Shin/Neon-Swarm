@@ -18,7 +18,7 @@ MonoBehaviour:
   description: Air transport. Carries up to five infantry or support units over walls
     and cliffs.
   icon: {fileID: 21300000, guid: 7e69b708809f2d94baf99d825a0867fa, type: 3}
-  cost: 700
+  cost: 650
   buildTime: 8
   squadSize: 1
   maxHealth: 370
