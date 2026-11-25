@@ -16,7 +16,7 @@ public static class NetPrefabBuilder
         if (!AssetDatabase.IsValidFolder("Assets/Resources")) AssetDatabase.CreateFolder("Assets", "Resources");
 
         var pairs = new List<NetPrefabs.Pair>();
-        foreach (var folder in new[] { "Assets/Prefabs/Units", "Assets/Prefabs/Buildings" })
+        foreach (var folder in new[] { "Assets/Prefabs/Units", "Assets/Prefabs/Buildings", "Assets/Prefabs/Aegis/Units", "Assets/Prefabs/Aegis/Buildings" })
             foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { folder }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);

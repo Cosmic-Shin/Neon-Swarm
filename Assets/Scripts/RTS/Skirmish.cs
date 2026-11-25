@@ -14,6 +14,7 @@ public static class Skirmish
         public int side;
         public int color;
         public int baseIndex;
+        public int faction;
         public bool ally => Allied(0, team);
         public string Name => ally ? $"Ally AI {team} ({difficulty})" : $"AI {team} ({difficulty})";
     }
@@ -21,13 +22,13 @@ public static class Skirmish
     public static bool Active;
     public static int StartCredits = 5000;
     public static int Minutes;
-    public static int PlayerSide, PlayerColor, PlayerBase;
+    public static int PlayerSide, PlayerColor, PlayerBase, PlayerFaction;
     public static float ElapsedBefore;
     public static float Elapsed => Time.timeSinceLevelLoad + ElapsedBefore;
     public static readonly List<Opponent> Opponents = new();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void Reset() { Active = false; Opponents.Clear(); Minutes = 0; PlayerSide = PlayerColor = PlayerBase = 0; ElapsedBefore = 0f; }
+    static void Reset() { Active = false; Opponents.Clear(); Minutes = 0; PlayerSide = PlayerColor = PlayerBase = PlayerFaction = 0; ElapsedBefore = 0f; }
 
     public static Opponent Find(int team)
     {
@@ -42,6 +43,8 @@ public static class Skirmish
     }
 
     public static bool Allied(int a, int b) => a == b || (a != Creep.Team && b != Creep.Team && Active && SideOf(a) == SideOf(b));
+
+    public static int FactionOf(int team) => Mission.Active || Tutorial.Active ? 0 : team == 0 ? PlayerFaction : Find(team)?.faction ?? 0;
 
     public static int ColorIndexOf(int team) => team == 0 ? PlayerColor : Find(team)?.color ?? team;
 }

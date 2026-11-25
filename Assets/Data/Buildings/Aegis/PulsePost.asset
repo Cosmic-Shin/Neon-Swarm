@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
+  m_Name: PulsePost
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  displayName: Pulse Post
+  faction: 1
+  description: Sturdy wall corner and end post.
+  prefab: {fileID: 598553929967452303, guid: 2b2907be950f7ec46bf307fafe362d7c, type: 3}
+  icon: {fileID: 21300000, guid: 39dfa70568ea48f4182fe8636d39dec6, type: 3}
+  cost: 100
+  buildTime: 5
+  dragLine: 0
+  requires: []
+  coreLevel: 1
+  onePerPlayer: 0

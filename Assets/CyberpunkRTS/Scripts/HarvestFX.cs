@@ -31,6 +31,8 @@ public class HarvestFX : MonoBehaviour
     {
         harvester = GetComponent<Harvester>();
         drills = new[] { Find("Harv_DrillBitL"), Find("Harv_DrillBitR") };
+        var armBeam = Find("COLL_ArmBeam");   // GD5: Aegis Collector mines with its arm beam
+        if (drills[0] == null && armBeam != null) drills = new[] { armBeam };
         cargo = Find("Harv_CargoGlass") ?? transform;
         var material = Resources.Load<Material>("HarvestFX");
 

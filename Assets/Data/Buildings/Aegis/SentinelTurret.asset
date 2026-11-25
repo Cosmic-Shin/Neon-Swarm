@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
+  m_Name: SentinelTurret
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  displayName: Sentinel Turret
+  faction: 1
+  description: Basic gun turret. Hits ground and air.
+  prefab: {fileID: 3974423689107008749, guid: 47d6067f282d56d4b907cf0e29fa92f8, type: 3}
+  icon: {fileID: 21300000, guid: d2ec5f6719c0a6f4c8818c7c5572c846, type: 3}
+  cost: 400
+  buildTime: 6
+  dragLine: 0
+  requires:
+  - {fileID: 11400000, guid: 1d40839160e924b4bb7117c249f739f9, type: 2}
+  coreLevel: 1
+  onePerPlayer: 0

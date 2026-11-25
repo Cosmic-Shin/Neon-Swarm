@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Aegis_Collector
+  m_Controller: {fileID: 9100000, guid: 20e979bc23ad55347b556269f9936e22, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: -1609281748187839663, guid: 8e862301f81d4144dbf98a29e405631c, type: 3}
+    m_OverrideClip: {fileID: -1609281748187839663, guid: 9554d6ea93672ab40ba09130802dcedd, type: 3}
+  - m_OriginalClip: {fileID: -623603649343465320, guid: 8e862301f81d4144dbf98a29e405631c, type: 3}
+    m_OverrideClip: {fileID: -623603649343465320, guid: 9554d6ea93672ab40ba09130802dcedd, type: 3}
+  - m_OriginalClip: {fileID: 723096430288179899, guid: 8e862301f81d4144dbf98a29e405631c, type: 3}
+    m_OverrideClip: {fileID: 1963079803359675471, guid: 9554d6ea93672ab40ba09130802dcedd, type: 3}
+  - m_OriginalClip: {fileID: 1963079803359675471, guid: 8e862301f81d4144dbf98a29e405631c, type: 3}
+    m_OverrideClip: {fileID: -626948583029366203, guid: 9554d6ea93672ab40ba09130802dcedd, type: 3}

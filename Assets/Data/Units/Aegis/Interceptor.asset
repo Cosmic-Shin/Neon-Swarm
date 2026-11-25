@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
+  m_Name: Interceptor
+  m_EditorClassIdentifier: Assembly-CSharp::UnitData
+  displayName: Interceptor
+  faction: 1
+  role: 1
+  description: Air-superiority fighter. Missiles only hit other flyers.
+  icon: {fileID: 21300000, guid: c4531131d466f8a48a3ec28296636bd1, type: 3}
+  cost: 575
+  buildTime: 7
+  squadSize: 2
+  maxHealth: 125
+  damage: 10
+  range: 14
+  attackCooldown: 0.4
+  hitsGround: 0
+  hitsAir: 1
+  moveSpeed: 16.199999
+  sight: 0
+  splash: 0
+  stunOnHit: 0
+  slowOnHit: 0
+  buildingDamage: 0.5
+  armor: 0
+  weapon: 2
+  ability: 0
+  visual:
+    projectile: {fileID: 1655834910483421160, guid: 0879d9a832958304c95fd7795b34377f, type: 3}
+    speed: 90
+    arc: 0
+    muzzleFlash: {fileID: 2923620917300925078, guid: b9c1d30cf7234304ab27f85362607d76, type: 3}
+    impact: {fileID: 0}
+    scorch: {fileID: 0}
+    hideBeam: 1
+  style: 0
+  muzzles: INT_Muzzle
+  extra: {fileID: 0}

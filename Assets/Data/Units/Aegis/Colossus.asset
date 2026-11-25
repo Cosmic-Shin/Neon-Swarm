@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
+  m_Name: Colossus
+  m_EditorClassIdentifier: Assembly-CSharp::UnitData
+  displayName: Colossus
+  faction: 1
+  role: 5
+  description: Aegis super-heavy walker. Twin plasma lances melt anything in front
+    of it. Needs Command Spire Mk III.
+  icon: {fileID: 21300000, guid: 3f874a7894fbde948ba8aaf7246d209e, type: 3}
+  cost: 1850
+  buildTime: 14
+  squadSize: 1
+  maxHealth: 860
+  damage: 40.5
+  range: 14
+  attackCooldown: 1.2
+  hitsGround: 1
+  hitsAir: 1
+  moveSpeed: 7.2
+  sight: 0
+  splash: 0
+  stunOnHit: 0
+  slowOnHit: 0
+  buildingDamage: 1
+  armor: 1
+  weapon: 3
+  ability: 0
+  visual:
+    projectile: {fileID: 1727558927369009568, guid: 9b9826802d5821c4abf2cbf91c315dc6, type: 3}
+    speed: 70
+    arc: 0
+    muzzleFlash: {fileID: 2923620917300925078, guid: b9c1d30cf7234304ab27f85362607d76, type: 3}
+    impact: {fileID: 4146322954805676179, guid: 33e5a119a58d8fb478e254cd3a518a77, type: 3}
+    scorch: {fileID: 7155740820297735006, guid: fadf7a13a4c768842931814b1e56278f, type: 3}
+    hideBeam: 1
+  style: 0
+  muzzles: COL_LanceMuzzle
+  extra: {fileID: 0}

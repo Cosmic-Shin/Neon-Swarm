@@ -53,6 +53,8 @@ public class Chasm
 
 public static class GameMaps
 {
+    public static GameObject[] Props => Resources.Load<PrefabList>("MapProps") is PrefabList list ? list.prefabs : System.Array.Empty<GameObject>();
+
     public static readonly GameMap[] All =
     {
         new GameMap

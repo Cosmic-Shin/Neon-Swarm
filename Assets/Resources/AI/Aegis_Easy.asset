@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce3eeaf56090b0d439f62d3b5a938184, type: 3}
+  m_Name: Aegis_Easy
+  m_EditorClassIdentifier: Assembly-CSharp::AIProfile
+  thinkInterval: 3
+  incomeBonus: 0
+  buildOrder:
+  - {fileID: 11400000, guid: 1d40839160e924b4bb7117c249f739f9, type: 2}
+  - {fileID: 11400000, guid: 606dfd25079e5204dafdc67cb0510875, type: 2}
+  - {fileID: 11400000, guid: 6e4a8b62cb94b3440a387f3a59f11f9c, type: 2}
+  - {fileID: 11400000, guid: 38216cf077fff194a82006fdce44d9df, type: 2}
+  - {fileID: 11400000, guid: 606dfd25079e5204dafdc67cb0510875, type: 2}
+  - {fileID: 11400000, guid: 2dff50d0ed5bb344c818887427ae0aa9, type: 2}
+  - {fileID: 11400000, guid: e01500f7922d26f42ae5f8f9f815a579, type: 2}
+  - {fileID: 11400000, guid: 38216cf077fff194a82006fdce44d9df, type: 2}
+  lateGame:
+  - {fileID: 11400000, guid: 38216cf077fff194a82006fdce44d9df, type: 2}
+  - {fileID: 11400000, guid: 606dfd25079e5204dafdc67cb0510875, type: 2}
+  armyShare: 0.5
+  harvesters: 3
+  units:
+  - unit: {fileID: 11400000, guid: 469f6f589fb9c42498ba586b4a7b0928, type: 2}
+    weight: 5
+  - unit: {fileID: 11400000, guid: 8f91ccb2140cf8c49ae467537309d0c0, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: d383d20a229a4724f85cb5b9fd471c03, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 3bd4c5b0cd3840d4b95a50c895423960, type: 2}
+    weight: 0.6
+  - unit: {fileID: 11400000, guid: db39c36f9b1fbf940b960b556e8068dd, type: 2}
+    weight: 0.6
+  - unit: {fileID: 11400000, guid: 8093395d27297d24ea582f0c233e709c, type: 2}
+    weight: 0.6
+  firstAttack: 420
+  waveValue: 2000
+  waveGrowth: 1.3
+  defendRadius: 45
+  upgrades: 0
+  coreUpgradeAt: 0
+  coreMk3At: 0
+  research: 0
+  counterPick: 0
+  expandBelow: 0
+  harassEvery: 0
+  harassSize: 3
+  superweapon: 0
+  focusFire: 0
+  retreatBelow: 0
+  regroup: 0
+  kite: 0
+  weakSpot: 0
+  flankShare: 0

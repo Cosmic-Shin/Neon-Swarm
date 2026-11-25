@@ -91,6 +91,7 @@ public class DroneHangar : MonoBehaviour
         stock--;
         nextLaunch = Time.time + launchGap;
         LastLaunch = Time.time;
+        if (TryGetComponent(out Gate hatch)) hatch.Open(1.8f);
         Vector2 r = Random.insideUnitCircle * 1.5f;
         Vector3 at = Home + new Vector3(r.x, 0f, r.y);
         var d = Net.SpawnFor(self.team, dronePrefab.gameObject, at, transform.rotation).GetComponent<SelectableUnit>();
@@ -106,6 +107,7 @@ public class DroneHangar : MonoBehaviour
         drones.Remove(d);
         stock = Mathf.Min(capacity, stock + 1);
         LastDock = Time.time;
+        if (TryGetComponent(out Gate dockHatch)) dockHatch.Open(1.5f);
         Juice.Ring(Flyer.Center(d), color, 0.3f, 1.5f, 0.3f, 0.1f);
         Net.Destroy(d.gameObject);
     }

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
+  m_Name: MotorPool
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  displayName: Motor Pool
+  faction: 1
+  description: 'Vehicle and mech factory: bikes, tanks, artillery and the Colossus.'
+  prefab: {fileID: 8038190936038974063, guid: 42c52c68a11b979459f64f00a0777d68, type: 3}
+  icon: {fileID: 21300000, guid: aa78f9e3211177745b842cedbab3fed3, type: 3}
+  cost: 1500
+  buildTime: 22
+  dragLine: 0
+  requires:
+  - {fileID: 11400000, guid: 6e4a8b62cb94b3440a387f3a59f11f9c, type: 2}
+  - {fileID: 11400000, guid: 1d40839160e924b4bb7117c249f739f9, type: 2}
+  coreLevel: 1
+  onePerPlayer: 0

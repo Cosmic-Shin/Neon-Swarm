@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
+  m_Name: AATrooper
+  m_EditorClassIdentifier: Assembly-CSharp::UnitData
+  displayName: AA Trooper
+  faction: 1
+  role: 2
+  description: Twin flak tubes on a shoulder rig. Cannot hit ground targets, but
+    tears flyers out of the sky.
+  icon: {fileID: 21300000, guid: f9fb89fb115ec1b4199fb597b9c76906, type: 3}
+  cost: 575
+  buildTime: 6
+  squadSize: 2
+  maxHealth: 105
+  damage: 16
+  range: 18
+  attackCooldown: 1.1
+  hitsGround: 0
+  hitsAir: 1
+  moveSpeed: 11.7
+  sight: 0
+  splash: 0
+  stunOnHit: 0
+  slowOnHit: 0
+  buildingDamage: 1
+  armor: 0
+  weapon: 2
+  ability: 0
+  visual:
+    projectile: {fileID: 6160873960037492241, guid: dd4ab6732cf36564f9118e1d868c63bd, type: 3}
+    speed: 90
+    arc: 0
+    muzzleFlash: {fileID: 2923620917300925078, guid: b9c1d30cf7234304ab27f85362607d76, type: 3}
+    impact: {fileID: 0}
+    scorch: {fileID: 0}
+    hideBeam: 1
+  style: 0
+  muzzles: AAT_Muzzle
+  extra: {fileID: 0}

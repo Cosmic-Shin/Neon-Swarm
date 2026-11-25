@@ -16,6 +16,11 @@ public class SwarmSilo : MonoBehaviour
     public static readonly List<SwarmSilo> All = new();
 
     public GameObject podPrefab, shockBig, shockPulse, shockRing, bolt, locustPrefab;
+    public bool orbital;
+    public GameObject beamPrefab, impactPrefab;
+    public string Label => orbital ? "Orbital Lance" : "Swarm Silo";
+    public Color Tint => orbital ? OrbitalStrike.Hot : Pink;
+    float Arm => orbital ? 25f / 24f : ArmTime;
 
     Health health;
     NetEntity net;
@@ -56,6 +61,7 @@ public class SwarmSilo : MonoBehaviour
             switch (t.name)
             {
                 case "Silo_LaunchPoint": launchPoint = t; break;
+                case "OL_BeamPoint": launchPoint = t; break;
                 case "Silo_ChargeFX_E": chargeE = t; break;
                 case "Silo_ChargeFX_W": chargeW = t; break;
                 case "Silo_Pod": pod = t.GetComponentsInChildren<Renderer>(true); break;
@@ -108,12 +114,12 @@ public class SwarmSilo : MonoBehaviour
         readySaid = true;
         if (health.team == 0)
         {
-            Alerts.ShowAt("Swarm Silo ready", Alerts.Good, transform.position);
+            Alerts.ShowAt($"{Label} ready", Alerts.Good, transform.position);
             Sfx.Say(Line.Ready, 1f);
         }
         else if (!Net.Allied(health.team, 0))
         {
-            Alerts.ShowAt("Enemy Swarm Silo is ready to fire", Alerts.Bad, transform.position, 10f);
+            Alerts.ShowAt($"Enemy {Label} is ready to fire", Alerts.Bad, transform.position, 10f);
             Sfx.Cue("error_004", 0.6f, 0.75f);
         }
     }
@@ -123,15 +129,15 @@ public class SwarmSilo : MonoBehaviour
         if (announced) return;
         announced = true;
         if (Time.timeSinceLevelLoad < 3f || Net.Allied(health.team, 0)) return;
-        Alerts.ShowAt("Swarm Silo detected", Alerts.Bad, transform.position);
+        Alerts.ShowAt($"{Label} detected", Alerts.Bad, transform.position);
         Sfx.Cue("error_006", 0.7f, 0.8f);
     }
 
     void ReloadFx()
     {
         if (!Juice.Seen(transform.position)) return;
-        Juice.Ring(transform.position + Vector3.up * 0.3f, Pink, 4f, 18f, 0.8f, 0.4f);
-        Juice.Burst(LaunchAt, Pink, 24, 8f, 0.15f, 0.6f, 1f);
+        Juice.Ring(transform.position + Vector3.up * 0.3f, Tint, 4f, 18f, 0.8f, 0.4f);
+        Juice.Burst(LaunchAt, Tint, 24, 8f, 0.15f, 0.6f, 1f);
         if (life != null) life.Kick(0.8f);
         Sfx.CueAt("doorClose_000", transform.position, 0.7f, 0.7f, 0f);
     }
@@ -148,7 +154,7 @@ public class SwarmSilo : MonoBehaviour
                 foreach (var r in steps[i]) Glow(r, i < step ? lit : Color.black);
         }
         float pulse = Ready ? 1.5f + 3.5f * (0.5f + 0.5f * Mathf.Sin(Time.time * 4f)) : 0f;
-        foreach (var r in readyRing) Glow(r, Pink * pulse);
+        foreach (var r in readyRing) Glow(r, Tint * pulse);
     }
 
     void StepFx(int step)
@@ -178,8 +184,8 @@ public class SwarmSilo : MonoBehaviour
         beam.SetPosition(0, from);
         beam.SetPosition(1, from + Vector3.up * 34f);
         beam.widthMultiplier = 0.14f + 0.2f * k;
-        beam.startColor = new Color(Pink.r, Pink.g, Pink.b, 0.18f + 0.2f * k);
-        beam.endColor = new Color(Pink.r, Pink.g, Pink.b, 0f);
+        beam.startColor = new Color(Tint.r, Tint.g, Tint.b, 0.18f + 0.2f * k);
+        beam.endColor = new Color(Tint.r, Tint.g, Tint.b, 0f);
         if (Time.time >= nextArc && chargeE != null && chargeW != null && bolt != null)
         {
             nextArc = Time.time + Random.Range(0.5f, 1.4f);
@@ -202,7 +208,7 @@ public class SwarmSilo : MonoBehaviour
         go.transform.position = LaunchAt + Vector3.up * 2f;
         beacon = go.AddComponent<Light>();
         beacon.type = LightType.Point;
-        beacon.color = Pink;
+        beacon.color = Tint;
         beacon.range = 34f;
         beacon.shadows = LightShadows.None;
         beam = go.AddComponent<LineRenderer>();
@@ -233,8 +239,9 @@ public class SwarmSilo : MonoBehaviour
         if (firing) return;
         firing = true;
         remoteReady = false;
-        anim.ResetTrigger("Close");
-        anim.SetTrigger("Arm");
+        if (anim != null && !orbital) { anim.ResetTrigger("Close"); anim.SetTrigger("Arm"); }
+        if (anim != null && orbital) anim.SetTrigger("Fire");
+        if (orbital && TryGetComponent(out AimPivot dish)) dish.LookAt(at, 16f);
         Sfx.CueAt("doorOpen_000", transform.position, 1f, 0.55f, 0.1f);
         Sfx.CueAt("computerNoise_000", transform.position, 0.7f, 0.7f, 0f);
         if (life != null) life.Kick(-0.6f);
@@ -244,7 +251,7 @@ public class SwarmSilo : MonoBehaviour
     IEnumerator Sequence(Vector3 at, bool authority)
     {
         float nextAlarm = 0f;
-        for (float t = 0f; t < ArmTime; t += Time.deltaTime)
+        for (float t = 0f; t < Arm; t += Time.deltaTime)
         {
             bool seen = Juice.Seen(transform.position);
             if (t >= nextAlarm)
@@ -261,10 +268,10 @@ public class SwarmSilo : MonoBehaviour
             {
                 nextSpark = Time.time + 0.07f;
                 foreach (var p in new[] { chargeE, chargeW })
-                    if (p != null) Juice.Burst(p.position, Pink, 5, 6f, 0.11f, 0.3f, 0.6f);
+                    if (p != null) Juice.Burst(p.position, Tint, 5, 6f, 0.11f, 0.3f, 0.6f);
                 Vector2 c = Random.insideUnitCircle.normalized * Random.Range(6f, 10f);
                 Particles.Emit("Steam", transform.position + new Vector3(c.x, 0.6f, c.y), new Vector3(c.x * 0.3f, 2.5f, c.y * 0.3f), 4f, 1.2f, new Color(0.85f, 0.8f, 0.9f, 0.35f));
-                Particles.Emit("Print", LaunchAt, Vector3.up * Random.Range(10f, 22f), 0.5f, 0.5f, Pink);
+                Particles.Emit("Print", LaunchAt, Vector3.up * Random.Range(10f, 22f), 0.5f, 0.5f, Tint);
             }
             yield return null;
         }
@@ -276,10 +283,11 @@ public class SwarmSilo : MonoBehaviour
         seconds = 0f;
         firing = false;
         shownStep = -1;
+        if (orbital) { OrbitalStrike.Begin(this, LaunchAt, at, authority); yield break; }
         LaunchFx();
         SwarmStrike.Begin(this, LaunchAt, at, authority);
         yield return new WaitForSeconds(0.6f);
-        anim.SetTrigger("Close");
+        if (anim != null) anim.SetTrigger("Close");
         Sfx.CueAt("doorClose_001", transform.position, 0.8f, 0.6f, 0f);
     }
 
@@ -440,7 +448,8 @@ public class SiloHud : MonoBehaviour
     {
         chip.silo = s;
         int rank = Rank(s);
-        string who = rank == 0 ? "YOUR SILO" : rank == 1 ? "ALLY SILO" : "ENEMY SILO";
+        string kind = s.orbital ? "LANCE" : "SILO";
+        string who = rank == 0 ? $"YOUR {kind}" : rank == 1 ? $"ALLY {kind}" : $"ENEMY {kind}";
         string state = s.Ready ? "READY" : s.Firing ? "LAUNCH" : rank == 0 && s.Paused ? "PAUSED" : SwarmSilo.Clock(s.Left);
         chip.text.text = $"{who}  <b>{state}</b>";
         string sprite = rank == 2 ? "Chip_Pink" : s.Ready ? "Chip_Green" : "Chip_Cyan";

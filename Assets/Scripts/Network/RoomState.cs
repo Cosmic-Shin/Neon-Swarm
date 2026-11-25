@@ -20,6 +20,7 @@ public partial class RoomState : NetworkBehaviour
     [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> Teams => default;
     [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<NetworkBool> Ready => default;
     [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> BotLevels => default;
+    [Networked, Capacity(RoomService.MaxPlayers)] NetworkArray<int> Factions => default;
     public static readonly string[] BotNames = { "", "Easy", "Normal", "Hard" };
     public const int TeamCount = 4;
 
@@ -181,6 +182,12 @@ public partial class RoomState : NetworkBehaviour
 
     public void NextColor() => RPC_NextColor(SlotOf(Runner.LocalPlayer));
     public void NextTeam() => RPC_NextTeam(SlotOf(Runner.LocalPlayer));
+    public void NextFaction() => RPC_NextFaction(SlotOf(Runner.LocalPlayer));
+    public int FactionOf(int slot) => Valid(slot) ? Factions[slot] : 0;
+    public void BotFaction(int slot) { if (IsHost && BotLevel(slot) > 0) RPC_NextFaction(slot); }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    void RPC_NextFaction(int slot) { if (Valid(slot)) Factions.Set(slot, (Factions[slot] + 1) % Mathf.Max(1, Faction.All.Length)); }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     void RPC_NextColor(int slot)

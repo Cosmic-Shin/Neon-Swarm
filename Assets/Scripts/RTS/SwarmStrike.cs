@@ -293,7 +293,7 @@ public class SwarmStrike : MonoBehaviour
         Fx.Spawn(bolt, from, Quaternion.LookRotation(d), new Vector3(width, width, d.magnitude));
     }
 
-    static void Stun(Health h)
+    public static void Stun(Health h)
     {
         if (h.TryGetComponent(out NetEntity n) && n.IsRemote) { n.RPC_Status(StunTime, 0f); return; }
         if (h.TryGetComponent(out SelectableUnit u)) u.Stun(StunTime);

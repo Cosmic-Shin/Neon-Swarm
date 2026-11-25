@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
+  m_Name: Marksman
+  m_EditorClassIdentifier: Assembly-CSharp::UnitData
+  displayName: Marksman
+  faction: 1
+  role: 2
+  description: Long-range rifle specialist. Picks off units from beyond their reach;
+    fragile up close.
+  icon: {fileID: 21300000, guid: b998bc073ebe69c4d9b568e1c227ec26, type: 3}
+  cost: 850
+  buildTime: 8
+  squadSize: 1
+  maxHealth: 125
+  damage: 80
+  range: 30
+  attackCooldown: 3
+  hitsGround: 1
+  hitsAir: 1
+  moveSpeed: 8.099999
+  sight: 38
+  splash: 0
+  stunOnHit: 0
+  slowOnHit: 0
+  buildingDamage: 1
+  armor: 0
+  weapon: 2
+  ability: 0
+  visual:
+    projectile: {fileID: 4736119383633406269, guid: adcaca3e38120c546bcbb12a40a55f8d, type: 3}
+    speed: 160
+    arc: 0
+    muzzleFlash: {fileID: 2923620917300925078, guid: b9c1d30cf7234304ab27f85362607d76, type: 3}
+    impact: {fileID: 7867704074619241271, guid: 0b403134df61caa478fa749cf1fddf02, type: 3}
+    scorch: {fileID: 0}
+    hideBeam: 1
+  style: 0
+  muzzles: MRK_Muzzle
+  extra: {fileID: 0}

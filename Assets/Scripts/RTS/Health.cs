@@ -25,6 +25,7 @@ public class Health : MonoBehaviour
         {
             gameObject.AddComponent<StatusFX>();
             gameObject.AddComponent<UnitMotion>();
+            gameObject.AddComponent<UnitLights>();
         }
         hitFx = gameObject.AddComponent<HitFX>();
         TrimShadows(gameObject);
@@ -107,6 +108,7 @@ public class Health : MonoBehaviour
         if (net != null && net.IsRemote) { if (!net.IsDead) net.RPC_Damage(amount, NetEntity.IdOf(from)); return; }
         if (RemoteDamage != null && net == null && RemoteDamage(this, amount, from)) return;
         if (IsDead) return;
+        amount = ShieldField.Absorb(this, amount);
         current = Mathf.Max(0f, current - amount);
         Minimap.Fight(transform.position, Net.Allied(team, 0));
         if (team == 0 && from != null && !Net.Allied(from.team, team)) Alerts.Attacked(this);

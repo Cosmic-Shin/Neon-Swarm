@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><defs>
+<linearGradient id="gold" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#FFE3A6"/><stop offset="0.45" stop-color="#F2B33D"/><stop offset="1" stop-color="#9C6A1C"/></linearGradient>
+<linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1D1512"/><stop offset="1" stop-color="#0E0B0A"/></linearGradient>
+<filter id="glow" filterUnits="userSpaceOnUse" x="-10" y="-10" width="148" height="148"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<polygon points="64,6 108,18 116,30 112,78 64,122 16,78 12,30 20,18" fill="url(#gold)"/>
+<polygon points="64,15 101,25 107,34 104,75 64,112 24,75 21,34 27,25" fill="url(#fill)"/>
+<!-- stylised A made of two blades -->
+<polygon points="64,26 72,30 90,92 80,92 64,44" fill="url(#gold)"/>
+<polygon points="64,26 56,30 38,92 48,92 64,44" fill="url(#gold)"/>
+<!-- red visor bar across the A -->
+<polygon points="44,70 84,70 87,78 41,78" fill="#FF2A1C" filter="url(#glow)"/>
+<!-- inner trim line -->
+<polygon points="64,15 101,25 107,34 104,75 64,112 24,75 21,34 27,25" fill="none" stroke="#9C6A1C" stroke-width="1.2" transform="translate(64 64) scale(0.9) translate(-64 -64)"/>
+<!-- crown pip -->
+<polygon points="64,8 70,13 64,18 58,13" fill="#FF2A1C" filter="url(#glow)"/>
+</svg>

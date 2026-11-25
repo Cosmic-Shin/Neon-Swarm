@@ -20,6 +20,9 @@ public class ConstructionSite : MonoBehaviour
     public Bounds WorldBounds { get; private set; }
 
     static GameObject padP, poleP, railP, scanP, droneP;
+    static GameObject aPad, aPadLarge, aScaffold, aScaffoldLarge, aScan, aWelder, aCrane;
+    static readonly string[] AegisLarge = { "CommandSpire", "Airfield", "Refinery", "BarracksBay", "MotorPool", "DroneBay", "OrbitalLance", "TechCenter" };
+    Transform scaffold; Vector3 scaffoldSize;
     static Material holoMat, beamMat;
     static bool loaded;
 
@@ -45,6 +48,13 @@ public class ConstructionSite : MonoBehaviour
         railP = Resources.Load<GameObject>("Construction/Build_Rail");
         scanP = Resources.Load<GameObject>("Construction/Build_ScanFrame");
         droneP = Resources.Load<GameObject>("Construction/Build_Drone");
+        aPad = Resources.Load<GameObject>("Construction/Aegis/Build_AegisPad");
+        aPadLarge = Resources.Load<GameObject>("Construction/Aegis/Build_AegisPadLarge");
+        aScaffold = Resources.Load<GameObject>("Construction/Aegis/Build_AegisScaffold");
+        aScaffoldLarge = Resources.Load<GameObject>("Construction/Aegis/Build_AegisScaffoldLarge");
+        aScan = Resources.Load<GameObject>("Construction/Aegis/Build_AegisScanFrame");
+        aWelder = Resources.Load<GameObject>("Construction/Aegis/Build_AegisWelder");
+        aCrane = Resources.Load<GameObject>("Construction/Aegis/Build_AegisCrane");
         holoMat = Resources.Load<Material>("Construction/Hologram");
         beamMat = Resources.Load<Material>("Construction/Beam");
         if (!padP || !holoMat) Debug.LogWarning("[CyberpunkRTS] Construction kit not found in Resources/Construction. Run Tools > Cyberpunk RTS > 1. Setup.");
@@ -105,20 +115,44 @@ public class ConstructionSite : MonoBehaviour
         ghost = MakeHologram(prefab, pos, rot, new Color(0f, 0.9f, 0.85f, 0.35f));
         Building.transform.position = basePos + Vector3.down * height;
 
-        if (padP)
+        // GD5 edit: Aegis buildings use the Aegis kit (pad + scaffold + scan frame + welders; big ones get the large pad/scaffold and a crane)
+        var padPrefab = padP; var polePrefab = poleP; var railPrefab = railP; var scanPrefab = scanP; var dronePrefab = droneP;
+        if (Building.name.StartsWith("Aegis_") && aPad)
         {
-            var pad = Instantiate(padP, center + Vector3.up * 0.005f, Quaternion.identity, transform);
+            bool large = System.Array.Exists(AegisLarge, n => Building.name.StartsWith("Aegis_" + n));
+            padPrefab = large && aPadLarge ? aPadLarge : aPad; polePrefab = null; railPrefab = null;
+            if (aScan) scanPrefab = aScan;
+            if (aWelder) dronePrefab = aWelder;
+            var scafPrefab = large ? aScaffoldLarge : aScaffold;
+            if (scafPrefab)
+            {
+                var s = Instantiate(scafPrefab, center, Quaternion.identity, transform);
+                scaffoldSize = RendererBounds(s).size;
+                scaffold = s.transform; parts.Add(s);
+            }
+            if (large && aCrane)
+            {
+                var c = Instantiate(aCrane, center + new Vector3(hx + 1.2f * k, 0f, -hz * 0.4f), Quaternion.Euler(0f, -90f, 0f), transform);
+                c.transform.localScale = Vector3.one * k;
+                parts.Add(c);
+            }
+        }
+
+        if (padPrefab)
+        {
+            var pad = Instantiate(padPrefab, center + Vector3.up * 0.005f, Quaternion.identity, transform);
             pad.transform.localScale = new Vector3(hx * 2f + 0.3f, 1f, hz * 2f + 0.3f);
+            if (padPrefab != padP) { var ps = RendererBounds(pad).size; pad.transform.localScale = Vector3.Scale(pad.transform.localScale, new Vector3((hx * 2f + 0.3f) / Mathf.Max(0.01f, ps.x), 1f, (hz * 2f + 0.3f) / Mathf.Max(0.01f, ps.z))); }
             parts.Add(pad);
         }
-        if (poleP)
+        if (polePrefab)
             foreach (var (sx, sz) in new[] { (1, 1), (1, -1), (-1, 1), (-1, -1) })
             {
-                var p = Instantiate(poleP, center + new Vector3(sx * hx, 0f, sz * hz), Quaternion.identity, transform);
+                var p = Instantiate(polePrefab, center + new Vector3(sx * hx, 0f, sz * hz), Quaternion.identity, transform);
                 p.transform.localScale = new Vector3(k, 0.01f, k);
                 poles.Add(p.transform); parts.Add(p);
             }
-        if (railP)
+        if (railPrefab)
         {
             int levels = Mathf.Max(2, Mathf.CeilToInt(height / (0.6f * k)));
             for (int i = 1; i <= levels; i++)
@@ -126,9 +160,9 @@ public class ConstructionSite : MonoBehaviour
                 float y = height * 1.05f * i / levels;
                 foreach (var s in new[] { 1, -1 })
                 {
-                    var rX = Instantiate(railP, center + new Vector3(0f, y, s * hz), Quaternion.identity, transform);
+                    var rX = Instantiate(railPrefab, center + new Vector3(0f, y, s * hz), Quaternion.identity, transform);
                     rX.transform.localScale = new Vector3(hx * 2f, k * 0.4f, k * 0.4f);   // GD5: thinner, rails bloom
-                    var rZ = Instantiate(railP, center + new Vector3(s * hx, y, 0f), Quaternion.Euler(0f, 90f, 0f), transform);
+                    var rZ = Instantiate(railPrefab, center + new Vector3(s * hx, y, 0f), Quaternion.Euler(0f, 90f, 0f), transform);
                     rZ.transform.localScale = new Vector3(hz * 2f, k * 0.4f, k * 0.4f);
                     rX.SetActive(false); rZ.SetActive(false);
                     rails.Add((rX, y)); rails.Add((rZ, y));
@@ -136,19 +170,20 @@ public class ConstructionSite : MonoBehaviour
                 }
             }
         }
-        if (scanP)
+        if (scanPrefab)
         {
-            var sf = Instantiate(scanP, center, Quaternion.identity, transform);
+            var sf = Instantiate(scanPrefab, center, Quaternion.identity, transform);
             sf.transform.localScale = new Vector3(hx * 2f, k, hz * 2f);
+            if (scanPrefab != scanP) { var ss = RendererBounds(sf).size; sf.transform.localScale = Vector3.Scale(sf.transform.localScale, new Vector3(hx * 2f / Mathf.Max(0.01f, ss.x), 0.5f, hz * 2f / Mathf.Max(0.01f, ss.z))); }
             KeepBarsThin(sf, 0.03f * k, Mathf.Min(hx, hz));
             scan = sf.transform; parts.Add(sf);
         }
-        if (droneP)
+        if (dronePrefab)
         {
             int count = Mathf.Max(hx, hz) > 1.2f * k ? 3 : 2;
             for (int i = 0; i < count; i++)
             {
-                var d = new Drone { t = Instantiate(droneP, center, Quaternion.identity, transform).transform };
+                var d = new Drone { t = Instantiate(dronePrefab, center, Quaternion.identity, transform).transform };
                 d.angle = i * 360f / count; d.speed = Random.Range(25f, 40f) * (i % 2 == 0 ? 1 : -1);
                 d.t.localScale = Vector3.one * k;
                 d.radius = Mathf.Max(hx, hz) + 0.5f * k; d.bob = Random.Range(0f, 6f);
@@ -178,6 +213,7 @@ public class ConstructionSite : MonoBehaviour
         float poleK = Mathf.Clamp01(p / 0.15f);
         foreach (var pole in poles) pole.localScale = new Vector3(1f, Mathf.Max(0.01f, height * 1.08f * poleK), 1f);
         foreach (var (go, level) in rails) go.SetActive(height * 1.08f * poleK >= level);
+        if (scaffold && scaffoldSize.x > 0.001f) scaffold.localScale = new Vector3(hx * 2f / scaffoldSize.x, Mathf.Max(0.01f, height * 1.05f * poleK / scaffoldSize.y), hz * 2f / scaffoldSize.z);
         float riseK = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((p - 0.1f) / 0.9f));
         Building.transform.position = basePos + Vector3.down * height * (1f - riseK);
         float scanY = Mathf.Lerp(0.05f, height, riseK);
@@ -278,7 +314,7 @@ public class ConstructionSite : MonoBehaviour
     {
         // GD5 fix: meshes only, a turret's laser LineRenderer made the site 200m long; and not range discs
         // (Pylon_BuildRadius 40m, UplMk2_RevealRadius), which made the pylon's site the size of its range
-        var rs = System.Array.FindAll(go.GetComponentsInChildren<Renderer>(), r => (r is MeshRenderer || r is SkinnedMeshRenderer) && !IsRangeDisc(r.transform));
+        var rs = System.Array.FindAll(go.GetComponentsInChildren<Renderer>(), r => r.enabled && (r is MeshRenderer || r is SkinnedMeshRenderer) && !IsRangeDisc(r.transform));   // GD5: enabled only (Shield dome is hidden, was 48 m site)
         if (rs.Length == 0) return new Bounds(go.transform.position, Vector3.one);
         Bounds b = rs[0].bounds;
         foreach (var r in rs) b.Encapsulate(r.bounds);

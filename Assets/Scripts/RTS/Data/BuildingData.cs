@@ -4,6 +4,7 @@ using UnityEngine;
 public class BuildingData : ScriptableObject
 {
     public string displayName;
+    public FactionId faction;
     [TextArea] public string description;
     public GameObject prefab;
     public Sprite icon;
@@ -25,12 +26,13 @@ public class BuildingData : ScriptableObject
         return false;
     }
 
-    public string CoreName => coreLevel >= 3 ? "Core Nexus Mk III" : "Core Nexus Mk II";
+    public string CoreName => CoreNameFor(0);
+    public string CoreNameFor(int team) => $"{Faction.HqName(team)} Mk {(coreLevel >= 3 ? "III" : "II")}";
 
     public string Missing(int team = 0)
     {
         if (onePerPlayer && Owned(team)) return "Limit: one per player";
-        string missing = coreLevel > 1 && ResearchManager.CoreLevelOf(team) < coreLevel ? CoreName : null;
+        string missing = coreLevel > 1 && ResearchManager.CoreLevelOf(team) < coreLevel ? CoreNameFor(team) : null;
         if (requires == null) return missing;
         foreach (var r in requires)
             if (r != null && !Structure.All.Exists(s => s.data == r && s.Health.team == team))

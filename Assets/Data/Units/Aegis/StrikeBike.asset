@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
+  m_Name: StrikeBike
+  m_EditorClassIdentifier: Assembly-CSharp::UnitData
+  displayName: Strike Bike
+  faction: 1
+  role: 1
+  description: Fast attack bike. Hits and runs, great against harvesters and stragglers.
+  icon: {fileID: 21300000, guid: ba18096b51c16e043bcf02d9da3e8674, type: 3}
+  cost: 750
+  buildTime: 7
+  squadSize: 2
+  maxHealth: 170
+  damage: 18
+  range: 16
+  attackCooldown: 1
+  hitsGround: 1
+  hitsAir: 1
+  moveSpeed: 12.599999
+  sight: 0
+  splash: 0
+  stunOnHit: 0
+  slowOnHit: 0
+  buildingDamage: 1
+  armor: 0
+  weapon: 1
+  ability: 0
+  visual:
+    projectile: {fileID: 546401249373042527, guid: 5e7af672ccd6fc8488c8389bb87f0881, type: 3}
+    speed: 90
+    arc: 0
+    muzzleFlash: {fileID: 4261078989280406609, guid: bb01e86df6f00384f9b77a472ce6162c, type: 3}
+    impact: {fileID: 0}
+    scorch: {fileID: 0}
+    hideBeam: 1
+  style: 0
+  muzzles: BIKE_Muzzle
+  extra: {fileID: 0}

@@ -24,7 +24,7 @@ public static class Controls
         (Act.Help, "Hotkey sheet", Key.F1),
         (Act.QuickSave, "Quick save", Key.F5),
         (Act.QuickLoad, "Quick load", Key.F9),
-        (Act.FireSilo, "Fire Swarm Silo", Key.G),
+        (Act.FireSilo, "Fire superweapon", Key.G),
     };
 
     public const string Grid = "QWERTYUIOPASDFGHJKL";

@@ -4,12 +4,13 @@ using UnityEngine;
 public static class TeamLook
 {
     const string Accent = "Skitter_NeonCyan";
+    const string AegisTrim = "Aegis_TeamColor";
     static readonly Dictionary<(Material, Color), Material> tinted = new();
     static readonly Dictionary<Material, Material> original = new();
 
     public static void Apply(GameObject go, int team)
     {
-        if (!Net.Online && team == 0 && Net.ColorOf(0) == TeamMember.TeamColors[0]) return;
+        bool skipHive = !Net.Online && team == 0 && Net.ColorOf(0) == TeamMember.TeamColors[0];
         Color c = Net.ColorOf(team);
         if (c == Color.white) return;
         foreach (var r in go.GetComponentsInChildren<Renderer>(true))
@@ -20,7 +21,25 @@ public static class TeamLook
             for (int i = 0; i < mats.Length; i++)
             {
                 var src = mats[i] != null && original.TryGetValue(mats[i], out var o) ? o : mats[i];
-                if (src == null || src.name != Accent) continue;
+                if (src == null || !(src.name == AegisTrim || (src.name == Accent && !skipHive))) continue;
+                mats[i] = Tint(src, c);
+                changed = true;
+            }
+            if (changed) r.sharedMaterials = mats;
+        }
+    }
+
+    public static void ApplyColor(GameObject go, Color c)
+    {
+        foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+        {
+            if (r is LineRenderer || r is ParticleSystemRenderer || r is SpriteRenderer) continue;
+            var mats = r.sharedMaterials;
+            bool changed = false;
+            for (int i = 0; i < mats.Length; i++)
+            {
+                var src = mats[i] != null && original.TryGetValue(mats[i], out var o) ? o : mats[i];
+                if (src == null || src.name != AegisTrim) continue;
                 mats[i] = Tint(src, c);
                 changed = true;
             }

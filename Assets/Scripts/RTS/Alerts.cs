@@ -105,7 +105,7 @@ public class Alerts : MonoBehaviour
         if (Structure.LowPower != lowPower)
         {
             lowPower = Structure.LowPower;
-            if (lowPower) { Show("Low power: build a Power Pylon", Bad); Sfx.Play(Snd.PowerDown, 0.8f); }
+            if (lowPower) { Show($"Low power: build a {Faction.PowerName(0)}", Bad); Sfx.Play(Snd.PowerDown, 0.8f); }
             else Show("Power restored", Good);
         }
 

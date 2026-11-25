@@ -24,8 +24,11 @@ public class Transport : MonoBehaviour
     float beamUntil;
     Health health;
 
-    public static bool CanCarry(SelectableUnit u) =>
-        u != null && !Flyer.IsAir(u) && u.Data.role is UnitData.Role.Infantry or UnitData.Role.Support or UnitData.Role.Scout;
+    public bool vehicles;
+
+    public static bool CanCarry(SelectableUnit u, Component carrier = null) =>
+        u != null && !Flyer.IsAir(u) && (u.Data.role is UnitData.Role.Infantry or UnitData.Role.Support or UnitData.Role.Scout
+        || (carrier != null && carrier.TryGetComponent(out Transport t) && t.vehicles && u.Data.role == UnitData.Role.Heavy));
 
     void Awake()
     {
@@ -48,7 +51,7 @@ public class Transport : MonoBehaviour
 
     public bool TryLoad(SelectableUnit u)
     {
-        if (Full || Busy || !CanCarry(u) || carried.Contains(u) || health.IsDead) return false;
+        if (Full || Busy || !CanCarry(u, this) || carried.Contains(u) || health.IsDead) return false;
         carried.Add(u);
         u.Deselect();
         StartCoroutine(BeamUp(u));
@@ -104,6 +107,8 @@ public class Transport : MonoBehaviour
         Busy = true;
         var agent = GetComponent<NavMeshAgent>();
         if (agent.isOnNavMesh) agent.ResetPath();
+        var anim = GetComponentInChildren<Animator>();   // Skylift: drop + clamp arms clip
+        if (anim != null && anim.runtimeAnimatorController != null && System.Array.Exists(anim.parameters, p => p.name == "Unload")) anim.SetTrigger("Unload");
         float high = flyer.hover;
         for (float t = 0f; t < 0.6f; t += Time.deltaTime) { flyer.hover = Mathf.Lerp(high, DropHover, t / 0.6f); yield return null; }
         flyer.hover = DropHover;

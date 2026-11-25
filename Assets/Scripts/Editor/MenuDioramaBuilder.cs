@@ -44,6 +44,7 @@ public static class MenuDioramaBuilder
             go.transform.SetPositionAndRotation(U(o.blender_pos), Quaternion.Euler(0f, -o.blender_rotZ_deg, 0f) * src.localRotation);
             go.transform.localScale = src.localScale * o.scale;
             Strip(go);
+            if (o.prefab.StartsWith("Aegis_")) go = AegisActor(go, o.prefab, o.name, o.scale, -o.blender_rotZ_deg);
             var extras = new List<GameObject>();
             foreach (var t in go.GetComponentsInChildren<Transform>(true))
             {
@@ -53,7 +54,7 @@ public static class MenuDioramaBuilder
             foreach (var e in extras) Object.DestroyImmediate(e);
             bool tile = o.prefab.StartsWith("Tile_");
             foreach (var t in go.GetComponentsInChildren<Transform>(true)) if (t.name.Contains("_Upgrade_")) t.gameObject.SetActive(false);
-            bool moves = go.GetComponent<Animator>() != null || o.prefab == "HiveAerie" || o.prefab == "CoreNexus";
+            bool moves = go.GetComponentInChildren<Animator>() != null || o.prefab == "HiveAerie" || o.prefab == "CoreNexus";
             foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
@@ -109,11 +110,12 @@ public static class MenuDioramaBuilder
         for (int i = 0; i < 2; i++) if (Actor("Strider", 1.3f) is Transform t) patrol.Add(t);
 
         Lights(layout.lights, root);
+        var aegisFront = Recompose(root, byName);
 
         var probe = new GameObject("WetReflections").AddComponent<ReflectionProbe>();
         probe.transform.SetParent(root, false);
-        probe.transform.position = new Vector3(-2f, 2f, 4f);
-        probe.size = new Vector3(70f, 30f, 70f);
+        probe.transform.position = new Vector3(10f, 2f, 2f);
+        probe.size = new Vector3(90f, 30f, 70f);
         probe.mode = ReflectionProbeMode.Baked;
         probe.resolution = 256;
         probe.boxProjection = false;
@@ -123,15 +125,16 @@ public static class MenuDioramaBuilder
         RenderSettings.skybox = null;
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Exponential;
-        RenderSettings.fogDensity = 0.03f;
+        RenderSettings.fogDensity = 0.022f;
         RenderSettings.fogColor = Navy;
         RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
 
         var cam = Camera.main;
-        cam.transform.position = U(layout.camera.blender_pos);
+        cam.transform.position = new Vector3(22f, 10f, -26f);   // v3: frames both bases right of the menu panel
         Vector3 look = U(layout.camera.look_at_blender);
+        look = LookAt;
         cam.transform.rotation = Quaternion.LookRotation(look - cam.transform.position);
-        cam.fieldOfView = layout.camera.unity_vertical_fov;
+        cam.fieldOfView = 40f;
         cam.nearClipPlane = 0.3f;
         cam.farClipPlane = 150f;
         cam.clearFlags = CameraClearFlags.SolidColor;
@@ -143,6 +146,7 @@ public static class MenuDioramaBuilder
         var d = root.gameObject.AddComponent<MenuDiorama>();
         d.cam = cam;
         d.lookAt = look;
+        d.aegisFront = aegisFront;
         d.harvester = Get(byName, "D_DataHarvester");
         var refinery = Get(byName, "D_DataRefinery");
         d.refineryDock = refinery != null ? Child(refinery, "Refinery_DockPoint") : null;
@@ -200,6 +204,83 @@ public static class MenuDioramaBuilder
         Debug.Log($"[Diorama] built {layout.objects.Length} objects, {layout.lights.Length} lights");
     }
 
+    // ---- v3 composition (GD5): the pack layout put the Aegis force inside the Hive base. Two bases, one standoff. ----
+    // Unity coords. The Hive base sits around the origin, its army at z -7..-10 facing +x.
+    static readonly (string name, string prefab, Vector3 pos, float yaw, float scale)[] AegisBase =
+    {
+        ("DA_B_CommandSpire",   "Aegis_CommandSpire",   new Vector3(19f, 0f, 4.5f),   -115f, 0.85f),
+        ("DA_B_FusionReactor",  "Aegis_FusionReactor",  new Vector3(23.5f, 0f, -1.5f),-100f, 0.85f),
+        ("DA_B_BarracksBay",    "Aegis_BarracksBay",    new Vector3(14.5f, 0f, 9f),   -150f, 0.85f),
+        ("DA_B_ShieldProjector","Aegis_ShieldProjector",new Vector3(19.5f, 0f, -6f),  -100f, 0.85f),
+        ("DA_B_Sentinel0",      "Aegis_SentinelTurret", new Vector3(13f, 0f, 2f),     -100f, 0.85f),
+        ("DA_B_Sentinel1",      "Aegis_SentinelTurret", new Vector3(15.5f, 0f, -11.5f),-80f, 0.85f),
+    };
+
+    // where the existing DA_ units go: a front line at x 12..17 facing the swarm, heavies behind, air above the base
+    static readonly (string name, Vector3 pos)[] AegisLine =
+    {
+        ("DA_Peacekeeper0", new Vector3(10.6f, 0f, -6.0f)), ("DA_Peacekeeper1", new Vector3(10.9f, 0f, -7.6f)), ("DA_Peacekeeper2", new Vector3(10.4f, 0f, -4.4f)),
+        ("DA_Peacekeeper3", new Vector3(11.3f, 0f, -9.2f)), ("DA_Peacekeeper4", new Vector3(10.8f, 0f, -2.8f)),
+        ("DA_Marksman",     new Vector3(12.4f, 0f, -1.8f)), ("DA_Lancer0",      new Vector3(12.4f, 0f, -6.8f)),
+        ("DA_Paladin0",     new Vector3(12.8f, 0f, -4.4f)), ("DA_Paladin1",     new Vector3(13.2f, 0f, -9.6f)),
+        ("DA_Bastion",      new Vector3(14.6f, 0f, -7.8f)), ("DA_Colossus",     new Vector3(17.5f, 0f, -0.5f)),
+        ("DA_Gunship0",     new Vector3(14.5f, 2.6f, 1.5f)), ("DA_Interceptor0", new Vector3(17f, 4f, -9.5f)),
+        ("DA_Dominion",     new Vector3(22f, 6f, 4f)),
+    };
+
+    public static readonly Vector3 LookAt = new(4f, 1f, -1f);
+
+    static Transform[] Recompose(Transform root, Dictionary<string, Transform> byName)
+    {
+        // the swarm steps 3 m toward the Aegis line (it was hidden behind the menu panel), the line steps back 1.5 m
+        var swarmShift = new Vector3(3f, 0f, 0f);
+        foreach (var kv in byName)
+            if (kv.Key.StartsWith("D_Skitter") || kv.Key is "D_Chromejaw" or "D_Strider" or "D_CrusherTarantula" or "D_QueenArachne") kv.Value.position += swarmShift;
+        Vector3 hiveArmy = new Vector3(2f, 0f, -8.5f) + swarmShift;
+        var front = new List<Transform>();
+        foreach (var (name, linePos) in AegisLine)
+        {
+            if (Get(byName, name) is not Transform t) continue;
+            var pos = linePos + new Vector3(1.5f, 0f, 0f);
+            t.position = pos;
+            Vector3 to = hiveArmy - new Vector3(pos.x, 0f, pos.z);
+            t.rotation = Quaternion.LookRotation(to.normalized + new Vector3(0f, 0f, Random.Range(-0.12f, 0.12f)));
+            if (pos.y < 0.5f && pos.x < 15.5f) front.Add(t);
+        }
+        foreach (var (name, prefab, pos, yaw, scale) in AegisBase)
+        {
+            var src = FindAsset(prefab) as GameObject;
+            if (src == null) continue;
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(src, root);
+            PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            go.transform.SetPositionAndRotation(pos, Quaternion.Euler(0f, yaw, 0f) * src.transform.localRotation);
+            Strip(go);
+            var holder = AegisActor(go, prefab, name, scale, yaw);
+            foreach (var t in holder.GetComponentsInChildren<Transform>(true))
+                if (t.name.Contains("_Upgrade_Mk") || t.name.EndsWith("_Damage") || t.name.Contains("_Damage_")) t.gameObject.SetActive(false);
+            foreach (var r in holder.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = ShadowCastingMode.On;
+            byName[name] = holder.transform;
+        }
+        // the crate stack sat right in front of the lens
+        if (Get(byName, "D_Crates0") is Transform crates) crates.position = new Vector3(-7f, 0f, -13f);
+        if (Get(byName, "D_RuinS2") is Transform ruin) ruin.position = new Vector3(-18f, 0f, 3f);   // stood inside the Aegis line
+
+        // warm corporate key light over the Aegis base, cool rim from the swarm side
+        void Lamp(string n, Vector3 at, Color c, float range, float intensity)
+        {
+            var l = new GameObject(n).AddComponent<Light>();
+            l.transform.SetParent(root, false);
+            l.transform.position = at;
+            l.type = LightType.Point; l.color = c; l.range = range; l.intensity = intensity;
+            l.renderMode = LightRenderMode.ForcePixel;
+        }
+        Lamp("DA_L_Key", new Vector3(18f, 7f, -1f), new Color(1f, 0.62f, 0.32f), 22f, 2.4f);
+        Lamp("DA_L_Front", new Vector3(12f, 3f, -8f), new Color(1f, 0.5f, 0.28f), 10f, 1.8f);
+        Lamp("DA_L_Spire", new Vector3(19f, 8f, 5f), new Color(1f, 0.72f, 0.45f), 12f, 1.6f);
+        Lamp("D_L_SwarmRim", new Vector3(5f, 2.5f, -11f), new Color(0.3f, 0.9f, 1f), 10f, 1.4f);
+        return front.ToArray();
+    }
+
     static Transform Get(Dictionary<string, Transform> d, string n) => d.TryGetValue(n, out var t) ? t : null;
 
     static Transform Child(Transform root, string n)
@@ -210,9 +291,34 @@ public static class MenuDioramaBuilder
 
     static Object FindAsset(string name)
     {
+        if (name.StartsWith("Aegis_"))
+            foreach (var folder in new[] { "Units", "Buildings" })
+                if (AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/CyberpunkRTS/Models/Aegis/{folder}/{name}.fbx") is GameObject fbx) return fbx;
         foreach (var folder in new[] { "Buildings", "Units", "Environment" })
             if (AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/CyberpunkRTS/Prefabs/{folder}/{name}.prefab") is GameObject p) return p;
         return AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/CyberpunkRTS/Models/Environment/{name}.fbx");
+    }
+
+    static GameObject AegisActor(GameObject model, string prefab, string name, float scale, float yaw)
+    {
+        var holder = new GameObject(name);
+        holder.transform.SetParent(model.transform.parent, false);
+        holder.transform.SetPositionAndRotation(model.transform.position, Quaternion.Euler(0f, yaw, 0f));
+        holder.transform.localScale = Vector3.one * scale;
+        var rot = model.transform.rotation;
+        model.transform.SetParent(holder.transform, true);
+        model.transform.rotation = rot;
+        model.transform.localScale = Vector3.one;
+        model.name = prefab;
+        var ctrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>($"Assets/Animations/Aegis/{prefab}.overrideController")
+            ?? AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>($"Assets/Animations/Aegis/{prefab}.controller");
+        if (ctrl != null)
+        {
+            var anim = model.TryGetComponent(out Animator a) ? a : model.AddComponent<Animator>();
+            anim.runtimeAnimatorController = ctrl;
+            anim.applyRootMotion = false;
+        }
+        return holder;
     }
 
     static void Strip(GameObject go)
@@ -269,6 +375,7 @@ public static class MenuDioramaBuilder
             bool area = l.type == "AREA";
             light.range = area ? 45f : Mathf.Clamp(6f + Mathf.Sqrt(l.blender_watts) * 0.5f, 8f, 34f);
             light.intensity = area ? Mathf.Clamp(l.blender_watts / 2500f, 0.6f, 1.8f) : l.name.StartsWith("D_L_City") ? 2.2f : Mathf.Clamp(l.blender_watts / 180f, 1f, 6f);
+            if (l.name.StartsWith("DA_L_")) light.intensity = Mathf.Min(light.intensity, 1.6f);
             light.renderMode = area || l.name is "D_L_Nexus" or "D_L_City1" or "D_L_City2" ? LightRenderMode.ForcePixel : LightRenderMode.Auto;
             if (!shadowUsed && l.name == "D_L_Nexus") { light.shadows = LightShadows.Soft; light.shadowStrength = 0.7f; shadowUsed = true; }
         }

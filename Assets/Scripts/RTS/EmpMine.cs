@@ -14,10 +14,18 @@ public class EmpMine : MonoBehaviour
     public float Charge01 => recharge <= 0f ? 1f : 1f - Mathf.Clamp01((ready - Time.time) / recharge);
     public float LastPulse { get; private set; } = -99f;
 
-    void Awake() => self = GetComponent<Health>();
+    readonly System.Collections.Generic.List<GameObject> mines = new();
+    int spent;
+
+    void Awake()
+    {
+        self = GetComponent<Health>();
+        foreach (var t in GetComponentsInChildren<Transform>(true)) if (t.name.StartsWith("MF_Mine")) mines.Add(t.gameObject);
+    }
 
     void Update()
     {
+        if (spent > 0 && Time.time >= ready) { foreach (var m in mines) m.SetActive(true); spent = 0; }
         if (Time.time < ready || Structure.Stunned(this)) return;
         float r2 = radius * radius;
         bool fired = false;
@@ -31,6 +39,7 @@ public class EmpMine : MonoBehaviour
         if (!fired) return;
         ready = Time.time + recharge;
         LastPulse = Time.time;
+        if (spent < mines.Count) mines[spent++].SetActive(false);
         Fx.Spawn(pulseEffect, transform.position, Quaternion.identity, radius);
         Sfx.At(Snd.Emp, transform.position, 0.9f);
         Fx.Spawn(ringEffect, transform.position + Vector3.up * 0.05f, Quaternion.identity, radius);

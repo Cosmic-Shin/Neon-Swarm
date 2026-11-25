@@ -30,6 +30,7 @@ public partial class AIPlayer : MonoBehaviour
     void Start()
     {
         placer = FindFirstObjectByType<BuildingPlacer>();
+        ApplyFaction();
         ApplyPersonality();
         started = Time.time - Skirmish.ElapsedBefore;
         waveValue = profile.waveValue;
@@ -69,7 +70,7 @@ public partial class AIPlayer : MonoBehaviour
     BuildingData SiloStep()
     {
         if (!profile.superweapon || profile.coreMk3At <= 0f || Time.time - started < profile.coreMk3At || placer == null) return null;
-        var silo = System.Array.Find(placer.Buildings, d => d.prefab != null && d.prefab.TryGetComponent(out SwarmSilo _));
+        var silo = System.Array.Find(Menu, d => d.prefab != null && d.prefab.TryGetComponent(out SwarmSilo _));
         if (silo == null || Owned(silo) > 0) return null;
         var step = MissingStep(silo);
         return step != null && step.Unlocked(team) ? step : null;
@@ -296,7 +297,7 @@ public partial class AIPlayer : MonoBehaviour
 
     BuildingData FirstBuilding(System.Predicate<BuildingData> match)
     {
-        foreach (var d in placer.Buildings) if (d.prefab != null && match(d) && d.Unlocked(team)) return d;
+        foreach (var d in Menu) if (d.prefab != null && match(d) && d.Unlocked(team)) return d;
         return null;
     }
 
@@ -807,7 +808,44 @@ public partial class AIPlayer : MonoBehaviour
 
 public partial class AIPlayer
 {
+    BuildingData[] Menu => Faction.Of(team)?.buildings ?? (placer != null ? placer.Buildings : new BuildingData[0]);
+
+    void ApplyFaction()
+    {
+        var f = Faction.Of(team);
+        if (f == null || f == Faction.Hive || profile == null) return;
+        var own = Resources.Load<AIProfile>($"AI/{f.id}_{profile.name.Replace("(Clone)", "")}");
+        profile = own != null ? Instantiate(own) : SwapProfile(profile, f);
+    }
+
+    public static AIProfile SwapProfile(AIProfile source, Faction f)
+    {
+        var profile = Instantiate(source);
+        var order = new List<BuildingData>(f.Swap(profile.buildOrder));
+        foreach (var d in f.buildings)
+        {
+            if (d == null || d.prefab == null || order.Contains(d) || !d.prefab.TryGetComponent(out Building b)) continue;
+            if (b.Trains.Length == 0 || System.Array.Exists(b.Trains, u => u != null && u.TryGetComponent(out Flyer _))) continue;
+            order.Insert(Mathf.Min(5, order.Count), d);
+        }
+        profile.buildOrder = order.ToArray();
+        profile.lateGame = f.Swap(profile.lateGame);
+        var weights = new Dictionary<UnitData, float>();
+        if (profile.units != null)
+            foreach (var p in profile.units)
+                if (f.Swap(p.unit) is UnitData own && own != null) { weights.TryGetValue(own, out float w); weights[own] = w + p.weight; }
+        foreach (var d in f.buildings)
+            if (d != null && d.prefab != null && d.prefab.TryGetComponent(out Building b))
+                foreach (var u in b.Trains)
+                    if (u != null && u.Data != null && u.Data.role != UnitData.Role.Worker && !weights.ContainsKey(u.Data)) weights[u.Data] = 0.6f;
+        var picks = new List<AIProfile.UnitPick>();
+        foreach (var kv in weights) picks.Add(new AIProfile.UnitPick { unit = kv.Key, weight = kv.Value });
+        profile.units = picks.ToArray();
+        return profile;
+    }
+
     void ApplyPersonality()
+
     {
         if (personality == Skirmish.Personality.Random) personality = (Skirmish.Personality)Random.Range(0, 4);
         if (personality == Skirmish.Personality.Mixed || profile == null) return;
@@ -844,7 +882,7 @@ public partial class AIPlayer
 
     float StyleWeight(Building b, UnitData d)
     {
-        bool air = b.TryGetComponent(out AerieFX _);
+        bool air = System.Array.Exists(b.Trains, u => u != null && u.TryGetComponent(out Flyer _));
         return personality switch
         {
             Skirmish.Personality.Air => air ? 3f : 0.4f,
@@ -857,7 +895,7 @@ public partial class AIPlayer
     BuildingData[] Defences()
     {
         var list = new List<BuildingData>();
-        var all = placer != null ? placer.Buildings : FindFirstObjectByType<BuildingPlacer>()?.Buildings;
+        var all = Menu;
         if (all == null) return list.ToArray();
         foreach (var d in all)
             if (d != null && d.prefab != null && (d.prefab.TryGetComponent(out Turret _) || d.prefab.TryGetComponent(out DroneHangar _))) list.Add(d);
@@ -866,8 +904,7 @@ public partial class AIPlayer
 
     BuildingData Aerie()
     {
-        var all = FindFirstObjectByType<BuildingPlacer>()?.Buildings;
-        if (all != null) foreach (var d in all) if (d != null && d.prefab != null && d.prefab.TryGetComponent(out AerieFX _)) return d;
+        foreach (var d in Menu) if (d != null && d.prefab != null && d.prefab.TryGetComponent(out Building b) && System.Array.Exists(b.Trains, u => u != null && u.TryGetComponent(out Flyer _))) return d;
         return null;
     }
 

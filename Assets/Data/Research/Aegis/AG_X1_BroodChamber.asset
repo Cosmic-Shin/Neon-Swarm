@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd97921bb84e4b24180dbd8959230b27, type: 3}
+  m_Name: AG_X1_BroodChamber
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchData
+  id: AG_X1
+  displayName: Field Command Uplink
+  faction: 1
+  description: Queen Arachne spawns Skitters 30% faster; +2 max brood.
+  icon: {fileID: 21300000, guid: a5c3b1ddce94c4548bfc2c60cbfc1ce3, type: 3}
+  branch: 5
+  tier: 3
+  cost: 2000
+  researchTime: 120
+  requires: {fileID: 0}
+  effects:
+  - stat: 14
+    percent: -0.3
+    flat: 0
+    roles: 
+    units:
+    - {fileID: 11400000, guid: 8093395d27297d24ea582f0c233e709c, type: 2}
+    buildings: []
+    defenses: 0
+  - stat: 15
+    percent: 0
+    flat: 2
+    roles: 
+    units:
+    - {fileID: 11400000, guid: 8093395d27297d24ea582f0c233e709c, type: 2}
+    buildings: []
+    defenses: 0

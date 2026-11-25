@@ -92,7 +92,7 @@ public class CursorContext : MonoBehaviour
 
     static bool AnyBoards(System.Collections.Generic.IReadOnlyList<SelectableUnit> units, SelectableUnit wasp)
     {
-        foreach (var u in units) if (u != null && u != wasp && Transport.CanCarry(u)) return true;
+        foreach (var u in units) if (u != null && u != wasp && Transport.CanCarry(u, wasp)) return true;
         return false;
     }
 

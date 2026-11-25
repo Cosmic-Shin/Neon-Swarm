@@ -1,15 +1,15 @@
 {
- "note": "Blender is Z-up right-handed. Unity position ~ (x, z, y); Unity yaw ~ -blender_rotZ. Compare with MenuDiorama_preview.png and mirror X if the layout comes out flipped.",
+ "note": "Blender is Z-up right-handed. Unity position ~ (x, z, y); Unity yaw ~ -blender_rotZ. Compare with MenuDiorama_preview.png and mirror X if the layout comes out flipped. v2: Aegis force (DA_*) on the right facing the swarm; Hive army turned toward them; camera moved right. Aegis prefabs use the Models/Aegis FBX names.",
  "camera": {
   "blender_pos": [
-   14.0,
-   -18.5,
-   4.6
+   17.5,
+   -19.5,
+   5.2
   ],
   "look_at_blender": [
-   -2.5,
-   1.0,
-   1.6
+   17.5,
+   -19.5,
+   -14.8
   ],
   "lens_mm": 35.0,
   "unity_vertical_fov": 32.3
@@ -32,7 +32,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "AssemblyHive",
@@ -43,7 +44,8 @@
     0.0
    ],
    "blender_rotZ_deg": -90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "DataRefinery",
@@ -54,7 +56,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "ResearchLab",
@@ -65,7 +68,8 @@
     0.0
    ],
    "blender_rotZ_deg": 180.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "PowerPylon",
@@ -76,7 +80,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "PowerPylon",
@@ -87,7 +92,8 @@
     0.0
    ],
    "blender_rotZ_deg": 30.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "HiveAerie",
@@ -98,7 +104,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "NeonTurret",
@@ -109,7 +116,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "NeonTurret",
@@ -120,7 +128,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "FlakLantern",
@@ -131,7 +140,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "RailspikeTower",
@@ -142,7 +152,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Ore_DataCrystal",
@@ -153,7 +164,8 @@
     0.0
    ],
    "blender_rotZ_deg": 85.0,
-   "scale": 1.4
+   "scale": 1.4,
+   "faction": "World"
   },
   {
    "prefab": "Ore_DataCrystal",
@@ -164,7 +176,8 @@
     0.0
    ],
    "blender_rotZ_deg": 37.1,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Ore_DataCrystal",
@@ -175,7 +188,8 @@
     0.0
    ],
    "blender_rotZ_deg": 142.6,
-   "scale": 1.1
+   "scale": 1.1,
+   "faction": "World"
   },
   {
    "prefab": "Ore_DataCrystal",
@@ -186,7 +200,8 @@
     0.0
    ],
    "blender_rotZ_deg": 55.8,
-   "scale": 1.6
+   "scale": 1.6,
+   "faction": "World"
   },
   {
    "prefab": "Ore_DataCrystal",
@@ -197,7 +212,8 @@
     0.0
    ],
    "blender_rotZ_deg": 23.9,
-   "scale": 0.9
+   "scale": 0.9,
+   "faction": "World"
   },
   {
    "prefab": "Ore_DataCrystal",
@@ -208,7 +224,8 @@
     0.0
    ],
    "blender_rotZ_deg": 144.6,
-   "scale": 1.2
+   "scale": 1.2,
+   "faction": "World"
   },
   {
    "prefab": "DataHarvester",
@@ -219,7 +236,8 @@
     0.0
    ],
    "blender_rotZ_deg": 55.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "Hive"
   },
   {
    "prefab": "Skitter",
@@ -229,8 +247,9 @@
     -7.5,
     0.0
    ],
-   "blender_rotZ_deg": 190.0,
-   "scale": 1.0
+   "blender_rotZ_deg": -76.6,
+   "scale": 1.0,
+   "faction": "Hive"
   },
   {
    "prefab": "Skitter",
@@ -240,8 +259,9 @@
     -8.3,
     0.0
    ],
-   "blender_rotZ_deg": 165.0,
-   "scale": 1.0
+   "blender_rotZ_deg": -70.5,
+   "scale": 1.0,
+   "faction": "Hive"
   },
   {
    "prefab": "Skitter",
@@ -251,8 +271,9 @@
     -8.6,
     0.0
    ],
-   "blender_rotZ_deg": 205.0,
-   "scale": 1.0
+   "blender_rotZ_deg": -68.6,
+   "scale": 1.0,
+   "faction": "Hive"
   },
   {
    "prefab": "Skitter",
@@ -262,8 +283,9 @@
     -7.1,
     0.0
    ],
-   "blender_rotZ_deg": 180.0,
-   "scale": 1.0
+   "blender_rotZ_deg": -49.5,
+   "scale": 1.0,
+   "faction": "Hive"
   },
   {
    "prefab": "Skitter",
@@ -273,8 +295,9 @@
     -9.6,
     0.0
    ],
-   "blender_rotZ_deg": 185.0,
-   "scale": 1.0
+   "blender_rotZ_deg": -54.0,
+   "scale": 1.0,
+   "faction": "Hive"
   },
   {
    "prefab": "Skitter",
@@ -284,8 +307,9 @@
     -7.4,
     0.0
    ],
-   "blender_rotZ_deg": 210.0,
-   "scale": 1.0
+   "blender_rotZ_deg": -72.2,
+   "scale": 1.0,
+   "faction": "Hive"
   },
   {
    "prefab": "Skitter",
@@ -295,8 +319,9 @@
     -10.2,
     0.0
    ],
-   "blender_rotZ_deg": 160.0,
-   "scale": 1.0
+   "blender_rotZ_deg": -53.1,
+   "scale": 1.0,
+   "faction": "Hive"
   },
   {
    "prefab": "Chromejaw",
@@ -306,8 +331,9 @@
     -9.0,
     0.0
    ],
-   "blender_rotZ_deg": 200.0,
-   "scale": 1.0
+   "blender_rotZ_deg": -72.8,
+   "scale": 1.0,
+   "faction": "Hive"
   },
   {
    "prefab": "Strider",
@@ -317,8 +343,9 @@
     -9.5,
     0.0
    ],
-   "blender_rotZ_deg": 170.0,
-   "scale": 1.0
+   "blender_rotZ_deg": -58.5,
+   "scale": 1.0,
+   "faction": "Hive"
   },
   {
    "prefab": "CrusherTarantula",
@@ -328,8 +355,9 @@
     -6.5,
     0.0
    ],
-   "blender_rotZ_deg": 190.0,
-   "scale": 1.0
+   "blender_rotZ_deg": -73.2,
+   "scale": 1.0,
+   "faction": "Hive"
   },
   {
    "prefab": "QueenArachne",
@@ -339,8 +367,9 @@
     -7.6,
     0.0
    ],
-   "blender_rotZ_deg": 160.0,
-   "scale": 1.0
+   "blender_rotZ_deg": -76.9,
+   "scale": 1.0,
+   "faction": "Hive"
   },
   {
    "prefab": "Prop_RuinTower",
@@ -351,7 +380,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 3.25
+   "scale": 3.25,
+   "faction": "World"
   },
   {
    "prefab": "Prop_RuinTower",
@@ -362,7 +392,8 @@
     0.0
    ],
    "blender_rotZ_deg": 40.0,
-   "scale": 4.0
+   "scale": 4.0,
+   "faction": "World"
   },
   {
    "prefab": "Prop_RuinTower",
@@ -373,7 +404,8 @@
     0.0
    ],
    "blender_rotZ_deg": 10.0,
-   "scale": 3.5
+   "scale": 3.5,
+   "faction": "World"
   },
   {
    "prefab": "Prop_RuinTower",
@@ -384,7 +416,8 @@
     0.0
    ],
    "blender_rotZ_deg": 70.0,
-   "scale": 3.75
+   "scale": 3.75,
+   "faction": "World"
   },
   {
    "prefab": "Prop_RuinTower",
@@ -395,7 +428,8 @@
     0.0
    ],
    "blender_rotZ_deg": 20.0,
-   "scale": 2.75
+   "scale": 2.75,
+   "faction": "World"
   },
   {
    "prefab": "Prop_RuinTower",
@@ -406,7 +440,8 @@
     0.0
    ],
    "blender_rotZ_deg": 80.0,
-   "scale": 3.0
+   "scale": 3.0,
+   "faction": "World"
   },
   {
    "prefab": "Prop_RuinTower",
@@ -417,7 +452,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 4.5
+   "scale": 4.5,
+   "faction": "World"
   },
   {
    "prefab": "Prop_RuinTower",
@@ -428,7 +464,8 @@
     0.0
    ],
    "blender_rotZ_deg": 30.0,
-   "scale": 4.25
+   "scale": 4.25,
+   "faction": "World"
   },
   {
    "prefab": "Prop_RuinSmall",
@@ -439,7 +476,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.3
+   "scale": 1.3,
+   "faction": "World"
   },
   {
    "prefab": "Prop_RuinSmall",
@@ -450,18 +488,20 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.3
+   "scale": 1.3,
+   "faction": "World"
   },
   {
    "prefab": "Prop_RuinSmall",
    "name": "D_RuinS2",
    "blender_pos": [
-    13.0,
-    -6.0,
+    17.0,
+    -9.0,
     0.0
    ],
    "blender_rotZ_deg": 30.0,
-   "scale": 1.3
+   "scale": 1.3,
+   "faction": "World"
   },
   {
    "prefab": "Prop_RuinSmall",
@@ -472,7 +512,8 @@
     0.0
    ],
    "blender_rotZ_deg": 60.0,
-   "scale": 1.3
+   "scale": 1.3,
+   "faction": "World"
   },
   {
    "prefab": "Prop_Billboard",
@@ -483,18 +524,20 @@
     0.0
    ],
    "blender_rotZ_deg": 20.0,
-   "scale": 2.0
+   "scale": 2.0,
+   "faction": "World"
   },
   {
    "prefab": "Prop_Crates",
    "name": "D_Crates0",
    "blender_pos": [
-    10.5,
-    -8.0,
+    6.5,
+    -11.0,
     0.0
    ],
    "blender_rotZ_deg": 20.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Prop_Crates",
@@ -505,7 +548,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Prop_Crates",
@@ -516,7 +560,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Prop_Barrier",
@@ -527,7 +572,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -538,7 +584,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -549,7 +596,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -560,7 +608,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -571,7 +620,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -582,7 +632,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -593,7 +644,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -604,7 +656,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -615,7 +668,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -626,7 +680,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -637,7 +692,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -648,7 +704,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -659,7 +716,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -670,7 +728,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -681,7 +740,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -692,7 +752,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -703,7 +764,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -714,7 +776,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -725,7 +788,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -736,7 +800,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -747,7 +812,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -758,7 +824,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -769,7 +836,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -780,7 +848,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -791,7 +860,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -802,7 +872,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -813,7 +884,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -824,7 +896,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -835,7 +908,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -846,7 +920,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -857,7 +932,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -868,7 +944,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -879,7 +956,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -890,7 +968,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -901,7 +980,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -912,7 +992,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -923,7 +1004,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -934,7 +1016,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -945,7 +1028,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -956,7 +1040,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -967,7 +1052,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -978,7 +1064,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -989,7 +1076,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1000,7 +1088,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1011,7 +1100,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1022,7 +1112,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1033,7 +1124,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1044,7 +1136,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1055,7 +1148,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1066,7 +1160,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1077,7 +1172,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1088,7 +1184,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1099,7 +1196,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1110,7 +1208,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1121,7 +1220,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1132,7 +1232,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1143,7 +1244,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1154,7 +1256,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1165,7 +1268,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1176,7 +1280,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1187,7 +1292,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1198,7 +1304,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1209,7 +1316,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1220,7 +1328,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1231,7 +1340,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1242,7 +1352,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1253,7 +1364,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1264,7 +1376,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1275,7 +1388,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1286,7 +1400,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1297,7 +1412,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1308,7 +1424,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1319,7 +1436,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1330,7 +1448,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1341,7 +1460,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1352,7 +1472,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1363,7 +1484,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1374,7 +1496,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1385,7 +1508,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1396,7 +1520,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1407,7 +1532,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1418,7 +1544,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1429,7 +1556,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1440,7 +1568,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1451,7 +1580,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1462,7 +1592,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1473,7 +1604,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1484,7 +1616,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1495,7 +1628,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1506,7 +1640,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1517,7 +1652,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1528,7 +1664,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1539,7 +1676,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1550,7 +1688,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1561,7 +1700,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1572,7 +1712,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1583,7 +1724,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1594,7 +1736,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1605,7 +1748,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_Plaza",
@@ -1616,7 +1760,8 @@
     -0.02
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1627,7 +1772,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1638,7 +1784,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1649,7 +1796,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1660,7 +1808,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1671,7 +1820,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1682,7 +1832,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1693,7 +1844,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1704,7 +1856,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1715,7 +1868,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1726,7 +1880,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1737,7 +1892,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1748,7 +1904,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1759,7 +1916,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1770,7 +1928,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1781,7 +1940,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1792,7 +1952,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1803,7 +1964,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1814,7 +1976,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1825,7 +1988,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1836,7 +2000,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1847,7 +2012,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1858,7 +2024,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1869,7 +2036,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1880,7 +2048,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Tile_RoadStraight",
@@ -1891,7 +2060,8 @@
     0.0
    ],
    "blender_rotZ_deg": 90.0,
-   "scale": 1.0
+   "scale": 1.0,
+   "faction": "World"
   },
   {
    "prefab": "Prop_StreetlightA",
@@ -1902,7 +2072,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.3
+   "scale": 1.3,
+   "faction": "World"
   },
   {
    "prefab": "Prop_StreetlightA",
@@ -1913,7 +2084,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.3
+   "scale": 1.3,
+   "faction": "World"
   },
   {
    "prefab": "Prop_StreetlightA",
@@ -1924,7 +2096,8 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.3
+   "scale": 1.3,
+   "faction": "World"
   },
   {
    "prefab": "Prop_StreetlightA",
@@ -1935,7 +2108,176 @@
     0.0
    ],
    "blender_rotZ_deg": 0.0,
-   "scale": 1.3
+   "scale": 1.3,
+   "faction": "World"
+  },
+  {
+   "prefab": "Aegis_Colossus",
+   "name": "DA_Colossus",
+   "blender_pos": [
+    11.2,
+    3.6,
+    0.0
+   ],
+   "blender_rotZ_deg": 114.0,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Paladin",
+   "name": "DA_Paladin0",
+   "blender_pos": [
+    10.4,
+    -4.9,
+    0.0
+   ],
+   "blender_rotZ_deg": 119.9,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Paladin",
+   "name": "DA_Paladin1",
+   "blender_pos": [
+    12.0,
+    1.1,
+    0.0
+   ],
+   "blender_rotZ_deg": 126.4,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Peacekeeper",
+   "name": "DA_Peacekeeper0",
+   "blender_pos": [
+    9.2,
+    -3.1,
+    0.0
+   ],
+   "blender_rotZ_deg": 121.5,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Peacekeeper",
+   "name": "DA_Peacekeeper1",
+   "blender_pos": [
+    9.9,
+    -2.1,
+    0.0
+   ],
+   "blender_rotZ_deg": 119.9,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Peacekeeper",
+   "name": "DA_Peacekeeper2",
+   "blender_pos": [
+    8.6,
+    -4.3,
+    0.0
+   ],
+   "blender_rotZ_deg": 121.4,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Peacekeeper",
+   "name": "DA_Peacekeeper3",
+   "blender_pos": [
+    10.6,
+    -0.9,
+    0.0
+   ],
+   "blender_rotZ_deg": 114.2,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Peacekeeper",
+   "name": "DA_Peacekeeper4",
+   "blender_pos": [
+    11.2,
+    -3.4,
+    0.0
+   ],
+   "blender_rotZ_deg": 117.7,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Marksman",
+   "name": "DA_Marksman",
+   "blender_pos": [
+    12.6,
+    -5.1,
+    0.0
+   ],
+   "blender_rotZ_deg": 113.5,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Lancer",
+   "name": "DA_Lancer0",
+   "blender_pos": [
+    12.0,
+    -2.1,
+    0.0
+   ],
+   "blender_rotZ_deg": 123.2,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Bastion",
+   "name": "DA_Bastion",
+   "blender_pos": [
+    13.0,
+    -4.6,
+    0.0
+   ],
+   "blender_rotZ_deg": 117.2,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Gunship",
+   "name": "DA_Gunship0",
+   "blender_pos": [
+    10.8,
+    -6.1,
+    0.2
+   ],
+   "blender_rotZ_deg": 124.9,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Interceptor",
+   "name": "DA_Interceptor0",
+   "blender_pos": [
+    9.5,
+    0.9,
+    0.8
+   ],
+   "blender_rotZ_deg": 122.8,
+   "scale": 1.0,
+   "faction": "Aegis"
+  },
+  {
+   "prefab": "Aegis_Dominion",
+   "name": "DA_Dominion",
+   "blender_pos": [
+    14.0,
+    5.5,
+    1.0
+   ],
+   "blender_rotZ_deg": 124.0,
+   "scale": 1.0,
+   "faction": "Aegis"
   }
  ],
  "lights": [
@@ -2113,6 +2455,54 @@
     1.0
    ],
    "blender_watts": 4500.0,
+   "radius": 0.0
+  },
+  {
+   "name": "DA_L_Aegis",
+   "type": "POINT",
+   "blender_pos": [
+    11.5,
+    -5.5,
+    5.0
+   ],
+   "color": [
+    1.0,
+    0.35,
+    0.12
+   ],
+   "blender_watts": 3500.0,
+   "radius": 3.0
+  },
+  {
+   "name": "DA_L_AegisRim",
+   "type": "POINT",
+   "blender_pos": [
+    15.0,
+    3.0,
+    7.0
+   ],
+   "color": [
+    1.0,
+    0.6,
+    0.15
+   ],
+   "blender_watts": 2500.0,
+   "radius": 4.0
+  },
+  {
+   "name": "DA_L_AegisFill",
+   "type": "AREA",
+   "blender_pos": [
+    14.0,
+    -8.0,
+    4.0
+   ],
+   "color": [
+    1.0,
+    0.75,
+    0.45
+   ],
+   "blender_watts": 700.0,
    "radius": 0.0
   }
  ]

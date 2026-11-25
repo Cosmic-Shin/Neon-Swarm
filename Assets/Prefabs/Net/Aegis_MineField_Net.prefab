@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &1510933304844309178
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3753533812976091557, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      propertyPath: m_Name
+      value: Aegis_MineField_Net
+      objectReference: {fileID: 0}
+    - target: {fileID: 7881487210904964491, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7881487210904964491, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7881487210904964491, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7881487210904964491, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7881487210904964491, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7881487210904964491, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7881487210904964491, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7881487210904964491, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7881487210904964491, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7881487210904964491, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3753533812976091557, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2745672278738614361}
+    - targetCorrespondingSourceObject: {fileID: 3753533812976091557, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4130433957507419436}
+  m_SourcePrefab: {fileID: 100100000, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+--- !u!1 &2369125161578713887 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3753533812976091557, guid: 294c580e7fc209445b49a382d93493c1, type: 3}
+  m_PrefabInstance: {fileID: 1510933304844309178}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2745672278738614361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2369125161578713887}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 2819418331
+  SendPriority: 1
+  EnableInterpolation: 1
+  Flags: 524290
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 4130433957507419436}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &4130433957507419436
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2369125161578713887}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c9bb018bce9bc643bd4df254f7c8680, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetEntity
+  _OwnerSlot: 0

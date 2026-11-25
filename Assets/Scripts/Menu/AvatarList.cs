@@ -4,19 +4,27 @@ using UnityEngine.UI;
 [CreateAssetMenu(menuName = "RTS/Avatar List", fileName = "Avatars")]
 public class AvatarList : ScriptableObject
 {
-    public Sprite[] sprites;
+    public Sprite[] sprites;   // the Hive
+    public Sprite[] aegis;     // Aegis Corp
 
     static AvatarList list;
     static Sprite circle;
+    static Sprite[] all;
+
+    static AvatarList List => list != null ? list : list = Resources.Load<AvatarList>("Avatars");
 
     public static Sprite[] All
     {
         get
         {
-            if (list == null) list = Resources.Load<AvatarList>("Avatars");
-            return list != null ? list.sprites : new Sprite[0];
+            if (all == null && List != null) { var l = new System.Collections.Generic.List<Sprite>(List.sprites ?? new Sprite[0]); if (List.aegis != null) l.AddRange(List.aegis); all = l.ToArray(); }
+            return all ?? new Sprite[0];
         }
     }
+
+    /// <summary>Avatars grouped by faction for the picker tabs.</summary>
+    public static (FactionId faction, Sprite[] sprites)[] Groups =>
+        List == null ? new (FactionId, Sprite[])[0] : new[] { (FactionId.Hive, List.sprites ?? new Sprite[0]), (FactionId.Aegis, List.aegis ?? new Sprite[0]) };
 
     public static Sprite Find(string name)
     {

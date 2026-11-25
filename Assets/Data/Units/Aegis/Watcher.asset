@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
+  m_Name: Watcher
+  m_EditorClassIdentifier: Assembly-CSharp::UnitData
+  displayName: Watcher
+  faction: 1
+  role: 1
+  description: Fast scout drone with a wide sensor sweep. Barely armed; use it to
+    find the enemy.
+  icon: {fileID: 21300000, guid: 1c7b292de95a5504498f04cbcd84dfed, type: 3}
+  cost: 400
+  buildTime: 5
+  squadSize: 3
+  maxHealth: 70
+  damage: 5
+  range: 9
+  attackCooldown: 0.8
+  hitsGround: 1
+  hitsAir: 1
+  moveSpeed: 16.199999
+  sight: 40
+  splash: 0
+  stunOnHit: 0
+  slowOnHit: 0
+  buildingDamage: 1
+  armor: 0
+  weapon: 1
+  ability: 0
+  visual:
+    projectile: {fileID: 546401249373042527, guid: 5e7af672ccd6fc8488c8389bb87f0881, type: 3}
+    speed: 60
+    arc: 0
+    muzzleFlash: {fileID: 2923620917300925078, guid: b9c1d30cf7234304ab27f85362607d76, type: 3}
+    impact: {fileID: 0}
+    scorch: {fileID: 0}
+    hideBeam: 1
+  style: 0
+  muzzles: WAT_Muzzle
+  extra: {fileID: 0}

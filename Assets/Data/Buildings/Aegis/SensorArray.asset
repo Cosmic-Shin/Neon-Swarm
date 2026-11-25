@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
+  m_Name: SensorArray
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  displayName: Sensor Array
+  faction: 1
+  description: 'Radar: shows enemy units on the minimap through the fog. Unlocks
+    advanced structures.'
+  prefab: {fileID: 4667672420956600825, guid: 69f7c93029fd3a84e9317f5c4865ac59, type: 3}
+  icon: {fileID: 21300000, guid: fdd049f84fca7ac40bf543901f6a7c51, type: 3}
+  cost: 800
+  buildTime: 12
+  dragLine: 0
+  requires:
+  - {fileID: 11400000, guid: 6e4a8b62cb94b3440a387f3a59f11f9c, type: 2}
+  coreLevel: 1
+  onePerPlayer: 0

@@ -13,6 +13,7 @@ public class SkirmishPanel : MonoBehaviour
         public int side;
         public int color;
         public int baseIndex;
+        public int faction;
     }
 
     static Seat[] seats;
@@ -31,7 +32,7 @@ public class SkirmishPanel : MonoBehaviour
     Button creditsButton, minutesButton, loadButton, mapButton;
     RectTransform mapRect;
     readonly System.Collections.Generic.List<(Button button, int players)> presets = new();
-    readonly Button[] rows = new Button[Seats], diffs = new Button[Seats], removes = new Button[Seats], bases = new Button[Seats];
+    readonly Button[] rows = new Button[Seats], diffs = new Button[Seats], removes = new Button[Seats], factions = new Button[Seats], bases = new Button[Seats];
     int picked = -1;
 
     public static void Open(Component anyUI)
@@ -103,18 +104,25 @@ public class SkirmishPanel : MonoBehaviour
             team.onClick.AddListener(() => { var s = seats[seat]; s.side = (s.side + 1) % 5; });
             var diff = Instantiate(team, row.transform);
             diff.name = "Difficulty";
-            ((RectTransform)diff.transform).anchoredPosition += Vector2.left * 120f;
+            Place(team.transform, -144f, 90f);
+            Place(diff.transform, -239f, 90f);
             diff.onClick.AddListener(() => NextDifficulty(seat));
+            var faction = Instantiate(team, row.transform);
+            faction.name = "Faction";
+            Place(faction.transform, -334f, 80f);
+            faction.onClick.AddListener(() => { var s = seats[seat]; s.faction = (s.faction + 1) % Mathf.Max(1, Faction.All.Length); });
+            factions[i] = faction;
             var remove = Instantiate(team, row.transform);
             remove.name = "Remove";
             var removeRt = (RectTransform)remove.transform;
-            removeRt.anchoredPosition = new Vector2(-405f, 0f);
+            removeRt.anchoredPosition = new Vector2(-394f, 0f);
+            Place(row.transform.Find("Base"), -14f, 80f, 36f);
             removeRt.sizeDelta = new Vector2(30f, 28f);
             remove.GetComponentInChildren<Text>().text = "X";
             HoloSkin.Button(remove, HoloUI.ButtonStyle.Danger);
             remove.onClick.AddListener(() => { seats[seat].used = false; if (picked == seat) picked = -1; });
             removes[i] = remove;
-            ((RectTransform)row.transform.Find("Name")).sizeDelta = new Vector2(170f, 36f);
+            ((RectTransform)row.transform.Find("Name")).sizeDelta = new Vector2(120f, 36f);
             rows[i] = row;
             diffs[i] = diff;
         }
@@ -181,6 +189,13 @@ public class SkirmishPanel : MonoBehaviour
         UIJuice.Stagger(mapRect);
     }
 
+    static void Place(Transform t, float x, float width, float height = 28f)
+    {
+        var rt = (RectTransform)t;
+        rt.anchoredPosition = new Vector2(x, 0f);
+        rt.sizeDelta = new Vector2(width, height);
+    }
+
     void Update()
     {
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame && !customCredits.isFocused && !SaveSlotsPanel.IsOpen && SaveSlotsPanel.ClosedAt != Time.frameCount) { Close(); return; }
@@ -194,7 +209,7 @@ public class SkirmishPanel : MonoBehaviour
             string name = i == 0 ? "You" : used ? "AI" : "<color=#7A8699>Open  ·  click to add AI</color>";
             var label = row.transform.Find("Name").GetComponent<Text>();
             label.text = $"{i + 1}.  {name}";
-            label.rectTransform.sizeDelta = new Vector2(used && i > 0 ? 170f : 480f, 36f);
+            label.rectTransform.sizeDelta = new Vector2(used ? 120f : 480f, 36f);
             row.transform.Find("Base").GetComponent<Text>().text = used ? $"BASE {s.baseIndex + 1}" : "";
             var swatch = row.transform.Find("Swatch");
             swatch.gameObject.SetActive(used);
@@ -203,6 +218,8 @@ public class SkirmishPanel : MonoBehaviour
             team.gameObject.SetActive(used);
             team.GetComponentInChildren<Text>().text = s.side == 0 ? "NO TEAM" : $"TEAM {s.side}";
             diffs[i].gameObject.SetActive(used && i > 0);
+            factions[i].gameObject.SetActive(used && Faction.All.Length > 1);
+            factions[i].GetComponentInChildren<Text>().text = Faction.Get(s.faction) is Faction f ? f.displayName.Replace("The ", "").Split(' ')[0].ToUpper() : "HIVE";
             removes[i].gameObject.SetActive(used && i > 0);
             diffs[i].GetComponentInChildren<Text>().text = s.difficulty.ToString().ToUpper();
             row.GetComponent<Image>().color = picked == i ? Picked : used ? new Color(0f, 0f, 0f, 0.4f) : OpenSeat;
@@ -227,7 +244,7 @@ public class SkirmishPanel : MonoBehaviour
         creditsButton.GetComponentInChildren<Text>().text = $"${credits:N0}";
         minutesButton.GetComponentInChildren<Text>().text = minutes > 0 ? $"{minutes} MIN" : "NO LIMIT";
         hint.text = picked >= 0 ? $"Now click a base for player {picked + 1}."
-                  : "Click a colour, team or difficulty to change it. X removes an AI. Click a player, then a base to move them.";
+                  : "Click a faction, colour, team or difficulty to change it. X removes an AI. Click a player, then a base to move them.";
 
         string problem = Problem();
         waiting.text = problem ?? "";
@@ -354,11 +371,12 @@ public class SkirmishPanel : MonoBehaviour
         for (int i = 1; i < Seats; i++)
         {
             var s = seats[i];
-            if (s.used) Skirmish.Opponents.Add(new Skirmish.Opponent { team = i, difficulty = s.difficulty, side = s.side, color = s.color, baseIndex = s.baseIndex });
+            if (s.used) Skirmish.Opponents.Add(new Skirmish.Opponent { team = i, difficulty = s.difficulty, side = s.side, color = s.color, baseIndex = s.baseIndex, faction = s.faction });
         }
         Skirmish.PlayerSide = seats[0].side;
         Skirmish.PlayerColor = seats[0].color;
         Skirmish.PlayerBase = seats[0].baseIndex;
+        Skirmish.PlayerFaction = seats[0].faction;
         Skirmish.StartCredits = credits;
         Skirmish.Minutes = minutes;
         Skirmish.ElapsedBefore = 0f;

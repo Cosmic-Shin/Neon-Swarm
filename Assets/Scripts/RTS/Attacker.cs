@@ -20,8 +20,11 @@ public class Attacker : MonoBehaviour
     float nextShot;
     LineRenderer laser;
 
+    Deployer deployer;
+
     void Awake()
     {
+        deployer = GetComponent<Deployer>();
         agent = GetComponent<NavMeshAgent>();
         self = GetComponent<Health>();
         unit = GetComponent<SelectableUnit>();
@@ -71,6 +74,7 @@ public class Attacker : MonoBehaviour
     public bool HasTarget => target != null;
     public bool Busy => target != null || attackMove != null;
     public Health Target => target;
+    public float LastShot { get; private set; } = -99f;
     float range = -1f;
     float Range => range >= 0f ? range : range = Stats.Value(Stat.Range, data.range, this);
     void OnEnable() => Stats.Changed += ForgetRange;
@@ -150,6 +154,7 @@ public class Attacker : MonoBehaviour
         if (to.sqrMagnitude > 0.01f)
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), agent.angularSpeed * Time.deltaTime);
 
+        if (deployer != null && !deployer.Ready) return;
         if (Time.time < nextShot || pending != null || (heat != null && !heat.Ready)) return;
         nextShot = Time.time + Mathf.Max(clipLength, data.attackCooldown / Stats.Value(Stat.FireRate, 1f, this));
         Fire(target);
@@ -186,6 +191,7 @@ public class Attacker : MonoBehaviour
     void Release(Health t, bool real)
     {
         if (t == null) return;
+        LastShot = Time.time;
         if (kick != null) kick.Kick(t.transform.position - transform.position);
         float heft = Mathf.Clamp01(data.damage / 80f);
         UnitMotion.Pop(this, -(0.25f + 0.8f * heft));

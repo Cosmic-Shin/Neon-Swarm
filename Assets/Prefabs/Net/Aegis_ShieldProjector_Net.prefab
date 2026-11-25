@@ -1,0 +1,107 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &6992467911876007576
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 864935163152197303, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 864935163152197303, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 864935163152197303, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 864935163152197303, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 864935163152197303, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 864935163152197303, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 864935163152197303, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 864935163152197303, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 864935163152197303, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 864935163152197303, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2956209515900563517, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 8240747104116293477, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      propertyPath: m_Name
+      value: Aegis_ShieldProjector_Net
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8240747104116293477, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3886018104441179539}
+    - targetCorrespondingSourceObject: {fileID: 8240747104116293477, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8517033806561838716}
+  m_SourcePrefab: {fileID: 100100000, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+--- !u!1 &1393652226114841085 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8240747104116293477, guid: 82df73b313128bf4a9622f6a558c584c, type: 3}
+  m_PrefabInstance: {fileID: 6992467911876007576}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3886018104441179539
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1393652226114841085}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 4149291291
+  SendPriority: 1
+  EnableInterpolation: 1
+  Flags: 524290
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 8517033806561838716}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &8517033806561838716
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1393652226114841085}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c9bb018bce9bc643bd4df254f7c8680, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetEntity
+  _OwnerSlot: 0

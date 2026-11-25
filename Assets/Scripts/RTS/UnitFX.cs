@@ -434,3 +434,85 @@ public class LightPool : MonoBehaviour
         }
     }
 }
+
+/// <summary>Running lights on unit models, picked by part name (works for any faction that names its parts):
+/// visors/cores/lenses flare on each shot, antenna tips blink, engine/fan/hover-pad glows brighten with speed,
+/// shin lights alternate while walking. Skips off-screen/fogged units.</summary>
+public class UnitLights : MonoBehaviour
+{
+    static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
+    static readonly System.Text.RegularExpressions.Regex
+        Flare = new(@"_(Visor|Core|ScopeLens|GoggleLens-?1|Eye|Lens|RifleLight|BarrelLight|EmOrb|EmitterOrb|EmitterGlow|RailGlow-?1|BayGlow|CannonRing|LanceCoil[LR]\d)$"),
+        Tip = new(@"_(AntennaTip-?1?|NoseLight|HeadLamp|SideLight-?1|WingLight-?1|GondolaLights)$"),
+        Drive = new(@"(_Engine-?\d?|_EngineGlow-?\d|_FanGlow[-\d]*|_Rotor-?\d_Glow|_Pad[-\w]*_Glow|_Thruster|_PadRear_Glow)$"),
+        Shin = new(@"_ShinLight[LR]$");
+
+    readonly List<(Renderer r, Color[] c, int kind, int side)> lights = new();
+    MaterialPropertyBlock block;
+    Attacker attacker;
+    Health health;
+    Renderer eye;
+    Vector3 lastPos;
+    float speed, phase;
+
+    void Start()
+    {
+        attacker = GetComponent<Attacker>();
+        health = GetComponent<Health>();
+        block = new MaterialPropertyBlock();
+        phase = Random.value * 10f;
+        lastPos = transform.position;
+        foreach (var r in GetComponentsInChildren<MeshRenderer>(true))
+        {
+            string n = r.name;
+            int kind = Flare.IsMatch(n) ? 0 : Tip.IsMatch(n) ? 1 : Drive.IsMatch(n) ? 2 : Shin.IsMatch(n) ? 3 : -1;
+            if (kind < 0) continue;
+            var mats = r.sharedMaterials;
+            var c = new Color[mats.Length];
+            bool any = false;
+            for (int i = 0; i < mats.Length; i++)
+            {
+                if (mats[i] == null || !mats[i].HasProperty(EmissionId) || !mats[i].IsKeywordEnabled("_EMISSION")) continue;
+                c[i] = mats[i].GetColor(EmissionId);
+                any |= c[i].maxColorComponent > 0.001f;
+            }
+            if (any) lights.Add((r, c, kind, n.EndsWith("L") ? 0 : 1));
+            if (eye == null || r.bounds.size.sqrMagnitude > eye.bounds.size.sqrMagnitude) eye = r;
+        }
+        if (lights.Count == 0) enabled = false;
+    }
+
+    void Update()
+    {
+        if (health != null && health.IsDead) { enabled = false; return; }
+        float dt = Mathf.Max(Time.deltaTime, 1e-4f);
+        Vector3 p = transform.position;
+        speed = Mathf.Lerp(speed, (p - lastPos).magnitude / dt, 1f - Mathf.Exp(-dt * 6f));
+        lastPos = p;
+        if (eye != null && !eye.isVisible) return;
+        if (!Juice.Seen(p)) return;
+
+        float t = Time.time + phase;
+        float shot = attacker != null ? Mathf.Clamp01(1f - (Time.time - attacker.LastShot) / 0.25f) : 0f;
+        float drive = 0.6f + Mathf.Clamp01(speed / 8f) * 1.6f;
+        bool walking = speed > 0.5f;
+        float vet = TryGetComponent(out Veterancy v) ? 1f + VeterancyData.Get.glowPerRank * v.Rank : 1f;   // keep the rank glow
+        foreach (var (r, c, kind, side) in lights)
+        {
+            float k = kind switch
+            {
+                0 => 1f + 0.12f * Mathf.Sin(t * 3f) + 3f * shot,
+                1 => Mathf.Repeat(t * 1.1f, 1f) < 0.15f ? 3f : 0.3f,
+                2 => drive * (0.9f + 0.1f * Mathf.Sin(t * 23f)),
+                _ => walking ? ((Mathf.Repeat(t * 2f, 1f) < 0.5f) == (side == 0) ? 2.2f : 0.4f) : 1f,
+            };
+            for (int i = 0; i < c.Length; i++)
+            {
+                if (c[i].maxColorComponent <= 0.001f) continue;
+                r.GetPropertyBlock(block, i);
+                block.SetColor(EmissionId, c[i] * k * vet);
+                r.SetPropertyBlock(block, i);
+            }
+        }
+    }
+}

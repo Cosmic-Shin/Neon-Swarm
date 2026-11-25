@@ -140,6 +140,7 @@ public class FogOfWar : MonoBehaviour
         float reach = buildingSight;
         if (h.TryGetComponent(out Turret t)) reach = Mathf.Max(reach, t.Range + 6f);
         if (h.TryGetComponent(out Structure s) && s.sight > 0f && !Structure.LowPower) reach = Mathf.Max(reach, s.sight);
+        if (h.TryGetComponent(out CorpSite corp) && corp.Sight > 0f) reach = Mathf.Max(reach, corp.Sight);
         reach = Stats.Value(Stat.Sight, reach, h);
         if (h.TryGetComponent(out Collider c)) reach += Mathf.Max(c.bounds.extents.x, c.bounds.extents.z);
         return reach;

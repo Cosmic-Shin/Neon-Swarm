@@ -12,22 +12,37 @@ public class DamageFx : MonoBehaviour
     Collider col;
     GameObject smokeObj, fireObj;
     float nextSpark;
+    readonly System.Collections.Generic.List<GameObject> damageGroups = new();
+    readonly System.Collections.Generic.List<Transform> smokePoints = new(), sparkPoints = new();
+    bool hurtShown;
 
     void Awake()
     {
         health = GetComponent<Health>();
         col = GetComponent<Collider>();
+        foreach (var t in GetComponentsInChildren<Transform>(true))
+        {
+            if (t.name.EndsWith("_Damage") || t.name.Contains("_Damage_")) damageGroups.Add(t.gameObject);
+            else if (t.name.Contains("_SmokePoint")) smokePoints.Add(t);
+            else if (t.name.Contains("_SparkPoint")) sparkPoints.Add(t);
+        }
     }
 
     void Update()
     {
         float f = health.Fraction;
+        bool hurt = f < 0.5f && !health.IsDead;
+        if (hurt != hurtShown && damageGroups.Count > 0 && !TryGetComponent(out Construction _))
+        {
+            hurtShown = hurt;
+            foreach (var g in damageGroups) if (g != null) g.SetActive(hurt);
+        }
         Toggle(ref smokeObj, smoke, f < 0.5f, 0.3f);
         Toggle(ref fireObj, fire, f < 0.25f, -0.3f);
         if (f < 0.5f && spark != null && Time.time >= nextSpark)
         {
             nextSpark = Time.time + Random.Range(0.25f, f < 0.25f ? 0.6f : 1.2f);
-            Fx.Spawn(spark, PointOnRoof(Random.Range(-0.4f, 0.4f), Random.Range(-0.4f, 0.4f), Random.Range(0.5f, 1f)), Random.rotation, 1.5f);
+            Fx.Spawn(spark, sparkPoints.Count > 0 ? sparkPoints[Random.Range(0, sparkPoints.Count)].position : PointOnRoof(Random.Range(-0.4f, 0.4f), Random.Range(-0.4f, 0.4f), Random.Range(0.5f, 1f)), Random.rotation, 1.5f);
         }
     }
 
@@ -37,7 +52,7 @@ public class DamageFx : MonoBehaviour
         if (on && obj == null)
         {
             Bounds b = col.bounds;
-            obj = Instantiate(prefab, PointOnRoof(side, side * 0.5f, 0.9f), Quaternion.identity);
+            obj = Instantiate(prefab, smokePoints.Count > 0 ? smokePoints[side > 0f ? 0 : smokePoints.Count - 1].position : PointOnRoof(side, side * 0.5f, 0.9f), Quaternion.identity);
             obj.transform.localScale *= Mathf.Clamp(Mathf.Max(b.size.x, b.size.z) / 8f, 0.8f, 3f);
         }
         if (obj != null && obj.activeSelf != on) obj.SetActive(on);

@@ -17,6 +17,7 @@ public class MenuDiorama : MonoBehaviour
     public Vector3 armyCentre;
     public Vector3[] searchlightSpots;
     public Transform[] traffic, patrol, adTowers;
+    public Transform[] aegisFront;
 
     Vector3 camOffset;
     Vector2 parallax;
@@ -31,7 +32,9 @@ public class MenuDiorama : MonoBehaviour
         camOffset = cam.transform.position - lookAt;
         foreach (var a in GetComponentsInChildren<Animator>())
         {
-            a.SetFloat(SpeedId, 0f);
+            if (System.Array.Exists(a.parameters, p => p.nameHash == SpeedId)) a.SetFloat(SpeedId, 0f);
+            // Attack clips carry a "Fire" event; on the menu nothing listens, but Unity errors without a receiver
+            if (System.Array.Exists(a.parameters, p => p.name == "Attack") && !a.TryGetComponent(out AttackEvents _)) a.gameObject.AddComponent<AttackEvents>();
             a.Play(0, 0, Random.value);
             a.speed = Random.Range(0.85f, 1.15f);
         }
@@ -48,6 +51,7 @@ public class MenuDiorama : MonoBehaviour
         for (int i = 0; i < patrol.Length; i++) if (patrol[i] != null) StartCoroutine(Patrol(patrol[i], i));
         ScreenUI();
         StartCoroutine(DistantWar());
+        StartCoroutine(Standoff());
     }
 
     void Update()
@@ -78,7 +82,7 @@ public class MenuDiorama : MonoBehaviour
             m = Vector2.ClampMagnitude(m, 1f);
         }
         parallax = Vector2.Lerp(parallax, m, 1f - Mathf.Exp(-2f * Time.deltaTime));
-        float yaw = 15f * Mathf.Sin(t * Mathf.PI * 2f / 60f);
+        float yaw = 9f * Mathf.Sin(t * Mathf.PI * 2f / 60f);   // wider swings hid one of the two bases behind the menu
         Vector3 pos = lookAt + Quaternion.Euler(0f, yaw, 0f) * camOffset + Vector3.up * 0.06f * Mathf.Sin(t * 0.9f);
         cam.transform.SetPositionAndRotation(pos, Quaternion.LookRotation(lookAt - pos) * Quaternion.Euler(-parallax.y * 2f, parallax.x * 2f, 0f));
     }
@@ -472,6 +476,58 @@ public class MenuDiorama : MonoBehaviour
             Sfx.Play(Snd.BoomBig, 0.07f * big, Random.Range(0.45f, 0.6f));
             if (Random.value < 0.65f) StartCoroutine(Flak(Far(Random.Range(45f, 60f), 0f)));
         }
+    }
+
+    // ---- front-line standoff: the Aegis line and the swarm trade the odd shot (Attack clips + tracer + impact) ----
+    static readonly Color AegisShot = new(1f, 0.62f, 0.3f), SwarmShot = new(0.3f, 1f, 1f);
+    static readonly int AttackId = Animator.StringToHash("Attack");
+
+    IEnumerator Standoff()
+    {
+        var swarm = new List<Transform>();
+        foreach (Transform c in transform) if (c.name.StartsWith("D_Skitter") || c.name is "D_Chromejaw" or "D_Strider" or "D_CrusherTarantula") swarm.Add(c);
+        if (aegisFront == null || aegisFront.Length == 0 || swarm.Count == 0) yield break;
+        yield return new WaitForSeconds(3f);
+        while (true)
+        {
+            yield return new WaitForSeconds(Random.Range(0.7f, 2.2f));
+            bool aegis = Random.value < 0.55f;
+            var shooter = aegis ? aegisFront[Random.Range(0, aegisFront.Length)] : swarm[Random.Range(0, swarm.Count)];
+            var target = aegis ? swarm[Random.Range(0, swarm.Count)] : aegisFront[Random.Range(0, aegisFront.Length)];
+            if (shooter == null || target == null) continue;
+            var anim = shooter.GetComponentInChildren<Animator>();
+            bool clip = anim != null && System.Array.Exists(anim.parameters, p => p.name == "Attack");
+            if (clip) anim.SetTrigger(AttackId);
+            yield return new WaitForSeconds(clip ? 0.2f : 0f);
+            Transform muzzle = null;
+            foreach (var t in shooter.GetComponentsInChildren<Transform>()) if (t.name.Contains("Muzzle")) { muzzle = t; break; }
+            Vector3 from = muzzle != null ? muzzle.position : shooter.position + Vector3.up * 1.2f;
+            Vector3 to = target.position + Vector3.up * 0.6f + Random.insideUnitSphere * 0.5f;
+            // a near-miss half the time: the line holds, nobody dies on the menu
+            if (Random.value < 0.5f) to += (to - from).normalized * Random.Range(1.5f, 4f) + Vector3.down * 0.5f;
+            Shot(from, to, aegis ? AegisShot : SwarmShot, aegis ? 0.07f : 0.05f);
+        }
+    }
+
+    void Shot(Vector3 from, Vector3 to, Color c, float width)
+    {
+        var lr = new GameObject("Shot").AddComponent<LineRenderer>();
+        lr.transform.SetParent(transform, false);
+        lr.sharedMaterial = TracerMat;
+        lr.useWorldSpace = true;
+        lr.positionCount = 2;
+        lr.SetPosition(0, from);
+        lr.SetPosition(1, to);
+        lr.widthMultiplier = width;
+        lr.startColor = new Color(c.r, c.g, c.b, 0.2f);
+        lr.endColor = c;
+        lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        Destroy(lr.gameObject, 0.09f);
+        Juice.Flash(from, c, 1.5f, 6f, 0.08f);
+        Juice.Flash(to, c, 2.5f, 8f, 0.12f);
+        Juice.Burst(to, c, 6, 3f, 0.08f, 0.3f, 0.5f, true);
+        if (to.y < 0.6f) Particles.Emit("Dust", to, Vector3.up * 1.2f, 1.2f, 0.8f, new Color(0.5f, 0.45f, 0.4f, 0.35f));
+        Sfx.Play(c == AegisShot ? Snd.Blaster : Snd.Laser, 0.025f, Random.Range(0.9f, 1.2f));
     }
 
     Vector3 Far(float distance, float height)

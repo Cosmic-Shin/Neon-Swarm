@@ -1,0 +1,93 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce3eeaf56090b0d439f62d3b5a938184, type: 3}
+  m_Name: Aegis_Hard
+  m_EditorClassIdentifier: Assembly-CSharp::AIProfile
+  thinkInterval: 0.75
+  incomeBonus: 0.15
+  buildOrder:
+  - {fileID: 11400000, guid: 1d40839160e924b4bb7117c249f739f9, type: 2}
+  - {fileID: 11400000, guid: 606dfd25079e5204dafdc67cb0510875, type: 2}
+  - {fileID: 11400000, guid: 6e4a8b62cb94b3440a387f3a59f11f9c, type: 2}
+  - {fileID: 11400000, guid: 6e4a8b62cb94b3440a387f3a59f11f9c, type: 2}
+  - {fileID: 11400000, guid: 606dfd25079e5204dafdc67cb0510875, type: 2}
+  - {fileID: 11400000, guid: e01500f7922d26f42ae5f8f9f815a579, type: 2}
+  - {fileID: 11400000, guid: 38216cf077fff194a82006fdce44d9df, type: 2}
+  - {fileID: 11400000, guid: 2ec9e03f3713a4d449ca24da2c5eb0a5, type: 2}
+  - {fileID: 11400000, guid: 779ca7374d81ffb4a80b130e57758f38, type: 2}
+  - {fileID: 11400000, guid: 606dfd25079e5204dafdc67cb0510875, type: 2}
+  - {fileID: 11400000, guid: 1ce02de00dd9b8b45af728000989b426, type: 2}
+  - {fileID: 11400000, guid: d4a1ef7eeecd64b4aaea5b9b7b6a143b, type: 2}
+  - {fileID: 11400000, guid: 38216cf077fff194a82006fdce44d9df, type: 2}
+  - {fileID: 11400000, guid: 606dfd25079e5204dafdc67cb0510875, type: 2}
+  - {fileID: 11400000, guid: a2ff063a4353d5e42a96c5ae446f13fe, type: 2}
+  - {fileID: 11400000, guid: 203c53e06f5a960489746f72e67e25c5, type: 2}
+  - {fileID: 11400000, guid: 606dfd25079e5204dafdc67cb0510875, type: 2}
+  - {fileID: 11400000, guid: 2dff50d0ed5bb344c818887427ae0aa9, type: 2}
+  - {fileID: 11400000, guid: 1d40839160e924b4bb7117c249f739f9, type: 2}
+  - {fileID: 11400000, guid: 203c53e06f5a960489746f72e67e25c5, type: 2}
+  - {fileID: 11400000, guid: 2ec9e03f3713a4d449ca24da2c5eb0a5, type: 2}
+  lateGame:
+  - {fileID: 11400000, guid: 606dfd25079e5204dafdc67cb0510875, type: 2}
+  - {fileID: 11400000, guid: 203c53e06f5a960489746f72e67e25c5, type: 2}
+  - {fileID: 11400000, guid: 2ec9e03f3713a4d449ca24da2c5eb0a5, type: 2}
+  - {fileID: 11400000, guid: 1ce02de00dd9b8b45af728000989b426, type: 2}
+  armyShare: 0.6
+  harvesters: 8
+  units:
+  - unit: {fileID: 11400000, guid: 469f6f589fb9c42498ba586b4a7b0928, type: 2}
+    weight: 4
+  - unit: {fileID: 11400000, guid: 8f91ccb2140cf8c49ae467537309d0c0, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: d383d20a229a4724f85cb5b9fd471c03, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 92e33b5865d868f418a953fb4854c267, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 0919df39db9f7eb44a7af5cf6f503130, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: 906c46a2a257800419329c918c31b18f, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: 1fc7c1b92230a594aad3bf898b7232d7, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: db39c36f9b1fbf940b960b556e8068dd, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: f026533051a681945894e8071aa3f6fd, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 27b5955802cb0ed4cb3d13f9c4a6ff28, type: 2}
+    weight: 4
+  - unit: {fileID: 11400000, guid: b0a7a8d399957db4dadac2788f6dcb90, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 8093395d27297d24ea582f0c233e709c, type: 2}
+    weight: 3
+  - unit: {fileID: 11400000, guid: 48995184b8428b340a1e61d65e19abe9, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 3bd4c5b0cd3840d4b95a50c895423960, type: 2}
+    weight: 0.6
+  firstAttack: 210
+  waveValue: 3500
+  waveGrowth: 1.2
+  defendRadius: 65
+  upgrades: 1
+  coreUpgradeAt: 240
+  coreMk3At: 540
+  research: 1
+  counterPick: 1
+  expandBelow: 3000
+  harassEvery: 90
+  harassSize: 3
+  superweapon: 1
+  focusFire: 1
+  retreatBelow: 0.35
+  regroup: 1
+  kite: 1
+  weakSpot: 1
+  flankShare: 0.35

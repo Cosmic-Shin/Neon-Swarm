@@ -382,7 +382,7 @@ public class SelectableUnit : MonoBehaviour
 
     void HandleBoardCommand(Transport wasp)
     {
-        if (Transport.CanCarry(this) && !Flyer.IsAir(this)) boardTarget = wasp;
+        if (Transport.CanCarry(this, wasp) && !Flyer.IsAir(this)) boardTarget = wasp;
     }
 
     void HandleGarrisonCommand(OutpostCapture outpost)

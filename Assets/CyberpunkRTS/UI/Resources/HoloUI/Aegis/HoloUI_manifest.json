@@ -1,0 +1,633 @@
+{
+ "Panel_Modal": {
+  "size": [
+   256,
+   256
+  ],
+  "border_LBRT": [
+   89,
+   89,
+   89,
+   89
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 12,
+  "use": "Menus, sign-in, settings, load game, friends, account, lobby windows"
+ },
+ "Panel_Frame": {
+  "size": [
+   192,
+   192
+  ],
+  "border_LBRT": [
+   61,
+   61,
+   61,
+   61
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 8,
+  "use": "Generic window / selection panel / player list / chat box"
+ },
+ "Panel_Frame_Pink": {
+  "size": [
+   192,
+   192
+  ],
+  "border_LBRT": [
+   61,
+   61,
+   61,
+   61
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 8,
+  "use": "Secondary frame (lobby outer frame, warnings)"
+ },
+ "Panel_BuildBar": {
+  "size": [
+   200,
+   200
+  ],
+  "border_LBRT": [
+   65,
+   65,
+   65,
+   65
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 8,
+  "use": "Bottom build / production bar background"
+ },
+ "Panel_Minimap": {
+  "size": [
+   192,
+   192
+  ],
+  "border_LBRT": [
+   65,
+   65,
+   65,
+   65
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 10,
+  "use": "Minimap frame (also lobby map preview)"
+ },
+ "Panel_Inset": {
+  "size": [
+   128,
+   128
+  ],
+  "border_LBRT": [
+   29,
+   29,
+   29,
+   29
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 2,
+  "use": "Dark inset area inside a panel (list backgrounds, stat boxes, slots)"
+ },
+ "Chip_Cyan": {
+  "size": [
+   112,
+   96
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Timer chip, small HUD readouts"
+ },
+ "Chip_Green": {
+  "size": [
+   112,
+   96
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Power / credits chips"
+ },
+ "Chip_Pink": {
+  "size": [
+   112,
+   96
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Alerts / enemy counters"
+ },
+ "Btn_Normal": {
+  "size": [
+   128,
+   104
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Button normal"
+ },
+ "Btn_Hover": {
+  "size": [
+   128,
+   104
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Button highlighted"
+ },
+ "Btn_Pressed": {
+  "size": [
+   128,
+   104
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Button pressed / selected tab (use dark text)"
+ },
+ "Btn_Disabled": {
+  "size": [
+   128,
+   104
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Button disabled"
+ },
+ "Btn_Danger": {
+  "size": [
+   128,
+   104
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Danger normal (Quit, Delete, Sign out, Leave room, Repair)"
+ },
+ "Btn_Danger_Hover": {
+  "size": [
+   128,
+   104
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Danger highlighted"
+ },
+ "Btn_Gold": {
+  "size": [
+   128,
+   104
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Upgrade / primary call to action (Start Game)"
+ },
+ "Btn_Gold_Hover": {
+  "size": [
+   128,
+   104
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Gold highlighted"
+ },
+ "Btn_Small": {
+  "size": [
+   80,
+   72
+  ],
+  "border_LBRT": [
+   29,
+   29,
+   29,
+   29
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 4,
+  "use": "Small toggles (NO TEAM, NORMAL, ON/OFF, COPY, ADD)"
+ },
+ "Btn_Small_Hover": {
+  "size": [
+   80,
+   72
+  ],
+  "border_LBRT": [
+   29,
+   29,
+   29,
+   29
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 4,
+  "use": "Small toggle highlighted"
+ },
+ "Btn_Small_On": {
+  "size": [
+   80,
+   72
+  ],
+  "border_LBRT": [
+   29,
+   29,
+   29,
+   29
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 4,
+  "use": "Small toggle ON / pressed"
+ },
+ "Outline_White": {
+  "size": [
+   96,
+   96
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Tintable outline only (Image.color), for any extra accent colour"
+ },
+ "Fill_White": {
+  "size": [
+   96,
+   96
+  ],
+  "border_LBRT": [
+   32,
+   32,
+   32,
+   32
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 2,
+  "use": "Tintable solid chamfer (Image.color) for custom fills / progress overlays"
+ },
+ "Card_Normal": {
+  "size": [
+   128,
+   144
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Build card normal"
+ },
+ "Card_Hover": {
+  "size": [
+   128,
+   144
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Build card hover"
+ },
+ "Card_Selected": {
+  "size": [
+   128,
+   144
+  ],
+  "border_LBRT": [
+   43,
+   43,
+   43,
+   43
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Build card selected / rally / hotkey active"
+ },
+ "Card_Building": {
+  "size": [
+   128,
+   144
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Build card while in production (put Card_ProgressFill above it)"
+ },
+ "Card_Locked": {
+  "size": [
+   128,
+   144
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Build card locked (add Card_LockedStripes on top)"
+ },
+ "Card_Empty": {
+  "size": [
+   128,
+   144
+  ],
+  "border_LBRT": [
+   41,
+   41,
+   41,
+   41
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Empty queue slot"
+ },
+ "Card_ProgressFill": {
+  "size": [
+   32,
+   32
+  ],
+  "border_LBRT": [
+   2,
+   2,
+   2,
+   8
+  ],
+  "wrap": "clamp",
+  "use": "Production progress: Image Sliced, anchored to card bottom, height = progress; tint cyan"
+ },
+ "Card_LockedStripes": {
+  "size": [
+   24,
+   24
+  ],
+  "border_LBRT": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "wrap": "repeat",
+  "use": "Image Type = Tiled over a locked card"
+ },
+ "Tooltip": {
+  "size": [
+   128,
+   112
+  ],
+  "border_LBRT": [
+   45,
+   45,
+   45,
+   45
+  ],
+  "wrap": "clamp",
+  "glow_margin_px": 6,
+  "use": "Tooltips / info popups / hover cards"
+ },
+ "Toast_Green": {
+  "size": [
+   192,
+   96
+  ],
+  "border_LBRT": [
+   48,
+   47,
+   48,
+   47
+  ],
+  "wrap": "clamp",
+  "use": "Notification toast; keep height 48 (stretches horizontally only)"
+ },
+ "Toast_Pink": {
+  "size": [
+   192,
+   96
+  ],
+  "border_LBRT": [
+   48,
+   47,
+   48,
+   47
+  ],
+  "wrap": "clamp",
+  "use": "Notification toast; keep height 48 (stretches horizontally only)"
+ },
+ "Toast_Cyan": {
+  "size": [
+   192,
+   96
+  ],
+  "border_LBRT": [
+   48,
+   47,
+   48,
+   47
+  ],
+  "wrap": "clamp",
+  "use": "Notification toast; keep height 48 (stretches horizontally only)"
+ },
+ "Input_Field": {
+  "size": [
+   96,
+   88
+  ],
+  "border_LBRT": [
+   8,
+   8,
+   8,
+   8
+  ],
+  "wrap": "clamp",
+  "use": "InputField background"
+ },
+ "Input_Field_Focus": {
+  "size": [
+   96,
+   88
+  ],
+  "border_LBRT": [
+   8,
+   8,
+   8,
+   8
+  ],
+  "wrap": "clamp",
+  "use": "InputField background (selected / focused)"
+ },
+ "Slider_Track": {
+  "size": [
+   16,
+   8
+  ],
+  "border_LBRT": [
+   2,
+   2,
+   2,
+   2
+  ],
+  "wrap": "clamp",
+  "use": "Slider background (height 4-6)"
+ },
+ "Bar_Fill_White": {
+  "size": [
+   16,
+   16
+  ],
+  "border_LBRT": [
+   2,
+   2,
+   2,
+   2
+  ],
+  "wrap": "clamp",
+  "use": "Slider fill / HP / power / research bars (tint)"
+ },
+ "Bar_BG": {
+  "size": [
+   16,
+   16
+  ],
+  "border_LBRT": [
+   4,
+   4,
+   4,
+   4
+  ],
+  "wrap": "clamp",
+  "use": "HP / power / progress bar background"
+ },
+ "Slider_Handle": {
+  "size": [
+   40,
+   40
+  ],
+  "border_LBRT": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "wrap": "clamp",
+  "use": "Slider handle, Simple, 20x20"
+ },
+ "Deco_CornerBracket": {
+  "size": [
+   64,
+   64
+  ],
+  "border_LBRT": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "wrap": "clamp",
+  "use": "Top-left L bracket, tintable; rotate 90/180/270 for other corners"
+ },
+ "Deco_HeaderTick": {
+  "size": [
+   12,
+   44
+  ],
+  "border_LBRT": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "wrap": "clamp",
+  "use": "Small solid bar left of a panel title (6x22 display), tint pink/cyan"
+ },
+ "Deco_Divider": {
+  "size": [
+   8,
+   2
+  ],
+  "border_LBRT": [
+   2,
+   0,
+   2,
+   0
+  ],
+  "wrap": "clamp",
+  "use": "1px divider / title rule, tint"
+ }
+}

@@ -10,7 +10,7 @@ public class SaveData
     public float elapsed;
     public string summary;
     public bool skirmish;
-    public int startCredits, minutes, playerSide, playerColor, playerBase;
+    public int startCredits, minutes, playerSide, playerColor, playerBase, playerFaction;
     public string map;
     public List<Skirmish.Opponent> opponents = new();
     public List<TeamResearch> teamResearch = new();
@@ -104,6 +104,7 @@ public static class SaveSystem
             Skirmish.PlayerSide = d.playerSide;
             Skirmish.PlayerColor = d.playerColor;
             Skirmish.PlayerBase = d.playerBase;
+            Skirmish.PlayerFaction = d.playerFaction;
         }
         Skirmish.ElapsedBefore = d.elapsed;
         LastSlot = slot;
@@ -229,6 +230,7 @@ public static class SaveSystem
             d.playerSide = Skirmish.PlayerSide;
             d.playerColor = Skirmish.PlayerColor;
             d.playerBase = Skirmish.PlayerBase;
+            d.playerFaction = Skirmish.PlayerFaction;
             var enemies = Skirmish.Opponents.FindAll(o => !o.ally);
             d.summary = $"SKIRMISH  ·  vs {enemies.Count} AI: " + string.Join(", ", enemies.ConvertAll(o => o.difficulty.ToString()));
             foreach (var o in Skirmish.Opponents)

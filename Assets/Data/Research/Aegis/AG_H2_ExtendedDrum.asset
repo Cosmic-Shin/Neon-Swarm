@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd97921bb84e4b24180dbd8959230b27, type: 3}
+  m_Name: AG_H2_ExtendedDrum
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchData
+  id: AG_H2
+  displayName: Extended Drum
+  faction: 1
+  description: Crusher fire rate +20%. Chromejaw charge cooldown -30%.
+  icon: {fileID: 21300000, guid: 1413eaeb4987f3c46ad75774f32917e5, type: 3}
+  branch: 2
+  tier: 2
+  cost: 1200
+  researchTime: 75
+  requires: {fileID: 11400000, guid: 6cd1ead10eb8ae148943c408b45d3341, type: 2}
+  effects:
+  - stat: 2
+    percent: 0.2
+    flat: 0
+    roles: 
+    units:
+    - {fileID: 11400000, guid: 1fc7c1b92230a594aad3bf898b7232d7, type: 2}
+    buildings: []
+    defenses: 0
+  - stat: 14
+    percent: -0.3
+    flat: 0
+    roles: 
+    units:
+    - {fileID: 11400000, guid: 8f91ccb2140cf8c49ae467537309d0c0, type: 2}
+    buildings: []
+    defenses: 0

@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd31e0c4f0d8ea949b947832b026f755, type: 3}
+  m_Name: PulseGate
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  displayName: Pulse Gate
+  faction: 1
+  description: Wall section that opens for your own ground units and stays shut for
+    enemies. Drag to lay a line.
+  prefab: {fileID: 5417146580995011201, guid: f40dff5ea9815ba4599da8813205472e, type: 3}
+  icon: {fileID: 21300000, guid: 17eaa6e7a585ce54ab5858ead9723b1c, type: 3}
+  cost: 250
+  buildTime: 5
+  dragLine: 1
+  requires: []
+  coreLevel: 1
+  onePerPlayer: 0

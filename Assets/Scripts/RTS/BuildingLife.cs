@@ -55,7 +55,26 @@ public class BuildingLife : MonoBehaviour
         Func<float> working = () => building != null && building.Producing >= 0 ? 1f : 0.25f;
         var turret = GetComponent<Turret>();
 
-        if (P("Arc_Orb") != null) ArcCoil(turret);
+        // Aegis first: their prefabs were cloned from Hive templates and can keep template parts (Aegis_DroneBay has Hangar_Pad)
+        if (P("CS_TowerCore") != null) AegisSpire();
+        else if (P("FR_Core") != null) AegisReactor();
+        else if (P("RF_DockGlow") != null) AegisRefinery();
+        else if (P("ER_WellGlow") != null) AegisRig();
+        else if (P("RL_AtomCore") != null) AegisLab(working);
+        else if (P("TC_EntryLight") != null) AegisTech(working);
+        else if (P("SA_Dish") != null) AegisSensor();
+        else if (P("SP_Emitter") != null) AegisShield();
+        else if (P("OL_FeedCore") != null) AegisLance();
+        else if (P("ST_Eye") != null) AegisSentinel(turret);
+        else if (P("FB_Ring") != null) AegisFlak(turret);
+        else if (P("RB_Coil0") != null) AegisRail(turret);
+        else if (P("PG_Field") != null || P("PW_Field") != null || P("PP_Light0") != null) AegisWall();
+        else if (P("MF_Eye0") != null) AegisMines();
+        else if (P("DB_PadRing") != null) { var bay = GetComponent<DroneHangar>(); AegisFactory(bay != null ? () => bay.Busy ? 1f : 0.25f : working, "DB"); }
+        else if (P("AF_PadRing") != null) AegisFactory(working, "AF");
+        else if (P("BB_DoorLight") != null) AegisFactory(working, "BB");
+        else if (P("MP_DoorLight") != null) AegisFactory(working, "MP");
+        else if (P("Arc_Orb") != null) ArcCoil(turret);
         else if (P("NeonTurret_Head") != null) NeonTurret(turret);
         else if (P("FlakLantern_Head") != null) Flak(turret);
         else if (P("RailspikeTower_Head") != null) Railspike(turret);
@@ -72,6 +91,217 @@ public class BuildingLife : MonoBehaviour
         else if (P("Hangar_Pad") != null) { var bay = GetComponent<DroneHangar>(); Hangar(bay != null ? () => bay.Busy ? 1f : 0.25f : working); }
         else if (P("Hive_Hall") != null) Hive(working);
         else if (P("Aerie_Base") != null) Aerie();
+    }
+
+    // ---------------- Aegis Corp: amber running lights, team stripes, clean corporate pulses ----------------
+    // Idle clips already move dishes/rings/pistons, so these recipes only drive lights and effects.
+
+    void AegisCommon(string prefix)
+    {
+        Blink($@"^{prefix}2?_(Beacon|BeaconLight|TowerBeacon|AntennaTip.*)$", 0.9f);
+        Glow($@"^{prefix}_(FrontStrip|TeamStripe|TeamStripeB)$", () => 0.8f + 0.2f * Mathf.Sin(Time.time * 1.6f));
+    }
+
+    void AegisFactory(Func<float> working, string p)
+    {
+        AegisCommon(p);
+        Glow($@"^{p}_(DoorLight|PadRing)$|^{p}2_(Pad2Ring|HangarLight|RoofLight|TowerLight)$", () => 0.5f + 1.8f * working() * (0.8f + 0.2f * Mathf.Sin(Time.time * 6f)));
+        Chase($@"^({p}_SideLight[LR]|{p}2_ArmorLight-?1|{p}_CraneLight)$", 3f);
+        Every(0.08f, 0.22f, () => working() > 0.5f, () =>
+        {
+            var at = P($"{p}_SpawnPoint") ?? P($"{p}_LaunchPoint") ?? P($"{p}_LandPoint");
+            if (at == null) return;
+            Vector3 pos = at.position + Vector3.up * Random.Range(0.5f, 2f) + Random.insideUnitSphere * 0.8f;
+            Juice.Burst(pos, new Color(1f, 0.75f, 0.35f), 3, 4f, 0.07f, 0.3f, 0.6f, true);
+        });
+        if (p == "AF") Every(3f, 3f, () => true, () => { var pad = P("AF_PadRing"); if (pad != null) Juice.Ring(pad.position + Vector3.up * 0.1f, team, 1f, 5f, 0.8f, 0.15f); });
+        if (p == "DB" && GetComponent<DroneHangar>() is DroneHangar bay)
+        {
+            Glow(@"^DB_SideLight[LR]$", () => bay.Target != null ? (Mathf.Repeat(Time.time * 4f, 1f) < 0.5f ? 3f : 0.2f) : 0.8f);
+            float launch = bay.LastLaunch;
+            ticks.Add(dt =>
+            {
+                if (bay.LastLaunch == launch) return;
+                launch = bay.LastLaunch;
+                Vector3 at = (P("DB_LaunchPoint") ?? transform).position;
+                Juice.Flash(at, team, 6f, 12f, 0.2f);
+                Juice.Ring(at, team, 0.5f, 5f, 0.4f, 0.25f);
+                Kick(-0.4f);
+            });
+        }
+    }
+
+    void AegisSpire()
+    {
+        AegisCommon("CS");
+        Glow(@"^CS_(TowerCore|GateGlow)$", () => 0.6f + 1.6f * Heartbeat(0.9f));
+        Chase(@"^CS_AntennaTip\d$", 2.5f);
+        Glow(@"^CS3_HaloGlow$", () => 0.7f + 0.5f * Mathf.Sin(Time.time * 2f));
+        Chase(@"^CS3_Emitter\d$", 4f);
+        Blink(@"^CS2_DishTip-?1$", 1.3f);
+        Motes(P("CS_TowerCore"), team, -0.5f, 8f);
+        var tips = Ps(@"^CS3_Emitter\d$");
+        Every(0.6f, 1.6f, () => tips.Count > 0, () => Zap(tips[Random.Range(0, tips.Count)].position, P("CS3_HaloGlow") != null ? P("CS3_HaloGlow").position : P("CS_TowerCore").position, team, 0.12f));
+    }
+
+    void AegisReactor()
+    {
+        AegisCommon("FR");
+        Glow(@"^FR_(Core|CoreRingA|CoreRingB)$|^FR2_CoreRingC$", () => 0.8f + 1.2f * Heartbeat(1.2f));
+        Chase(@"^FR_CoolantLight\d$", 5f);
+        Chase(@"^FR2_TowerRing\d$", 3f);
+        var coolant = Ps(@"^FR_CoolantLight\d$");
+        Every(0.3f, 1.1f, () => coolant.Count > 0, () => Zap(P("FR_Core").position, coolant[Random.Range(0, coolant.Count)].position, new Color(0.4f, 0.9f, 1f), 0.1f));
+        Motes(P("FR_Core"), new Color(0.5f, 0.9f, 1f), -0.7f, 12f);
+    }
+
+    void AegisRefinery()
+    {
+        AegisCommon("RF");
+        var refinery = GetComponent<Refinery>();
+        Func<float> busy = () => refinery != null && refinery.Busy ? 1f : 0.15f;
+        Glow(@"^RF_(DockGlow|DockStripe)$", () => 0.4f + 2.5f * busy() * (0.7f + 0.3f * Mathf.Sin(Time.time * 12f)));
+        Glow(@"^RF2?_TankGauge\d?$", () => 0.5f + 1.5f * busy());
+        Chase(@"^RF2?_TankBand\d?$", 4f);
+        Glow(@"^RF2?_StackRing$", () => 0.5f + 2f * busy());
+        Smoke(P("RF_StackRing"), () => busy() > 0.5f, 0.14f);
+        Smoke(P("RF2_StackRing"), () => busy() > 0.5f, 0.14f);
+        Every(0.06f, 0.12f, () => busy() > 0.5f, () =>
+        {
+            var d = P("RF_DockPoint");
+            if (d != null) Juice.Burst(d.position + Vector3.up * 0.6f, Random.value < 0.5f ? new Color(1f, 0.7f, 0.3f) : team, 3, 3f, 0.1f, 0.4f, 0.8f, true);
+        });
+    }
+
+    void AegisRig()
+    {
+        AegisCommon("ER");
+        var siphon = GetComponent<Siphon>();
+        Func<float> fill = () => siphon != null ? siphon.Progress01 : Mathf.Repeat(Time.time / 4f, 1f);
+        Glow(@"^ER_(WellGlow|HeadGlow|CrownLight)$", () => 0.7f + 0.3f * Mathf.Sin(Time.time * 5f) + 3f * Flare(() => siphon != null ? siphon.LastPayout : -99f, 0.5f));
+        Glow(@"^ER2?_TankGauge\d$|^ER2_TankBand\d$", () => 0.2f + 2.5f * fill() * fill());
+        Motes(P("ER_WellGlow"), Juice.Gold, -0.8f, 12f);
+        Smoke(P("Aegis_ExtractionRig_SmokePoint6"), () => Random.value < 0.15f, 0.6f);
+    }
+
+    void AegisLab(Func<float> working)
+    {
+        AegisCommon("RL");
+        Glow(@"^RL_(AtomCore|Orbit\d)$|^RL2_HaloGlow$", () => 0.4f + 1.8f * working() * (0.8f + 0.2f * Mathf.Sin(Time.time * 7f)));
+        Chase(@"^RL_Window\d$", 6f);
+        Blink(@"^RL_DoorLight$", 0.7f);
+        foreach (var tank in Ps(@"^RL_Tank\d$")) Bubbles(tank, () => working() > 0.5f);
+        Motes(P("RL_AtomCore"), team, -0.2f, 6f);
+    }
+
+    void AegisTech(Func<float> working)
+    {
+        AegisCommon("TC");
+        Glow(@"^TC2_HoloRingGlow$|^TC_EntryLight$", () => 0.5f + 1.5f * working() * (0.8f + 0.2f * Mathf.Sin(Time.time * 5f)));
+        Glitch(@"^TC2_HoloRing$");
+        Blink(@"^TC2_Dish$", 0.5f);
+    }
+
+    void AegisSensor()
+    {
+        AegisCommon("SA");
+        Glitch(@"^SA_Screen-?1$");
+        Chase(@"^SA2?_MastRing\d$", 3f);
+        Glow(@"^SA_(DishInner|DishRim)$", () => 0.6f + 0.8f * Mathf.Abs(Mathf.Sin(Time.time * 2.2f)));
+        Every(2.8f, 2.8f, () => true, () => Juice.Ring(new Vector3(transform.position.x, 0.2f, transform.position.z), team, 2f, 28f, 1.6f, 0.12f));
+        Motes(P("SA_ScanPoint"), team, -0.6f, 5f);
+    }
+
+    void AegisShield()
+    {
+        AegisCommon("SP");
+        var field = GetComponent<ShieldField>();
+        Func<float> on = () => field == null || field.Online ? 1f : 0.2f;
+        Chase(@"^SP_Coil\d$", 5f);
+        Glow(@"^SP_(Emitter|CradleRing|CradleLight\d)$|^SP2_(HaloGlow|HaloRing)$", () => on() * (0.7f + 0.6f * Mathf.Abs(Mathf.Sin(Time.time * 1.7f))));
+        var coils = Ps(@"^SP_Coil\d$");
+        Every(0.35f, 1f, () => coils.Count > 0 && on() > 0.5f, () => Zap(P("SP_Emitter").position, coils[Random.Range(0, coils.Count)].position, new Color(0.45f, 0.85f, 1f), 0.1f));
+        Motes(P("SP_Emitter"), new Color(0.45f, 0.85f, 1f), -0.4f, 8f);
+    }
+
+    void AegisLance()
+    {
+        var silo = GetComponent<SwarmSilo>();
+        Func<float> charge = () => silo != null ? silo.Charge01 : 0.5f;
+        var lights = Ps(@"^OL_BaseLight\d$");
+        lights.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+        glowTicks.Add(dt =>   // base lights fill up as the lance charges, all blink when ready
+        {
+            float c = charge();
+            bool ready = silo != null && silo.Ready;
+            for (int i = 0; i < lights.Count; i++)
+                SetGlow(lights[i], ready ? (Mathf.Repeat(Time.time * 2f, 1f) < 0.5f ? 3f : 0.4f) : (i < c * lights.Count ? 1.6f : 0.15f));
+        });
+        Glow(@"^OL_(FeedCore|DishInner|ChargeRingA|ChargeRingB|DishCone)$", () => 0.3f + 2.5f * charge() * charge() * (0.85f + 0.15f * Mathf.Sin(Time.time * (4f + 10f * charge()))));
+        Every(0.1f, 0.5f, () => charge() > 0.6f, () =>
+        {
+            var core = P("OL_FeedCore"); var tip = P("OL_BeamPoint");
+            if (core != null && tip != null) Zap(core.position, tip.position, new Color(1f, 0.8f, 0.4f), 0.08f);
+        });
+        Motes(P("OL_FeedCore"), new Color(1f, 0.75f, 0.35f), -0.6f, 10f);
+    }
+
+    void AegisSentinel(Turret t)
+    {
+        Glow(@"^ST_Eye$", () => t != null && t.Aim != null ? (Mathf.Repeat(Time.time * 6f, 1f) < 0.5f ? 3f : 0.4f) : 1f);
+        Glow(@"^ST_MuzzleGlow-?1$", () => 0.3f + 1.2f * Charge(t) + 4f * Flare(t, 0.15f));
+        OnShot(t, () => { foreach (var m in Ps(@"^ST2?_Muzzle-?1$")) if (m.gameObject.activeInHierarchy) Juice.Burst(m.position, new Color(1f, 0.8f, 0.4f), 4, 4f, 0.06f, 0.2f); });
+    }
+
+    void AegisFlak(Turret t)
+    {
+        Glow(@"^FB_Ring$", () => 0.5f + Charge(t) + 3f * Flare(t, 0.25f));
+        OnShot(t, () =>
+        {
+            var m = P("FB_Muzzle");
+            if (m == null) return;
+            Juice.Flash(m.position, new Color(1f, 0.7f, 0.3f), 6f, 12f, 0.15f);
+            Juice.Burst(m.position + Vector3.up, new Color(0.6f, 0.6f, 0.65f), 8, 3f, 0.35f, 0.8f, 1f);
+        });
+    }
+
+    void AegisRail(Turret t)
+    {
+        AegisCommon("RB");
+        Chase(@"^RB_Coil\d$", 2f);
+        Glow(@"^RB_(Coil\d|ColumnRing)$|^RB2_(CellGlow-?\d+|DomeEye)$", () => 0.15f + 3f * Charge(t) * Charge(t) + 4f * Flare(t, 0.2f));
+        var coils = Ps(@"^RB_Coil\d$");
+        Every(0.05f, 0.15f, () => coils.Count >= 2 && t != null && t.Online && Charge(t) > 0.8f && t.Aim != null, () =>
+            Zap(coils[Random.Range(0, coils.Count)].position, coils[Random.Range(0, coils.Count)].position, new Color(1f, 0.85f, 0.4f), 0.08f));
+        OnShot(t, () =>
+        {
+            Vector3 at = (P("RB_Muzzle") ?? transform).position;
+            Juice.Flash(at, new Color(1f, 0.9f, 0.4f), 14f, 20f, 0.3f);
+            Juice.Ring(at, new Color(1f, 0.85f, 0.3f), 0.5f, 6f, 0.35f, 0.3f);
+            Juice.Shake(at, 0.15f);
+        });
+    }
+
+    void AegisWall()
+    {
+        Toggle(@"^(PG|PW)_Beam\d$", () => Random.value > 0.1f);
+        Glow(@"^(PG|PW)_(Field|FieldSheet|Beam\d)$", () => 0.7f + 0.3f * Mathf.Sin(Time.time * 9f) + (Random.value < 0.02f ? 2f : 0f));
+        Blink(@"^PG_Beacon-?1$", 1f);
+        Glow(@"^(PG_(HeaderLight|TowerLight-?1)|PW_PostLight-?1)$", () => 0.8f + 0.2f * Mathf.Sin(Time.time * 2f));
+        Chase(@"^PP_Light\d$", 2f);
+    }
+
+    void AegisMines()
+    {
+        var mine = GetComponent<EmpMine>();
+        Func<float> charge = () => mine != null ? mine.Charge01 : 1f;
+        var eyes = Ps(@"^MF_Eye\d$");
+        glowTicks.Add(dt =>
+        {
+            float c = charge();
+            for (int i = 0; i < eyes.Count; i++)
+                SetGlow(eyes[i], c >= 1f ? (Mathf.Repeat(Time.time * 1.5f - i * 0.15f, 1f) < 0.2f ? 3f : 0.6f) : 0.1f + 0.5f * c);
+        });
     }
 
     void ArcCoil(Turret t)

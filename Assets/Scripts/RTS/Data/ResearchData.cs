@@ -8,6 +8,7 @@ public class ResearchData : ScriptableObject
 
     public string id;
     public string displayName;
+    public FactionId faction;
     [TextArea] public string description;
     public Sprite icon;
     public Branch branch;
@@ -49,7 +50,7 @@ public static class ResearchManager
         int team = lab.Team;
         if (IsDone(r, team)) return "Researched";
         if (running.TryGetValue((team, r), out var other) && other != null && other != lab) return "In progress in another lab";
-        if (r.tier > CoreLevelOf(team)) return $"Needs Core Nexus Mk {(r.tier == 2 ? "II" : "III")}";
+        if (r.tier > CoreLevelOf(team)) return $"Needs {Faction.HqName(team)} Mk {(r.tier == 2 ? "II" : "III")}";
         if (r.requires != null && !IsDone(r.requires, team)) return $"Requires {r.requires.displayName}";
         return null;
     }

@@ -12,7 +12,12 @@ public static class Net
     public static bool Watching => InRoom && RoomState.Instance.SlotOf(Runner.LocalPlayer) < 0;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void Reset() { InMatch = false; table = null; }
+    static void Reset()
+    {
+        InMatch = false;
+        table = null;
+        Faction.Online = team => InRoom && team != Creep.Team ? Faction.Get(RoomState.Instance.FactionOf(ToSlot(team))) : null;
+    }
 
     static bool IsSlot(int slot) => slot >= 0 && slot < RoomService.MaxPlayers;
 

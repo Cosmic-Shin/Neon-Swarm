@@ -11,7 +11,13 @@ public class AccountScreen : MonoBehaviour
     Image rankFill, ring;
     Text ringText;
     readonly Text[] cardValues = new Text[5], cardSubs = new Text[5];
-    readonly (Text label, Image fill, Text value)[] bars = new (Text, Image, Text)[5];
+    readonly (Text label, Image fill, Text value)[] bars = new (Text, Image, Text)[7];
+    Text factionText;
+    Image factionEmblem;
+
+    static Faction Fac(int id) { foreach (var f in Faction.All) if ((int)f.id == id) return f; return null; }
+    static string Hex(Color c) => "#" + ColorUtility.ToHtmlStringRGB(c);
+    static string Tag(int id) { var f = Fac(id); return f == null ? "" : $"<color={Hex(f.color)}>{f.id.ToString().ToUpper()}</color>  "; }
     readonly Text[] totalValues = new Text[9];
     readonly (GameObject row, Image badge, Text result, Text what, Text when)[] recent = new (GameObject, Image, Text, Text, Text)[PlayerProfile.RecentKept];
     Text noMatches;
@@ -149,9 +155,20 @@ public class AccountScreen : MonoBehaviour
 
         SetBar(0, "SKIRMISH", p.skirmish);
         SetBar(1, "MULTIPLAYER", p.online);
-        SetBar(2, "VS EASY AI", p.vsAI[0]);
-        SetBar(3, "VS NORMAL AI", p.vsAI[1]);
-        SetBar(4, "VS HARD AI", p.vsAI[2]);
+        int bar = 2;
+        foreach (var f in Faction.All)
+            if (bar < 4) SetBar(bar++, $"<color={Hex(f.color)}>AS {f.displayName.ToUpper()}</color>", p.As(f.id));
+        SetBar(4, "VS EASY AI", p.vsAI[0]);
+        SetBar(5, "VS NORMAL AI", p.vsAI[1]);
+        SetBar(6, "VS HARD AI", p.vsAI[2]);
+
+        var main = p.Main.HasValue ? Fac((int)p.Main.Value) : null;
+        factionText.text = main != null
+            ? $"MAIN FACTION   <color={Hex(main.color)}><b>{main.displayName.ToUpper()}</b></color>   <color=#8C99BF>{p.As(main.id).games} of {p.all.games} games</color>"
+            : "MAIN FACTION   <color=#8C99BF>play a match to find out</color>";
+        factionEmblem.sprite = main != null ? main.emblem : null;
+        factionEmblem.enabled = factionEmblem.sprite != null;
+        factionText.rectTransform.anchoredPosition = new Vector2(factionEmblem.enabled ? -302f : -330f, factionText.rectTransform.anchoredPosition.y);
 
         int[] t =
         {
@@ -173,7 +190,7 @@ public class AccountScreen : MonoBehaviour
             var m = p.recent[i];
             row.badge.color = m.won ? Win : Loss;
             row.result.text = m.won ? "W" : "L";
-            row.what.text = $"<b>{(m.online ? "MULTIPLAYER" : "SKIRMISH")}</b>  <color=#8C99BF>vs {m.opponents}</color>";
+            row.what.text = $"{Tag(m.faction)}<b>{(m.online ? "MULTIPLAYER" : "SKIRMISH")}</b>  <color=#8C99BF>vs {m.opponents}</color>";
             row.when.text = $"{Clock(m.seconds)}   {m.kills} kills   <color=#8C99BF>{Ago(m.when)}  ></color>";
         }
     }
@@ -226,9 +243,12 @@ public class AccountScreen : MonoBehaviour
             var edit = Img(avatarView.ring.rectTransform, new Vector2(40f, -40f), new Vector2(34f, 34f), Cyan, circle);
             Txt(edit.rectTransform, "EDIT", Vector2.zero, 11, TextAnchor.MiddleCenter, 34f, Color.black, FontStyle.Bold);
         }
-        nameText = Txt(top, "", new Vector2(-330f, 30f), 40, TextAnchor.MiddleLeft, 480f, Color.white, FontStyle.Bold);
-        sinceText = Txt(top, "", new Vector2(-330f, -10f), 18, TextAnchor.MiddleLeft, 480f, Dim);
-        idText = Txt(top, "", new Vector2(-330f, -38f), 13, TextAnchor.MiddleLeft, 480f, new Color(0.4f, 0.45f, 0.6f));
+        nameText = Txt(top, "", new Vector2(-330f, 36f), 40, TextAnchor.MiddleLeft, 480f, Color.white, FontStyle.Bold);
+        sinceText = Txt(top, "", new Vector2(-330f, 2f), 17, TextAnchor.MiddleLeft, 480f, Dim);
+        factionText = Txt(top, "", new Vector2(-330f, -24f), 15, TextAnchor.MiddleLeft, 480f, Dim);
+        factionEmblem = Img(top, new Vector2(-556f, -24f), new Vector2(24f, 24f), Color.white, null);
+        factionEmblem.preserveAspect = true;
+        idText = Txt(top, "", new Vector2(-330f, -48f), 12, TextAnchor.MiddleLeft, 480f, new Color(0.4f, 0.45f, 0.6f));
         for (int i = 0; i < showcase.Length; i++)
         {
             var pos = new Vector2(22f + (i - 1.5f) * 76f, 4f);
@@ -273,18 +293,18 @@ public class AccountScreen : MonoBehaviour
         Txt(left, "WIN RATE", new Vector2(-52f, 156f), 18, TextAnchor.MiddleLeft, 600f, Pink, FontStyle.Bold);
         for (int i = 0; i < bars.Length; i++)
         {
-            float y = 124f - i * 27f;
+            float y = 128f - i * 21f;
             var l = Txt(left, "", new Vector2(-268f, y), 15, TextAnchor.MiddleLeft, 170f, Dim);
             var back5 = Img(left, new Vector2(-18f, y), new Vector2(300f, 14f), BarBack, null);
             var v = Txt(left, "", new Vector2(250f, y), 15, TextAnchor.MiddleLeft, 200f, Color.white);
             bars[i] = (l, Fill(back5.rectTransform, Win), v);
             HoloSkin.Bar(back5, bars[i].fill, Win);
         }
-        Txt(left, "CAREER", new Vector2(-52f, -16f), 18, TextAnchor.MiddleLeft, 600f, Pink, FontStyle.Bold);
+        Txt(left, "CAREER", new Vector2(-52f, -22f), 18, TextAnchor.MiddleLeft, 600f, Pink, FontStyle.Bold);
         string[] totalNames = { "KILLS", "UNITS BUILT", "UNITS LOST", "BUILDINGS BUILT", "BUILDINGS LOST", "RESEARCH", "CREDITS EARNED", "AVG MATCH", "KILLS / MATCH" };
         for (int i = 0; i < totalValues.Length; i++)
         {
-            var pos = new Vector2(-240f + (i % 3) * 240f, -50f - (i / 3) * 44f);
+            var pos = new Vector2(-240f + (i % 3) * 240f, -56f - (i / 3) * 42f);
             totalValues[i] = Txt(left, "0", pos + new Vector2(0f, 7f), 20, TextAnchor.MiddleCenter, 220f, Color.white, FontStyle.Bold);
             Txt(left, totalNames[i], pos + new Vector2(0f, -13f), 12, TextAnchor.MiddleCenter, 220f, Dim);
         }
@@ -373,19 +393,58 @@ public class AccountScreen : MonoBehaviour
         HoloSkin.Layer(shade, HoloSkin.LayerPopup + 5);
         var win = Img(shade.transform, new Vector2(0f, -30f), new Vector2(1080f, 720f), Card, null);
         HoloSkin.Modal(win.rectTransform);
+        Img(win.transform, Vector2.zero, new Vector2(1064f, 704f), new Color(0.01f, 0.015f, 0.04f, 0.96f), null).transform.SetSiblingIndex(1);   // account screen showed through
         Txt(win.transform, "CHOOSE YOUR AVATAR", new Vector2(0f, 312f), 34, TextAnchor.MiddleCenter, 900f, Cyan, FontStyle.Bold);
         Txt(win.transform, "Shown on your account and to your friends.", new Vector2(0f, 274f), 17, TextAnchor.MiddleCenter, 900f, Dim);
 
-        var options = new System.Collections.Generic.List<string> { "" };
-        foreach (var s in AvatarList.All) if (s != null) options.Add(s.name);
+        // one page of avatars per faction, switched by tabs (the "initial" option sits first on every page)
+        var groups = AvatarList.Groups;
+        var pages = new GameObject[groups.Length];
+        var tabs = new Button[groups.Length];
+        void ShowPage(int k)
+        {
+            for (int j = 0; j < pages.Length; j++)
+            {
+                pages[j].SetActive(j == k);
+                tabs[j].GetComponentInChildren<Text>().color = j == k ? Color.white : Dim;
+                tabs[j].transform.localScale = Vector3.one * (j == k ? 1f : 0.92f);
+            }
+        }
+        string current = ProfileService.Current?.avatar ?? "";
+        int start = 0;
+        for (int g = 0; g < groups.Length; g++)
+        {
+            var f = Fac((int)groups[g].faction);
+            int k = g;
+            tabs[g] = SettingsPanel.Button(win.transform, f != null ? f.displayName.ToUpper() : groups[g].faction.ToString().ToUpper(), new Vector2((g - (groups.Length - 1) / 2f) * 250f, 232f), new Vector2(230f, 44f));
+            tabs[g].onClick.AddListener(() => ShowPage(k));
+            var page = new GameObject("Page_" + groups[g].faction, typeof(RectTransform));
+            page.transform.SetParent(win.transform, false);
+            pages[g] = page;
+            var options = new System.Collections.Generic.List<string> { "" };
+            foreach (var s in groups[g].sprites) if (s != null) { options.Add(s.name); if (s.name == current) start = g; }
+            BuildCells(page.transform, options);
+        }
+        if (groups.Length > 0) ShowPage(start);
+
+        pickedName = Txt(win.transform, "", new Vector2(0f, -246f), 24, TextAnchor.MiddleCenter, 900f, Gold, FontStyle.Bold);
+        SettingsPanel.Button(win.transform, "DONE", new Vector2(160f, -296f), new Vector2(280f, 60f)).onClick.AddListener(() => picker.SetActive(false));
+        var upload = SettingsPanel.Button(win.transform, "UPLOAD FROM PC", new Vector2(-160f, -296f), new Vector2(280f, 60f));
+        HoloSkin.Button(upload, HoloUI.ButtonStyle.Gold);
+        upload.interactable = CustomAvatar.CanPick;
+        upload.onClick.AddListener(Upload);
+    }
+
+    void BuildCells(Transform page, System.Collections.Generic.List<string> options)
+    {
         const int cols = 8;
-        const float cell = 104f, gap = 14f;
+        const float cell = 96f, gap = 12f;
         for (int i = 0; i < options.Count; i++)
         {
             string name = options[i];
-            var pos = new Vector2((i % cols - (cols - 1) / 2f) * (cell + gap), 196f - i / cols * (cell + gap));
-            var glow = Img(win.transform, pos, Vector2.one * (cell + 10f), Cyan, null);
-            var bg = Box(win.transform, pos, Vector2.one * cell, new Color(0.05f, 0.07f, 0.15f, 1f));
+            var pos = new Vector2((i % cols - (cols - 1) / 2f) * (cell + gap), 150f - i / cols * (cell + gap));
+            var glow = Img(page, pos, Vector2.one * (cell + 10f), Cyan, null);
+            var bg = Box(page, pos, Vector2.one * cell, new Color(0.05f, 0.07f, 0.15f, 1f));
             var bgImg = bg.GetComponent<Image>();
             bgImg.raycastTarget = true;
             var b = bg.gameObject.AddComponent<Button>();
@@ -395,16 +454,9 @@ public class AccountScreen : MonoBehaviour
             b.colors = colors;
             b.onClick.AddListener(() => Pick(name));
             if (name == "") AvatarList.Make(bg, Vector2.zero, 76f, Dim).Show("", AccountService.Username);
-            else Img(bg, Vector2.zero, Vector2.one * 92f, Color.white, AvatarList.Find(name)).preserveAspect = true;
+            else Img(bg, Vector2.zero, Vector2.one * 84f, Color.white, AvatarList.Find(name)).preserveAspect = true;
             cells.Add((name, glow));
         }
-
-        pickedName = Txt(win.transform, "", new Vector2(0f, -232f), 24, TextAnchor.MiddleCenter, 900f, Gold, FontStyle.Bold);
-        SettingsPanel.Button(win.transform, "DONE", new Vector2(160f, -296f), new Vector2(280f, 60f)).onClick.AddListener(() => picker.SetActive(false));
-        var upload = SettingsPanel.Button(win.transform, "UPLOAD FROM PC", new Vector2(-160f, -296f), new Vector2(280f, 60f));
-        HoloSkin.Button(upload, HoloUI.ButtonStyle.Gold);
-        upload.interactable = CustomAvatar.CanPick;
-        upload.onClick.AddListener(Upload);
     }
 
     void Upload()
@@ -451,7 +503,8 @@ public class AccountScreen : MonoBehaviour
         Color result = m.won ? Win : Loss;
         Txt(win.transform, m.won ? "VICTORY" : "DEFEAT", new Vector2(0f, 222f), 44, TextAnchor.MiddleCenter, 800f, result, FontStyle.Bold);
         var when = new System.DateTime(m.when, System.DateTimeKind.Utc).ToLocalTime();
-        Txt(win.transform, $"{(m.online ? "MULTIPLAYER" : "SKIRMISH")}   ·   {(string.IsNullOrEmpty(m.map) ? "Unknown map" : m.map)}   ·   {when:MMM d, yyyy  h:mm tt}",
+        var played = Fac(m.faction);
+        Txt(win.transform, $"{(played != null ? $"<color={Hex(played.color)}>{played.displayName.ToUpper()}</color>   ·   " : "")}{(m.online ? "MULTIPLAYER" : "SKIRMISH")}   ·   {(string.IsNullOrEmpty(m.map) ? "Unknown map" : m.map)}   ·   {when:MMM d, yyyy  h:mm tt}",
             new Vector2(0f, 176f), 18, TextAnchor.MiddleCenter, 840f, Dim);
         Txt(win.transform, $"vs {m.opponents}", new Vector2(0f, 146f), 20, TextAnchor.MiddleCenter, 840f, Color.white);
 

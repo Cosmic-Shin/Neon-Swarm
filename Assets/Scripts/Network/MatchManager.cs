@@ -99,9 +99,11 @@ public class MatchManager : MonoBehaviour
 
         var spawns = new List<(GameObject prefab, Vector3 pos, Quaternion rot)>
         {
-            (nexusPrefab, Place(layoutNexus), turn * layoutNexus.rotation),
-            (hivePrefab, Place(layoutHive), turn * layoutHive.rotation),
+            (Faction.Mine.hq, Place(layoutNexus), turn * layoutNexus.rotation),
+            (Faction.Mine.factory, Place(layoutHive), turn * layoutHive.rotation),
         };
+        nexusPose = new Pose(layoutNexus.position, layoutNexus.rotation);
+        hivePose = new Pose(layoutHive.position, layoutHive.rotation);
         foreach (var go in singlePlayerOnly) if (go != null) Destroy(go);
         cam.position = mine.position + camOffset;
 
@@ -186,6 +188,7 @@ public class MatchManager : MonoBehaviour
         BuildEndScreen();
         if (GameObject.Find("Enemies") is GameObject squad) Destroy(squad);
         TeamEconomy.Set(0, Skirmish.StartCredits);
+        if (!SaveSystem.Loaded) SwapPlayerBase();
 
         Transform homeSpot = baseSpots.GetChild(0);
         Quaternion TurnTo(Transform spot) => Quaternion.Euler(0f, Vector3.SignedAngle(Flat(homeSpot.position), Flat(spot.position), Vector3.up), 0f);
@@ -195,9 +198,10 @@ public class MatchManager : MonoBehaviour
             Transform spot = baseSpots.GetChild(ai.baseIndex);
             Quaternion turn = TurnTo(spot);
             Vector3 Place(Transform t) => spot.position + turn * (t.position - homeSpot.position);
-            var aiNexus = SpawnFor(ai.team, nexusPrefab, Place(layoutNexus), turn * layoutNexus.rotation);
-            var aiHive = SpawnFor(ai.team, hivePrefab, Place(layoutHive), turn * layoutHive.rotation);
-            if (SaveSystem.Loaded) foreach (var h in layoutHarvesters) SpawnFor(ai.team, harvesterPrefab, Place(h), turn * h.rotation);
+            var side = Faction.Of(ai.team);
+            var aiNexus = SpawnFor(ai.team, side.hq, Place(layoutNexus), turn * layoutNexus.rotation);
+            var aiHive = SpawnFor(ai.team, side.factory, Place(layoutHive), turn * layoutHive.rotation);
+            if (SaveSystem.Loaded) foreach (var h in layoutHarvesters) SpawnFor(ai.team, side.harvester, Place(h), turn * h.rotation);
             else { introNexus.Add(aiNexus); introHives.Add((aiHive.GetComponent<Building>(), layoutHarvesters.Length)); }
             TeamEconomy.Set(ai.team, Skirmish.StartCredits);
 
@@ -231,6 +235,28 @@ public class MatchManager : MonoBehaviour
         if (!Tutorial.Active && !Mission.Active) Alerts.Show("Skirmish: destroy every enemy building!", Alerts.Info, 6f);
     }
 
+    void SwapPlayerBase()
+    {
+        var mine = Faction.Mine;
+        if (mine == null || mine == Faction.Hive) return;
+        Transform Swap(Transform old, GameObject prefab)
+        {
+            if (old == null || prefab == null) return old;
+            var go = Instantiate(prefab, old.position, old.rotation, old.parent);
+            Destroy(old.gameObject);
+            return go.transform;
+        }
+        layoutNexus = Swap(layoutNexus, mine.hq);
+        layoutHive = Swap(layoutHive, mine.factory);
+    }
+
+    SelectableUnit HarvesterFor(Building hive)
+    {
+        var side = hive.TryGetComponent(out Health h) ? Faction.Of(h.team) : null;
+        var prefab = side != null && side.harvester != null ? side.harvester : harvesterPrefab;
+        return prefab.GetComponent<SelectableUnit>();
+    }
+
     public static GameObject SpawnFor(int team, GameObject prefab, Vector3 pos, Quaternion rot)
     {
         var go = Instantiate(prefab, pos, rot);
@@ -257,17 +283,18 @@ public class MatchManager : MonoBehaviour
             site.intro = true;
         }
         yield return new WaitForSeconds(IntroBuild + 0.4f);
-        var harvester = harvesterPrefab.GetComponent<SelectableUnit>();
         int most = 0;
         foreach (var (_, count) in introHives) most = Mathf.Max(most, count);
         for (int i = 0; i < most; i++)
         {
-            foreach (var (hive, count) in introHives) if (hive != null && i < count) hive.Release(harvester);
+            foreach (var (hive, count) in introHives) if (hive != null && i < count) hive.Release(HarvesterFor(hive));
             yield return new WaitForSeconds(IntroGap);
         }
         foreach (var b in introBrains) if (b != null) b.enabled = true;
         IntroDone = true;
     }
+
+    Pose nexusPose, hivePose;
 
     void SpawnBots(RoomState room, Transform home)
     {
@@ -276,9 +303,10 @@ public class MatchManager : MonoBehaviour
             if (room.BotLevel(slot) == 0) continue;
             var spot = baseSpots.GetChild(Mathf.Clamp(room.Bases[slot], 0, baseSpots.childCount - 1));
             Quaternion turn = Quaternion.Euler(0f, Vector3.SignedAngle(Flat(home.position), Flat(spot.position), Vector3.up), 0f);
-            Vector3 Place(Transform t) => spot.position + turn * (t.position - home.position);
-            introNexus.Add(Net.Spawn(nexusPrefab, Place(layoutNexus), turn * layoutNexus.rotation, slot));
-            var hive = Net.Spawn(hivePrefab, Place(layoutHive), turn * layoutHive.rotation, slot);
+            Vector3 Place(Pose p) => spot.position + turn * (p.position - home.position);
+            var side = Faction.Get(room.FactionOf(slot));
+            introNexus.Add(Net.Spawn(side.hq, Place(nexusPose), turn * nexusPose.rotation, slot));
+            var hive = Net.Spawn(side.factory, Place(hivePose), turn * hivePose.rotation, slot);
             introHives.Add((hive.GetComponent<Building>(), layoutHarvesters.Length));
         }
     }
@@ -432,6 +460,7 @@ public class MatchManager : MonoBehaviour
         m.stats = (int[])MatchStats.Values.Clone();
         m.map = GameMaps.Of(gameObject.scene).name;
         m.startCredits = Net.InMatch && RoomState.Instance != null ? RoomState.Instance.Credits : Skirmish.StartCredits;
+        m.faction = Faction.Mine != null ? (int)Faction.Mine.id : 0;
         if (m.online)
         {
             int others = RoomState.Instance != null ? RoomPlayer.All.Count - 1 : 0;

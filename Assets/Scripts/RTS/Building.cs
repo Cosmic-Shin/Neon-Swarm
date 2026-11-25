@@ -31,7 +31,8 @@ public class Building : MonoBehaviour
         aerie = GetComponent<AerieFX>();
         fx = gameObject.AddComponent<ProductionFX>();
         if (aerie != null) fx.titanDock = aerie.TitanDock;
-        fx.exit = gate != null ? gate.Lintel : spawnPoint;
+        if (gate == null) gate = GetComponent<Gate>();
+        fx.exit = gate != null && gate.Lintel != null ? gate.Lintel : spawnPoint;
 
         rallyLine = new GameObject("RallyLine").AddComponent<LineRenderer>();
         rallyLine.transform.SetParent(transform, false);
@@ -79,7 +80,7 @@ public class Building : MonoBehaviour
         if (IsUnit(i))
         {
             if (unitPrefabs[i].Data.role != UnitData.Role.Elite) return null;
-            if (ResearchManager.CoreLevelOf(Team) < 3) return "Needs Core Nexus Mk III";
+            if (ResearchManager.CoreLevelOf(Team) < 3) return $"Needs {Faction.HqName(Team)} Mk III";
             return aerie != null && !aerie.HasMast ? "Needs Hive Aerie Mk III" : null;
         }
         if (queue.Exists(q => !IsUnit(q))) return queue.Contains(i) ? "Researching" : "Lab busy: one project at a time";

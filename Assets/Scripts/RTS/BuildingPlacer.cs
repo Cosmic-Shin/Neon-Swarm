@@ -54,8 +54,11 @@ public class BuildingPlacer : MonoBehaviour
 
     void Awake()
     {
-        if (PrefabList.Find("SwarmSilo") is GameObject silo && silo.TryGetComponent(out Structure siloInfo) && System.Array.IndexOf(buildings, siloInfo.data) < 0)
+        if (Faction.Mine is Faction mine && mine != Faction.Hive && mine.buildings != null && mine.buildings.Length > 0) buildings = mine.buildings;
+        else if (PrefabList.Find("SwarmSilo") is GameObject silo && silo.TryGetComponent(out Structure siloInfo) && System.Array.IndexOf(buildings, siloInfo.data) < 0)
             buildings = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Append(buildings, siloInfo.data));
+        var side = Faction.Mine != null ? Faction.Mine.id : FactionId.Hive;
+        buildings = System.Array.FindAll(buildings, b => b != null && b.faction == side);
         buildings = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.OrderBy(buildings, b => b.cost));
         cam = Camera.main;
         menuPanel.gameObject.SetActive(false);

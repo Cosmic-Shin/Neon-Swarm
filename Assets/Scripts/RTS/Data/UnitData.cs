@@ -6,6 +6,7 @@ public class UnitData : ScriptableObject
     public enum Role { Worker, Scout, Infantry, Heavy, Support, Elite }
 
     public string displayName;
+    public FactionId faction;
     public Role role = Role.Infantry;
     [TextArea] public string description;
     public Sprite icon;
