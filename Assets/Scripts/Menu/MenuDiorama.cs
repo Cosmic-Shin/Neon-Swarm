@@ -18,10 +18,12 @@ public class MenuDiorama : MonoBehaviour
     public Vector3[] searchlightSpots;
     public Transform[] traffic, patrol, adTowers;
     public Transform[] aegisFront;
+    public Transform mothership, tribunal;
+    public Transform[] seekers, breakers;
 
     Vector3 camOffset;
     Vector2 parallax;
-    float startTime;
+    float startTime, introAt = -1f;
     readonly List<(Material m, Color baseColor, float phase)> glows = new();
     readonly List<(Transform t, float speed)> beams = new();
     float rainDebt, rippleDebt;
@@ -52,6 +54,42 @@ public class MenuDiorama : MonoBehaviour
         ScreenUI();
         StartCoroutine(DistantWar());
         StartCoroutine(Standoff());
+        StartCoroutine(Storm());
+        // new Aegis air + Breakers: carriers bob, Seekers circle the Mothership, Breakers join the standoff
+        if (breakers != null)
+        {
+            var front = new List<Transform>(aegisFront ?? new Transform[0]);
+            foreach (var b in breakers) if (b != null) front.Add(b);
+            aegisFront = front.ToArray();
+        }
+        StartCoroutine(Hover(mothership, 0.35f, 0.4f));
+        StartCoroutine(Hover(tribunal, 0.5f, 0.3f));
+        if (seekers != null) for (int i = 0; i < seekers.Length; i++) if (seekers[i] != null) StartCoroutine(Escort(seekers[i], i));
+    }
+
+    IEnumerator Hover(Transform t, float amp, float freq)
+    {
+        if (t == null) yield break;
+        Vector3 home = t.position;
+        float phase = Random.value * 6f;
+        while (t != null) { t.position = home + Vector3.up * (amp * Mathf.Sin((Time.time + phase) * freq * 6.283f)); yield return null; }
+    }
+
+    IEnumerator Escort(Transform s, int i)
+    {
+        Vector3 offset = mothership != null ? s.position - mothership.position : Vector3.right * 2f;
+        float r = Mathf.Max(1.5f, new Vector2(offset.x, offset.z).magnitude), a = i * 2.094f, h = offset.y;
+        Vector3 anchor = s.position - offset;
+        while (s != null)
+        {
+            Vector3 c = mothership != null ? mothership.position : anchor;
+            a += Time.deltaTime * 0.6f;
+            Vector3 p = c + new Vector3(Mathf.Cos(a) * r, h + 0.3f * Mathf.Sin(a * 2f), Mathf.Sin(a) * r);
+            Vector3 d = p - s.position;
+            if (d.sqrMagnitude > 1e-6f) s.rotation = Quaternion.LookRotation(d) * Quaternion.Euler(0f, 0f, -20f);
+            s.position = p;
+            yield return null;
+        }
     }
 
     void Update()
@@ -63,6 +101,8 @@ public class MenuDiorama : MonoBehaviour
         foreach (var (b, speed) in beams) b.localRotation = Quaternion.Euler(-68f + 10f * Mathf.Sin(t * 0.21f + speed), b.localEulerAngles.y + speed * Time.deltaTime, 0f);
         if (GameSettings.Rain) Rain(Time.deltaTime);
         Mist(Time.deltaTime);
+        Embers(Time.deltaTime);
+        ClickPing();
         foreach (var (m, c, phase) in ads)
         {
             bool off = Mathf.Sin(t * 13f + phase) > 0.97f || (Mathf.Sin(t * 0.7f + phase) > 0.995f);
@@ -82,8 +122,11 @@ public class MenuDiorama : MonoBehaviour
             m = Vector2.ClampMagnitude(m, 1f);
         }
         parallax = Vector2.Lerp(parallax, m, 1f - Mathf.Exp(-2f * Time.deltaTime));
-        float yaw = 9f * Mathf.Sin(t * Mathf.PI * 2f / 60f);   // wider swings hid one of the two bases behind the menu
-        Vector3 pos = lookAt + Quaternion.Euler(0f, yaw, 0f) * camOffset + Vector3.up * 0.06f * Mathf.Sin(t * 0.9f);
+        if (introAt < 0f && !GlitchSplash.Playing) introAt = Time.time;
+        float intro = introAt < 0f ? 0f : Mathf.Clamp01((Time.time - introAt) / 4f);
+        intro = 1f - Mathf.Pow(1f - intro, 3f);
+        float yaw = 9f * Mathf.Sin(t * Mathf.PI * 2f / 60f) - 14f * (1f - intro);   // wider swings hid one of the two bases behind the menu
+        Vector3 pos = lookAt + Quaternion.Euler(0f, yaw, 0f) * camOffset * Mathf.Lerp(1.4f, 1f, intro) + Vector3.up * (0.06f * Mathf.Sin(t * 0.9f) + 4f * (1f - intro));
         cam.transform.SetPositionAndRotation(pos, Quaternion.LookRotation(lookAt - pos) * Quaternion.Euler(-parallax.y * 2f, parallax.x * 2f, 0f));
     }
 
@@ -482,9 +525,10 @@ public class MenuDiorama : MonoBehaviour
     static readonly Color AegisShot = new(1f, 0.62f, 0.3f), SwarmShot = new(0.3f, 1f, 1f);
     static readonly int AttackId = Animator.StringToHash("Attack");
 
+    readonly List<Transform> swarm = new();
+
     IEnumerator Standoff()
     {
-        var swarm = new List<Transform>();
         foreach (Transform c in transform) if (c.name.StartsWith("D_Skitter") || c.name is "D_Chromejaw" or "D_Strider" or "D_CrusherTarantula") swarm.Add(c);
         if (aegisFront == null || aegisFront.Length == 0 || swarm.Count == 0) yield break;
         yield return new WaitForSeconds(3f);
@@ -495,17 +539,126 @@ public class MenuDiorama : MonoBehaviour
             var shooter = aegis ? aegisFront[Random.Range(0, aegisFront.Length)] : swarm[Random.Range(0, swarm.Count)];
             var target = aegis ? swarm[Random.Range(0, swarm.Count)] : aegisFront[Random.Range(0, aegisFront.Length)];
             if (shooter == null || target == null) continue;
-            var anim = shooter.GetComponentInChildren<Animator>();
-            bool clip = anim != null && System.Array.Exists(anim.parameters, p => p.name == "Attack");
-            if (clip) anim.SetTrigger(AttackId);
-            yield return new WaitForSeconds(clip ? 0.2f : 0f);
-            Transform muzzle = null;
-            foreach (var t in shooter.GetComponentsInChildren<Transform>()) if (t.name.Contains("Muzzle")) { muzzle = t; break; }
-            Vector3 from = muzzle != null ? muzzle.position : shooter.position + Vector3.up * 1.2f;
-            Vector3 to = target.position + Vector3.up * 0.6f + Random.insideUnitSphere * 0.5f;
-            // a near-miss half the time: the line holds, nobody dies on the menu
-            if (Random.value < 0.5f) to += (to - from).normalized * Random.Range(1.5f, 4f) + Vector3.down * 0.5f;
-            Shot(from, to, aegis ? AegisShot : SwarmShot, aegis ? 0.07f : 0.05f);
+            yield return Fire(shooter, target.position + Vector3.up * 0.6f + Random.insideUnitSphere * 0.5f, aegis, true);
+        }
+    }
+
+    IEnumerator Fire(Transform shooter, Vector3 to, bool aegis, bool mayMiss)
+    {
+        var anim = shooter.GetComponentInChildren<Animator>();
+        bool clip = anim != null && System.Array.Exists(anim.parameters, p => p.name == "Attack");
+        if (clip) anim.SetTrigger(AttackId);
+        yield return new WaitForSeconds(clip ? 0.2f : 0f);
+        if (shooter == null) yield break;
+        Transform muzzle = null;
+        foreach (var t in shooter.GetComponentsInChildren<Transform>()) if (t.name.Contains("Muzzle")) { muzzle = t; break; }
+        Vector3 from = muzzle != null ? muzzle.position : shooter.position + Vector3.up * 1.2f;
+        // a near-miss half the time: the line holds, nobody dies on the menu
+        if (mayMiss && Random.value < 0.5f) to += (to - from).normalized * Random.Range(1.5f, 4f) + Vector3.down * 0.5f;
+        Shot(from, to, aegis ? AegisShot : SwarmShot, aegis ? 0.07f : 0.05f);
+    }
+
+    // ---- click the map: a ping, and the nearest unit of either side takes a shot at it ----
+    float nextPing;
+
+    void ClickPing()
+    {
+        var mouse = Mouse.current;
+        if (mouse == null || !mouse.leftButton.wasPressedThisFrame || Time.time < nextPing) return;
+        if (UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) return;
+        var ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+        if (ray.direction.y > -0.01f) return;
+        Vector3 at = ray.GetPoint(-ray.origin.y / ray.direction.y);
+        if ((at - lookAt).sqrMagnitude > 30f * 30f) return;
+        nextPing = Time.time + 0.25f;
+        Ping(at);
+    }
+
+    void Ping(Vector3 at)
+    {
+        Juice.Ring(at + Vector3.up * 0.05f, Cyan, 0.2f, 2.6f, 0.8f, 0.25f);
+        Juice.Ring(at + Vector3.up * 0.05f, Cyan * 0.7f, 0.1f, 1.4f, 0.55f, 0.15f);
+        Juice.Burst(at + Vector3.up * 0.1f, Cyan, 10, 2.5f, 0.1f, 0.5f, 0.6f, true);
+        Juice.Flash(at + Vector3.up * 0.5f, Cyan, 2f, 6f, 0.25f);
+        Sfx.Play(Snd.Ping, 0.25f, Random.Range(0.95f, 1.1f));
+
+        Transform best = null; bool bestAegis = false; float bestD = 14f * 14f;
+        void Consider(Transform u, bool aegis)
+        {
+            if (u == null) return;
+            float d = (u.position - at).sqrMagnitude;
+            if (d < bestD && d > 1.5f) { best = u; bestD = d; bestAegis = aegis; }
+        }
+        if (aegisFront != null) foreach (var u in aegisFront) Consider(u, true);
+        foreach (var u in swarm) Consider(u, false);
+        if (best != null) StartCoroutine(Fire(best, at + Vector3.up * 0.1f, bestAegis, false));
+    }
+
+    // ---- foreground embers: slow sparks drifting close to the lens so the empty foreground has depth ----
+    static readonly Color[] EmberColors = { new(1f, 0.25f, 0.8f, 0.5f), new(0.3f, 0.95f, 1f, 0.45f), new(1f, 0.6f, 0.25f, 0.5f) };
+    float emberDebt;
+
+    void Embers(float dt)
+    {
+        var ct = cam.transform;
+        for (emberDebt += 7f * dt; emberDebt >= 1f; emberDebt--)
+        {
+            Vector3 at = ct.position + ct.forward * Random.Range(5f, 16f) + ct.right * Random.Range(-10f, 10f) + ct.up * Random.Range(-6f, 3f);
+            if (at.y < 0.2f) at.y = Random.Range(0.2f, 1.5f);
+            var v = new Vector3(Random.Range(-0.3f, 0.5f), Random.Range(0.15f, 0.5f), Random.Range(-0.2f, 0.2f));
+            Particles.Emit("Mote", at, v, Random.Range(0.08f, 0.2f), Random.Range(4f, 7f), EmberColors[Random.Range(0, EmberColors.Length)]);
+        }
+    }
+
+    // ---- lightning: a jagged bolt behind the skyline, the whole field lit in flickers, thunder after ----
+    static readonly Color BoltColor = new(0.75f, 0.85f, 1f);
+
+    IEnumerator Storm()
+    {
+        var bolt = new GameObject("Bolt").AddComponent<LineRenderer>();
+        bolt.transform.SetParent(transform, false);
+        bolt.sharedMaterial = TracerMat;
+        bolt.useWorldSpace = true;
+        bolt.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        bolt.startColor = BoltColor;
+        bolt.endColor = new Color(BoltColor.r, BoltColor.g, BoltColor.b, 0.6f);
+        bolt.enabled = false;
+        var sky = new GameObject("LightningLight").AddComponent<Light>();
+        sky.transform.SetParent(transform, false);
+        sky.type = LightType.Directional;
+        sky.color = BoltColor;
+        sky.shadows = LightShadows.None;
+        sky.intensity = 0f;
+        yield return new WaitForSeconds(Random.Range(6f, 10f));
+        while (true)
+        {
+            if (!GameSettings.Rain) { yield return new WaitForSeconds(2f); continue; }
+            float dist = camOffset.magnitude + Random.Range(45f, 75f);
+            Vector3 ground = Far(dist, 0f, -8f, 38f);   // keep it right of the menu panel
+            const int n = 16;
+            var pts = new Vector3[n];
+            Vector3 p = ground + new Vector3(Random.Range(-10f, 10f), 75f, Random.Range(-4f, 4f));
+            for (int i = 0; i < n; i++)
+            {
+                pts[i] = p;
+                p = Vector3.Lerp(p, ground, 1f / (n - 1 - i + 0.0001f)) + (i < n - 2 ? new Vector3(Random.Range(-3f, 3f), 0f, Random.Range(-1.5f, 1.5f)) : Vector3.zero);
+            }
+            bolt.positionCount = n;
+            bolt.SetPositions(pts);
+            bolt.widthMultiplier = Random.Range(0.5f, 0.9f);
+            sky.transform.rotation = Quaternion.LookRotation(cam.transform.position - ground + Vector3.down * 30f);
+
+            float peak = Random.Range(1f, 1.8f) * GameSettings.FlashScale;
+            foreach (float b in new[] { 1f, 0.15f, 0.8f, 0.3f, 0.6f, 0f })
+            {
+                bolt.enabled = b > 0.25f;
+                sky.intensity = b * peak;
+                yield return new WaitForSeconds(Random.Range(0.04f, 0.09f));
+            }
+            bolt.enabled = false;
+            sky.intensity = 0f;
+            Sfx.Thunder(Random.Range(0.6f, 1.8f), Random.Range(0.5f, 0.85f));
+            yield return new WaitForSeconds(Random.Range(14f, 30f));
         }
     }
 
@@ -530,10 +683,10 @@ public class MenuDiorama : MonoBehaviour
         Sfx.Play(c == AegisShot ? Snd.Blaster : Snd.Laser, 0.025f, Random.Range(0.9f, 1.2f));
     }
 
-    Vector3 Far(float distance, float height)
+    Vector3 Far(float distance, float height, float minAngle = -38f, float maxAngle = 38f)
     {
         Vector3 f = cam.transform.forward; f.y = 0f;
-        Vector3 p = cam.transform.position + Quaternion.Euler(0f, Random.Range(-38f, 38f), 0f) * f.normalized * distance;
+        Vector3 p = cam.transform.position + Quaternion.Euler(0f, Random.Range(minAngle, maxAngle), 0f) * f.normalized * distance;
         p.y = height;
         return p;
     }

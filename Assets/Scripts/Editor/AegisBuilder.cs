@@ -17,6 +17,7 @@ public static partial class AegisBuilder
     const string AnimDir = "Assets/Animations/Aegis";
     const string WreckDir = "Assets/Prefabs/Aegis/Wrecks";
     const string IconDir = "Assets/CyberpunkRTS/Icons/Aegis";
+    const string PortraitDir = "Assets/CyberpunkRTS/UI/Portraits";
     const string FactionDir = "Assets/Resources/Factions";
     public const float BuildingScale = 3.4f;
 
@@ -31,6 +32,9 @@ public static partial class AegisBuilder
         { "Aegis_Colossus", (520, 510) }, { "Aegis_Technician", (516, 504) }, { "Aegis_AATrooper", (514, 503) },
         { "Aegis_StrikeBike", (512, 502) }, { "Aegis_Marksman", (520, 506) }, { "Aegis_Suppressor", (518, 506) },
         { "Aegis_Watcher", (512, 504) }, { "Aegis_PatrolDrone", (510, 503) }, { "Aegis_Dominion", (524, 510) },
+        { "Aegis_Breaker", (516, 507) }, { "Aegis_Cadet", (510, 503) }, { "Aegis_Hailstorm", (524, 504) }, { "Aegis_Warden", (516, 505) },
+        { "Aegis_Sapper", (512, 504) }, { "Aegis_Override", (514, 505) }, { "Aegis_Seeker", (508, 503) }, { "Aegis_Hammerhead", (524, 510) },
+        { "Aegis_Mothership", (530, 506) }, { "Aegis_Tribunal", (526, 510) }, { "Aegis_Spotter", (510, 503) },
     };
 
     class U
@@ -86,6 +90,30 @@ public static partial class AegisBuilder
             desc = "Sky fortress. Wing turrets and an orbital lance make it the heaviest thing in the air. Needs Command Spire Mk III." },
         new U { name = "PatrolDrone", template = "SentryDrone", twin = "SentryDrone", display = "Patrol Drone", scale = 3f,
             desc = "Drone Bay interceptor. Launches by itself to chase off attackers." },
+
+        // role fill-ins: Aegis counterparts for the Hive-only units (README "Role fill-ins"); Seeker before Mothership (its drone)
+        new U { name = "Cadet", template = "Hackling", twin = "Hackling", display = "Cadet",
+            desc = "Cheap rifle trooper trained in squads of three. Shoots ground and air; strength in numbers." },
+        new U { name = "Sapper", template = "Ratline", twin = "Ratline", display = "Sapper",
+            desc = "Breaching team of three. Launches demolition charges that wreck buildings; weak against units." },
+        new U { name = "Override", template = "NetrunnerHive", twin = "NetrunnerHive", display = "Override",
+            desc = "Electronic-warfare specialist. Hack bolts stun whatever they hit. Needs Command Spire Mk III." },
+        new U { name = "Warden", template = "WireWeaver", twin = "WireWeaver", display = "Warden",
+            desc = "Snare trooper. Fires stasis nets that leave a slowing field where they land." },
+        new U { name = "Breaker", template = "Chromejaw", twin = "Chromejaw", display = "Breaker",
+            desc = "Close-assault mech. Charges into the enemy line and pounds it apart with hydraulic gauntlets." },
+        new U { name = "Hailstorm", template = "Overclock", twin = "Overclock", display = "Hailstorm",
+            desc = "Rotary-cannon walker. Spins up a storm of fire, then has to vent the heat. Needs Command Spire Mk III." },
+        new U { name = "Seeker", template = "LocustDrone", twin = "LocustDrone", display = "Seeker", scale = 4.5f, hover = 5.5f,
+            desc = "Swarm of five tiny attack drones. Fast, fragile and hard to pin down." },
+        new U { name = "Hammerhead", template = "BeetleBomber", twin = "BeetleBomber", display = "Hammerhead", scale = 2.4f, hover = 8f,
+            desc = "Bomber. Opens its bay over the target and drops heavy charges. Cannot hit flyers." },
+        new U { name = "Mothership", template = "LocustCarrier", twin = "LocustCarrier", display = "Mothership", scale = 3.8f, hover = 9.5f,
+            desc = "Drone carrier. Launches Seekers at whatever it fights and docks them back to rebuild." },
+        new U { name = "Tribunal", template = "JellyfishDreadnought", twin = "JellyfishDreadnought", display = "Tribunal", scale = 4.5f, hover = 12f,
+            desc = "Titan. Drops low and shocks everything beneath it, stunning ground units in a wide field. Needs Command Spire Mk III." },
+        new U { name = "Spotter", template = "FireflySpotter", twin = "FireflySpotter", display = "Spotter", scale = 3.5f, hover = 6f,
+            desc = "Cheap scout flyer. Marks targets from the air and sees far; barely armed." },
     };
 
     class B
@@ -100,14 +128,14 @@ public static partial class AegisBuilder
         new B { name = "CommandSpire", template = "CoreNexus", display = "Command Spire",
             desc = "Aegis headquarters. Powers the base, accepts ore and unlocks higher tiers when upgraded." },
         new B { name = "BarracksBay", template = "AssemblyHive", twin = "AssemblyHive", display = "Barracks Bay",
-            units = new[] { "Collector", "Peacekeeper", "Enforcer", "AATrooper", "Marksman", "Technician", "Watcher" },
+            units = new[] { "Collector", "Peacekeeper", "Cadet", "Enforcer", "AATrooper", "Marksman", "Sapper", "Technician", "Warden", "Watcher", "Override" },
             desc = "Trains Aegis infantry and Collectors." },
         new B { name = "MotorPool", template = "AssemblyHive", display = "Motor Pool",
-            units = new[] { "StrikeBike", "MedicDrone", "Lancer", "Suppressor", "Bastion", "Paladin", "Colossus" },
+            units = new[] { "StrikeBike", "MedicDrone", "Breaker", "Lancer", "Suppressor", "Bastion", "Paladin", "Hailstorm", "Colossus" },
             desc = "Vehicle and mech factory: bikes, tanks, artillery and the Colossus.",
             tweak = d => { d.cost = 1500; d.buildTime = 22f; } },
         new B { name = "Airfield", template = "HiveAerie", twin = "HiveAerie", display = "Airfield",
-            units = new[] { "Interceptor", "Gunship", "Skylift", "Carrier", "Dominion" },
+            units = new[] { "Spotter", "Seeker", "Interceptor", "Gunship", "Hammerhead", "Skylift", "Mothership", "Carrier", "Tribunal", "Dominion" },
             desc = "Builds the Aegis air wing. Upgrade to Mk III for the Dominion and Carrier." },
         new B { name = "Refinery", template = "DataRefinery", twin = "DataRefinery", display = "Refinery",
             desc = "Turns Collector cargo into credits. Comes with a free Collector." },
@@ -117,6 +145,8 @@ public static partial class AegisBuilder
             desc = "Produces power and extends your build area." },
         new B { name = "SentinelTurret", template = "NeonTurret", twin = "NeonTurret", display = "Sentinel Turret",
             desc = "Basic gun turret. Hits ground and air." },
+        new B { name = "ArcTurret", template = "ArcCoil", twin = "ArcCoil", display = "Arc Turret",
+            desc = "Short-range tesla turret. Its arc jumps between packed ground units; fast and deadly up close." },
         new B { name = "FlakBattery", template = "FlakLantern", twin = "FlakLantern", display = "Flak Battery",
             desc = "Anti-air battery with splash. Cannot hit ground targets." },
         new B { name = "RailBattery", template = "RailspikeTower", twin = "RailspikeTower", display = "Rail Battery",
@@ -164,8 +194,10 @@ public static partial class AegisBuilder
         Icons();
         foreach (var d in new[] { UnitDir, BuildingDir, UnitDataDir, BuildingDataDir, AnimDir, FactionDir }) Folder(d);
         fx = MakeFx();
+        TuneFx();
         ConstructionKit();
         balance.Clear();
+        HivePortraits();
         var unitData = new Dictionary<string, UnitData>();
         foreach (var u in Units) unitData[u.name] = MakeUnitData(u);
         var unitPrefabs = new Dictionary<string, GameObject>();
@@ -205,6 +237,21 @@ public static partial class AegisBuilder
         ReimportPrefabs();
         AssetDatabase.SaveAssets();
         Debug.Log("[GD5] Aegis faction built.");
+    }
+
+    // Hive unit cards get their portraits too (UI/Portraits/Hive/portrait_<asset name>.png)
+    static void HivePortraits()
+    {
+        foreach (var g in AssetDatabase.FindAssets("t:UnitData", new[] { "Assets/Data/Units" }))
+        {
+            string path = AssetDatabase.GUIDToAssetPath(g);
+            if (path.Contains("/Aegis/")) continue;
+            var d = AssetDatabase.LoadAssetAtPath<UnitData>(path);
+            var art = AssetDatabase.LoadAssetAtPath<Sprite>($"{PortraitDir}/Hive/portrait_{d.name}.png");
+            if (art == null || d.portrait == art) continue;
+            d.portrait = art;
+            EditorUtility.SetDirty(d);
+        }
     }
 
     static readonly Dictionary<BuildingData, BuildingData> twinOf = new();
@@ -322,7 +369,7 @@ public static partial class AegisBuilder
                 else Add("Idle", 1, 60, true);
                 if (name == "Aegis_OrbitalLance") Add("Fire", 100, 200, false);
                 if (name == "Aegis_RailBattery") Add("Fire", 100, 120, false);
-                if (name is "Aegis_SentinelTurret" or "Aegis_FlakBattery") Add("Fire", 100, 112, false);
+                if (name is "Aegis_SentinelTurret" or "Aegis_FlakBattery" or "Aegis_ArcTurret") Add("Fire", 100, 112, false);
                 if (name is "Aegis_MotorPool" or "Aegis_BarracksBay" or "Aegis_DroneBay") { Add("Open", 100, 120, false); Add("Close", 130, 150, false); }
                 if (name == "Aegis_PulseGate") { Add("Open", 100, 114, false); Add("Close", 130, 144, false); }
             }
@@ -359,6 +406,7 @@ public static partial class AegisBuilder
         d.displayName = u.display;
         d.description = u.desc;
         d.icon = Icon("unit", u.name);
+        d.portrait = AssetDatabase.LoadAssetAtPath<Sprite>($"{PortraitDir}/Aegis/portrait_{u.name}.png");
         d.muzzles = u.muzzles ?? "";
         u.tweak?.Invoke(d);
         Balance(u, d);
@@ -698,7 +746,7 @@ public static partial class AegisBuilder
             if (root.TryGetComponent(out Turret turret))
             {
                 SetColor(turret, "color", b.name == "FlakBattery" ? Amber : Red);
-                var head = Part(inst.transform, "ST_Head") ?? Part(inst.transform, "FB_Head") ?? Part(inst.transform, "RB_Yaw");
+                var head = Part(inst.transform, "ST_Head") ?? Part(inst.transform, "FB_Head") ?? Part(inst.transform, "RB_Yaw") ?? Part(inst.transform, "AT_Head");
                 if (head != null) { var aim = root.TryGetComponent(out AimPivot had) ? had : root.AddComponent<AimPivot>(); aim.pivotName = head.name; aim.turnSpeed = b.name == "RailBattery" ? 70f : 200f; }
                 foreach (var rk in root.GetComponentsInChildren<RecoilKick>(true)) if (head != null) rk.target = head; else Object.DestroyImmediate(rk);
             }
@@ -750,10 +798,7 @@ public static partial class AegisBuilder
         aegis.buildings = buildings.Values.ToArray();
         var twins = new List<global::Faction.Twin>();
         foreach (var u in Units) twins.Add(new global::Faction.Twin { hive = Twin<UnitData>(u.twin), own = units[u.name] });
-        void Pair(string hiveUnit, string own) => twins.Add(new global::Faction.Twin { hive = Twin<UnitData>(hiveUnit), own = units[own] });
-        Pair("Hackling", "Peacekeeper"); Pair("Ratline", "StrikeBike"); Pair("WireWeaver", "Suppressor"); Pair("Chromejaw", "Paladin");
-        Pair("Overclock", "Colossus"); Pair("NetrunnerHive", "Colossus"); Pair("FireflySpotter", "Interceptor"); Pair("LocustDrone", "Gunship");
-        Pair("BeetleBomber", "Gunship"); Pair("LocustCarrier", "Carrier"); Pair("JellyfishDreadnought", "Dominion");
+        // every Hive unit has its own Aegis twin in Units
         foreach (var kv in buildings) if (TwinOf(kv.Value) is BuildingData h) twins.Add(new global::Faction.Twin { hive = h, own = kv.Value });
         twins.Add(new global::Faction.Twin { hive = hive.hq, own = aegis.hq });
         twins.Add(new global::Faction.Twin { hive = hive.factory, own = aegis.factory });

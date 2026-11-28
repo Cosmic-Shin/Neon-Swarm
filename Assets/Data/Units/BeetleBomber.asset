@@ -13,9 +13,11 @@ MonoBehaviour:
   m_Name: BeetleBomber
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Beetle Bomber
+  faction: 0
   role: 3
   description: Slow plasma bomber. Big splash damage, double damage to buildings.
   icon: {fileID: 21300000, guid: 7bcf1dfe0ce5c3c4888066069a6f4c16, type: 3}
+  portrait: {fileID: 21300000, guid: 42cca0c00484aa84bb630fa9eab1a27a, type: 3}
   cost: 900
   buildTime: 11
   squadSize: 1

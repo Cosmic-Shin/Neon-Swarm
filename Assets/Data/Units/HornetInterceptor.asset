@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: HornetInterceptor
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Hornet Interceptor
+  faction: 0
   role: 1
   description: Fast anti-air interceptors, two per order. Cannons tear through gunships,
     bombers and titans, but they can't hit ground and lose to swarms.
   icon: {fileID: 21300000, guid: d8e322ae7ab2d7a448db209a9fc46331, type: 3}
+  portrait: {fileID: 21300000, guid: 9b79801122e12604c936cf6774a3a91a, type: 3}
   cost: 500
   buildTime: 7
   squadSize: 2

@@ -10,23 +10,78 @@ using UnityEngine.SceneManagement;
 
 public static class FriendsHub
 {
-    [Serializable] public class Activity { public string status = "In menus"; public string room; public long at; }
-    [Serializable] public class Note { public string room; public string text; }
+    [Serializable] public class Activity { public string status = "In menus"; public string room, region; public long at; }
+    [Serializable] public class Note { public string room, region, text; public long at; }
 
     public static bool Ready { get; private set; }
     public static string MyTag { get; private set; }
     public static string LastError { get; private set; }
     public static string CurrentRoom => me.room;
     public static event Action Changed;
-    public static event Action<string, string> Invited;
+    public static event Action<string, string, string> Invited;   // from, room, host region
     public static event Action<string, string> Messaged;
 
-    public static readonly Dictionary<string, List<(bool mine, string text)>> Chats = new();
-    static readonly Dictionary<string, int> unread = new();
-    public static int Unread(string id) => unread.TryGetValue(id, out int n) ? n : 0;
-    public static int UnreadTotal { get { int n = 0; foreach (var v in unread.Values) n += v; return n; } }
-    public static void MarkRead(string id) { if (unread.Remove(id)) Changed?.Invoke(); }
-    static List<(bool, string)> ChatWith(string id) => Chats.TryGetValue(id, out var c) ? c : Chats[id] = new();
+    // History = my protected inbox + sent lists, written by the SendMail Cloud Code script, so offline messages arrive on next sync
+    public static readonly Dictionary<string, List<(bool mine, string text, long at)>> Chats = new();
+    public static event Action<string> MissedMail;   // once after sign-in: "name sent you 2 messages"
+    public static int Unread(string id)
+    {
+        if (!Chats.TryGetValue(id, out var c)) return 0;
+        long seen = LastRead(id); int n = 0;
+        foreach (var m in c) if (!m.mine && m.at > seen) n++;
+        return n;
+    }
+    public static int UnreadTotal { get { int n = 0; foreach (var id in Chats.Keys) n += Unread(id); return n; } }
+    public static void MarkRead(string id)
+    {
+        if (Unread(id) == 0) return;
+        long last = 0;
+        foreach (var m in Chats[id]) if (!m.mine) last = Math.Max(last, m.at);
+        PlayerPrefs.SetString(ReadKey(id), last.ToString());
+        PlayerPrefs.Save();
+        Changed?.Invoke();
+    }
+    static string ReadKey(string id) => "mail.read." + AccountService.PlayerId + "." + id;
+    static long LastRead(string id) => long.TryParse(PlayerPrefs.GetString(ReadKey(id), "0"), out long v) ? v : 0;
+    static long Now => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+    static void AddLine(string id, bool mine, string text, long at)
+    {
+        if (!Chats.TryGetValue(id, out var c)) Chats[id] = c = new();
+        foreach (var m in c) if (Math.Abs(m.at - at) < 5000 && m.mine == mine && m.text == text) return;   // live copy vs stored copy
+        c.Add((mine, text, at));
+        c.Sort((a, b) => a.at.CompareTo(b.at));
+    }
+
+    static bool syncing, synced;
+    public static async Task SyncMail()
+    {
+        if (!Ready || syncing) return;
+        syncing = true;
+        int before = UnreadTotal;
+        try
+        {
+            if (!synced) _ = ProfileService.DropPublicMail();
+            var friends = new HashSet<string>();
+            foreach (var r in Friends) friends.Add(r.Member.Id);
+            var (inbox, sent) = await ProfileService.LoadMail();
+            foreach (var m in sent.items) if (friends.Contains(m.to)) AddLine(m.to, true, m.text, m.at);
+            foreach (var m in inbox.items) if (friends.Contains(m.from)) AddLine(m.from, false, m.text, m.at);
+            if (!synced)
+            {
+                synced = true;
+                var who = new List<string>();
+                foreach (var r in Friends) if (Unread(r.Member.Id) > 0) who.Add(NameOf(r.Member));
+                int n = UnreadTotal;
+                if (n > 0) MissedMail?.Invoke((who.Count == 1 ? who[0] : who.Count + " friends") + " sent you " + n + (n == 1 ? " message" : " messages"));
+                before = n;
+            }
+        }
+        catch (Exception e) { Debug.LogWarning(e); }
+        finally { syncing = false; }
+        if (UnreadTotal > before) Sfx.Play(Snd.Info);
+        Changed?.Invoke();
+    }
 
     static readonly Activity me = new();
     static bool hooked;
@@ -75,6 +130,7 @@ public static class FriendsHub
             _ = ProfileService.Load();
             LastError = null;
             await Push();
+            _ = SyncMail();
         }
         catch (Exception e) { LastError = "Friends unavailable: " + e.Message; Debug.LogWarning(e); }
         Changed?.Invoke();
@@ -83,13 +139,12 @@ public static class FriendsHub
     static void OnNote(Unity.Services.Friends.Notifications.IMessageReceivedEvent e)
     {
         var note = e.GetAs<Note>();
-        if (string.IsNullOrEmpty(note.text)) { Invited?.Invoke(NameOf(e.UserId), note.room); return; }
-        ChatWith(e.UserId).Add((false, note.text));
+        if (string.IsNullOrEmpty(note.text)) { Invited?.Invoke(NameOf(e.UserId), note.room, note.region); return; }
+        AddLine(e.UserId, false, note.text, note.at > 0 ? note.at : Now);
         Debug.Log("[GD5] message from " + NameOf(e.UserId) + ": " + note.text);
 #if DEVELOPMENT_BUILD
         if (DevArg("-echomessages")) _ = SendText(e.UserId, "echo: " + note.text);
 #endif
-        unread[e.UserId] = Unread(e.UserId) + 1;
         Messaged?.Invoke(NameOf(e.UserId), note.text);
         Changed?.Invoke();
     }
@@ -110,7 +165,7 @@ public static class FriendsHub
         while (Application.isPlaying)
         {
             await Task.Delay(60000);
-            if (Ready) await Push();
+            if (Ready) { await Push(); await SyncMail(); }
             Changed?.Invoke();
         }
     }
@@ -123,7 +178,7 @@ public static class FriendsHub
         MyTag = null;
         me.room = null;
         Chats.Clear();
-        unread.Clear();
+        synced = false;
         Changed?.Invoke();
     }
 
@@ -143,6 +198,7 @@ public static class FriendsHub
     public static void SetRoom(string room)
     {
         me.room = room;
+        me.region = room != null && RoomService.Instance ? RoomService.Instance.Region : null;
         me.status = room != null ? "In a lobby" : "In menus";
         _ = Push();
         Changed?.Invoke();
@@ -166,7 +222,7 @@ public static class FriendsHub
     public static Task<string> Cancel(string id) => Run(() => Service.DeleteOutgoingFriendRequestAsync(id));
     public static Task<string> Remove(string id) => Run(() => Service.DeleteFriendAsync(id));
     public static Task<string> SendInvite(string id) =>
-        me.room == null ? Task.FromResult("You're not in a room.") : Run(() => Service.MessageAsync(id, new Note { room = me.room }));
+        me.room == null ? Task.FromResult("You're not in a room.") : Run(() => Service.MessageAsync(id, new Note { room = me.room, region = me.region }));
 
     public const int MaxMessage = 200;
     public static async Task<string> SendText(string id, string text)
@@ -174,9 +230,16 @@ public static class FriendsHub
         text = text.Trim();
         if (text.Length == 0) return null;
         if (text.Length > MaxMessage) text = text[..MaxMessage];
-        string error = await Run(() => Service.MessageAsync(id, new Note { text = text }));
-        if (error == null) { ChatWith(id).Add((true, text)); Changed?.Invoke(); }
-        return error;
+        if (!Ready) return LastError ?? "Friends aren't connected.";
+        long at;
+        try { at = await ProfileService.SendMail(id, text); }
+        catch (Exception e) { Debug.LogWarning(e); return "Couldn't send, try again."; }
+        AddLine(id, true, text, at);
+        Changed?.Invoke();
+        // live push is just a fast path; an offline friend gets it from their inbox on their next sync
+        try { await Service.MessageAsync(id, new Note { text = text, at = at }); }
+        catch (Exception e) { Debug.Log("live message not delivered (friend offline?): " + e.Message); }
+        return null;
     }
 
     static async Task<string> Run(Func<Task> call)

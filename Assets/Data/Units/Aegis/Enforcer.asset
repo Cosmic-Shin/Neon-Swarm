@@ -18,7 +18,8 @@ MonoBehaviour:
   description: Riot-suit flamer. Sweeps a cone of fire that shreds packed infantry
     and swarms.
   icon: {fileID: 21300000, guid: 49844a6e7f9f2134396e3794171a8d9a, type: 3}
-  cost: 400
+  portrait: {fileID: 21300000, guid: 9592e3f78af92e2489ecce08f19396ed, type: 3}
+  cost: 425
   buildTime: 6
   squadSize: 1
   maxHealth: 205
@@ -40,9 +41,9 @@ MonoBehaviour:
     projectile: {fileID: 0}
     speed: 60
     arc: 0
-    muzzleFlash: {fileID: 9142052762366739270, guid: 3189fd20d9215b946b3100f8fc287351, type: 3}
+    muzzleFlash: {fileID: 6670861248808661446, guid: 3b278f2fcfb57364b9782d190bb2680e, type: 3}
     impact: {fileID: 0}
-    scorch: {fileID: 1200182906001459056, guid: 9d4af2d549908c94fae7679addd47189, type: 3}
+    scorch: {fileID: 7260685949303746255, guid: 04059863cd41b804f8cb74a106db7832, type: 3}
     hideBeam: 1
   style: 1
   muzzles: 

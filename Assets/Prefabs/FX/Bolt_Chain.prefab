@@ -81,7 +81,9 @@ MonoBehaviour:
   scaleFrom: 1
   scaleTo: 1
   fadeStart: 0.3
-  randomRoll: 0
+  randomRoll: 1
+  flicker: 0.5
+  spin: 0
 --- !u!1 &7149685984167375296
 GameObject:
   m_ObjectHideFlags: 0

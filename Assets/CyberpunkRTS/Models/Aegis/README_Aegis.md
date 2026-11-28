@@ -35,6 +35,17 @@ Front is +Y in Blender (same as the Hive kit). Flyers keep their altitude on the
 | Aegis_Watcher | 512 | 504 | scout drone, light zap from WAT_Muzzle |
 | Aegis_PatrolDrone | 510 | 503 | Drone Bay drone, PD_Muzzle |
 | Aegis_Dominion | 524 | 510 | sky fortress; wing turrets DOM_MuzzleL/R, lance at DOM_BeamPoint |
+| Aegis_Breaker | 516 | 507 | brawler punch (lunges forward), contact point BRK_Muzzle on the right gauntlet |
+| Aegis_Cadet | 510 | 503 | cheap rifle trooper, CDT_Muzzle (build in squads of 3) |
+| Aegis_Hailstorm | 524 | 504 | rotary cannon, HAL_Barrels spin through the whole clip; fire repeatedly 504-520, HAL_Muzzle |
+| Aegis_Warden | 516 | 505 | snare net launcher, WAR_Muzzle (Proj_AegisNet, then FX_AegisStasis on the ground) |
+| Aegis_Sapper | 512 | 504 | breaching charge launcher, SAP_Muzzle (Proj_AegisCharge); squads of 3 |
+| Aegis_Override | 514 | 505 | hack/stun bolt from OVR_Muzzle (Proj_AegisHackBolt); dish rises while firing |
+| Aegis_Seeker | 508 | 503 | tiny attack drone, SEK_Muzzle; 5 per order; altitude 1.4 |
+| Aegis_Hammerhead | 524 | 510 | bomber; bay doors open 505-518, drop Proj_AegisBomb at HAM_BombPoint; altitude 2.0 |
+| Aegis_Mothership | 530 | 506 | drone carrier; hatches open 504-524, launch Seekers from MOM_LaunchPoint0-3; own gun MOM_Muzzle; altitude 2.4 |
+| Aegis_Spotter | 510 | 503 | cheap scout flyer (Firefly Spotter role), marking shot from SPT_Muzzle; altitude 1.6; banks left/right in Walk |
+| Aegis_Tribunal | 526 | 510 | titan; dips and shocks everything below from TRB_PulsePoint (FX_AegisShockField); tendrils sway in Idle/Walk; altitude 3.0 |
 
 Aegis_Skylift (vehicle air transport) has no attack. It uses Unload 401-449: drops to the ground (body -0.35), clamp arms open 418-438, cargo at SKY_CargoPoint.
 Flyers' altitude is on the root: Watcher 1.5, PatrolDrone 1.2, Skylift 2.2, Dominion 2.8.
@@ -55,6 +66,7 @@ Animated buildings (one timeline, 24 fps):
 | Aegis_MotorPool | Idle 1-60 (crane swings); Open 100-120 / Close 130-150 (MP_Door) |
 | Aegis_BarracksBay | Open 100-120 / Close 130-150 (BB_Door) |
 | Aegis_PulseGate | Closed at frame 1; Open 100-114 (PG_Field sinks), Close 130-144 (field rises) |
+| Aegis_ArcTurret | Idle 1-60 (AT_CoilSpin turns, AT_Orb hums); Fire 100-112 (orb charges at 103, snaps at 104). Arc Coil role. AT_Head is the aim pivot (not animated), AT_Muzzle is the arc start. Mk2 = capacitor pylons, Mk3 = crown prongs (on AT_Head) |
 | Aegis_SentinelTurret | Fire 100-112 (barrels recoil, left at 102, right at 106; ST_Head stays free for aiming) |
 | Aegis_FlakBattery | Fire 100-112 (gun block kicks at 102 and 107; FB_Head stays free for aiming) |
 | Aegis_SensorArray | Idle 1-60 (radar dish spins). Radar / minimap building, SA_ScanPoint |
@@ -73,7 +85,7 @@ Hidden-by-default child groups named `<Building>_Upgrade_Mk2` / `_Mk3` (they are
 ## Team colour
 Trims that should show the owner's colour use the material **Aegis_TeamColor** (white, emissive). In Unity, tint it per player with a MaterialPropertyBlock (_Color and _EmissionColor) on renderers whose material name starts with Aegis_TeamColor. Everything else keeps the faction's red/amber neon.
 
-Wrecks: Wreck_Aegis_<Name>.fbx for every building except MineField, plus Paladin, Colossus, Bastion, Lancer, Technician, AATrooper, StrikeBike, Suppressor and Dominion.
+Wrecks: Wreck_Aegis_<Name>.fbx for every building except MineField, plus Paladin, Colossus, Bastion, Lancer, Technician, AATrooper, StrikeBike, Suppressor, Dominion, Breaker, Hailstorm, Override, Hammerhead, Mothership and Tribunal.
 
 ## Extra FX / projectiles
 - FX_AegisRepair: ARep_Arc (1 unit long along +Y, scale to distance), ARep_Sparks (place at target), ARep_Ring (ground ring under the repaired thing).
@@ -110,3 +122,17 @@ UI/Portraits/Aegis/portrait_<Unit>.png and UI/Portraits/Hive/portrait_<Unit>.png
 
 ## Main menu diorama
 UI/MenuDiorama~/MenuDiorama_layout.json is now v2 (Aegis force DA_* on the right facing the swarm, new camera). v1 kept as MenuDiorama_layout_v1_hive_only.json.
+
+## Role fill-ins (Aegis counterparts for Hive units)
+Chromejaw -> Breaker, Ratline -> Sapper, Hackling -> Cadet, Locust Swarm -> Seeker, Overclock -> Hailstorm, Netrunner Hive -> Override, Wire Weaver -> Warden, Beetle Bomber -> Hammerhead, Locust Carrier -> Mothership, Jellyfish Dreadnought -> Tribunal.
+New FX/projectiles: Proj_AegisBomb, Proj_AegisNet, Proj_AegisCharge, Proj_AegisHackBolt, FX_AegisStasis (slow field decal), FX_AegisShockField (scale to the Tribunal's splash radius).
+
+## FX added for Claude Code's list
+- FX_AegisArc: electric arc 1 unit long along +Z in Unity (+Y in Blender), starting at the origin; scale Z to the target distance. Parts AArc_Glow/Main/Core/Fork0-1, flares at each end. Replaces Bolt_Chain (Tribunal tendrils, Arc Turret).
+- FX_AegisFlame: already existed (Flame_Outer/Mid/Core/Puff0-3, points along +Z in Unity). Use it instead of FX_Flame for the Enforcer.
+- FX_AegisImpact: Impact_ThinRing, Impact_SoftRing, Impact_DashedRing, Impact_PulseWall (+Rim). Same roles as Shock_Thin / Shock_Soft / Shock_Pulse.
+- FX_AegisPunch: Punch_Star, Punch_Core, Punch_Ring, Punch_Shard0-7, facing +Z in Unity. Replaces Flash_Heavy for the Breaker.
+- FX_AegisScorch: Scorch_Round(+Embers), Scorch_Splat, Scorch_BurnStreak(+Embers), Scorch_Crater(+Embers, +Pit). Same names and layout as FX_Scorch, with red/amber embers.
+
+## Extra wrecks
+Wreck_Aegis_Collector, Gunship, Interceptor, Skylift, Carrier, ArcTurret.

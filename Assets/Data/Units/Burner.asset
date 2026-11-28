@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: Burner
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Burner
+  faction: 0
   role: 2
   description: 'Flamethrower. Short range, but every burst splashes: shreds groups
     of light units.'
   icon: {fileID: 21300000, guid: 06df9ee418ce1c740aead5c42a21c67c, type: 3}
+  portrait: {fileID: 21300000, guid: dc36e8b91e2cc3741b54a533e9cf58a1, type: 3}
   cost: 400
   buildTime: 6
   squadSize: 1

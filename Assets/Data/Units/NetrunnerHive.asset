@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: NetrunnerHive
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Netrunner Hive
+  faction: 0
   role: 5
   description: 'Hacker. Each hit stuns the target for 1.2s: locks down a dangerous
     unit.'
   icon: {fileID: 21300000, guid: 7188eab6b3883f1409bd43db36ab62a4, type: 3}
+  portrait: {fileID: 21300000, guid: b038379f07269a440839ae8ec51a023f, type: 3}
   cost: 650
   buildTime: 7
   squadSize: 1

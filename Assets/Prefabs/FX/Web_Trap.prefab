@@ -813,6 +813,8 @@ MonoBehaviour:
   scaleTo: 1
   fadeStart: 0.6
   randomRoll: 0
+  flicker: 0.1
+  spin: 20
 --- !u!1 &4761415262546897774
 GameObject:
   m_ObjectHideFlags: 0

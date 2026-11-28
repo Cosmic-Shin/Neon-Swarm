@@ -18,6 +18,7 @@ MonoBehaviour:
   description: Long-range rifle specialist. Picks off units from beyond their reach;
     fragile up close.
   icon: {fileID: 21300000, guid: b998bc073ebe69c4d9b568e1c227ec26, type: 3}
+  portrait: {fileID: 21300000, guid: ad627c32c8a3f9a4e9b087f9d9ed8e4d, type: 3}
   cost: 775
   buildTime: 8
   squadSize: 1
@@ -41,7 +42,7 @@ MonoBehaviour:
     speed: 160
     arc: 0
     muzzleFlash: {fileID: 2923620917300925078, guid: b9c1d30cf7234304ab27f85362607d76, type: 3}
-    impact: {fileID: 7867704074619241271, guid: 0b403134df61caa478fa749cf1fddf02, type: 3}
+    impact: {fileID: 1315336175251994556, guid: cb17035fda0077540b18371229145bbc, type: 3}
     scorch: {fileID: 0}
     hideBeam: 1
   style: 0

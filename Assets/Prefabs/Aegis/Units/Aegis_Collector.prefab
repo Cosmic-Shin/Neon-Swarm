@@ -502,7 +502,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9dc3e410e41dacc4daeffb979aafb954, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UnitDeath
-  mode: 0
+  mode: 2
   emissionFadeTime: 0.5
   flickerFirst: 1
   spawnOnDeath:
@@ -522,8 +522,8 @@ MonoBehaviour:
   animator: {fileID: 7895876159581362675}
   deathTrigger: Die
   deathClipLength: 1.6666666
-  wreckPrefab: {fileID: 0}
-  wreckLifetime: 30
+  wreckPrefab: {fileID: 4392926526614298466, guid: 99df33d1d3cf70746be8b6d24964a022, type: 3}
+  wreckLifetime: 20
   sinkTime: 0.4
   sinkDepth: 0.4
 --- !u!1001 &1916866229715131433

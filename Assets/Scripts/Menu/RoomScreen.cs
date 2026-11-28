@@ -64,7 +64,16 @@ public class RoomScreen : MonoBehaviour
             factionButton.name = "Faction";
             factionButton.onClick = new Button.ButtonClickedEvent();
             ((RectTransform)factionButton.transform).anchoredPosition += Vector2.left * (((RectTransform)teamButton.transform).sizeDelta.x + 10f);
-            factionButton.onClick.AddListener(() => { var r = RoomState.Instance; if (r == null) return; if (r.BotLevel(slot) > 0) r.BotFaction(slot); else r.NextFaction(); });
+            factionButton.onClick.AddListener(() =>
+            {
+                var r = RoomState.Instance;
+                if (r == null) return;
+                if (r.BotLevel(slot) > 0) { r.BotFaction(slot); return; }
+                int mine = r.SlotOf(r.Runner.LocalPlayer);
+                if (slot != mine) { r.NextFaction(); return; }
+                int count = Mathf.Max(1, Faction.All.Length);
+                FactionPicker.Show(transform, r.FactionOf(mine), want => { int steps = (want - r.FactionOf(mine) + count) % count; for (int n = 0; n < steps; n++) r.NextFaction(); });   // NextFaction is an RPC: step count up front
+            });
             factionButtons[i] = factionButton;
             FitRow(rows[i].transform, teamButton, factionButton);
             rowMod[i] = Moderation(rows[i], () => RoomState.Instance.Slots[slot]);
@@ -258,7 +267,7 @@ public class RoomScreen : MonoBehaviour
         var room = RoomState.Instance;
         if (!runner || !runner.SessionInfo.IsValid || room == null) return;
         bool host = room.IsHost;
-        title.text = runner.SessionInfo.Name.ToUpper() + "   " + RoomPlayer.All.Count + "/" + runner.SessionInfo.MaxPlayers
+        title.text = runner.SessionInfo.Name.ToUpper() + "   " + RoomPlayer.All.Count + "/" + RoomService.MaxPlayers
             + (runner.SessionInfo.IsVisible ? "" : "   <size=20>FRIENDS ONLY</size>");
 
         for (int i = 0; i < rows.Length; i++)

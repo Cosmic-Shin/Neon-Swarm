@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: LocustCarrier
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Locust Carrier
+  faction: 0
   role: 3
   description: Flying carrier. Launches 4 attack drones when it fights; they dock
     again after. Lost drones are rebuilt.
   icon: {fileID: 21300000, guid: d9599940f8548684ba549f3d82aaaec6, type: 3}
+  portrait: {fileID: 21300000, guid: 7ea4ab95c80c55b46877d1f4d7b2c310, type: 3}
   cost: 1000
   buildTime: 12
   squadSize: 1

@@ -17,6 +17,7 @@ MonoBehaviour:
   role: 1
   description: Drone Bay interceptor. Launches by itself to chase off attackers.
   icon: {fileID: 21300000, guid: 6e7306ebafcdf1641af9f1261db1e22d, type: 3}
+  portrait: {fileID: 21300000, guid: 80be37c59e92ab340a22d6a4c0bd31be, type: 3}
   cost: 525
   buildTime: 6
   squadSize: 3

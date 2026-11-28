@@ -13,6 +13,7 @@ public class GlitchSplash : MonoBehaviour
     public float contentOffset = 0.185f;
 
     static bool shown;
+    public static bool Playing;
 
     GameObject canvas, title;
     CanvasGroup group;
@@ -24,11 +25,13 @@ public class GlitchSplash : MonoBehaviour
     void Awake()
     {
         if (shown || image == null) { enabled = false; return; }
-        shown = true;
+        shown = Playing = true;
         if (transform.Find("Title") is Transform t) { title = t.gameObject; title.SetActive(false); }
         Build();
         StartCoroutine(Run());
     }
+
+    void OnDestroy() => Playing = false;
 
     void Build()
     {
@@ -205,6 +208,7 @@ public class GlitchSplash : MonoBehaviour
 
         var whole = canvas.AddComponent<CanvasGroup>();
         if (title != null) title.SetActive(true);
+        Playing = false;
         for (float t = 0f; t < 0.35f; t += Time.unscaledDeltaTime)
         {
             whole.alpha = 1f - t / 0.35f;

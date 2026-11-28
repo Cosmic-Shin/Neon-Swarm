@@ -17,7 +17,8 @@ MonoBehaviour:
   role: 1
   description: Air-superiority fighter. Missiles only hit other flyers.
   icon: {fileID: 21300000, guid: c4531131d466f8a48a3ec28296636bd1, type: 3}
-  cost: 525
+  portrait: {fileID: 21300000, guid: 7686d7484be25474786bd4aa7edf9a5a, type: 3}
+  cost: 550
   buildTime: 7
   squadSize: 2
   maxHealth: 125

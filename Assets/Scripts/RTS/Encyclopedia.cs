@@ -13,7 +13,7 @@ public class Encyclopedia : MonoBehaviour
     class Entry
     {
         public string name, group, head, body;
-        public Sprite icon;
+        public Sprite icon, picture;   // picture: big art for the detail panel (unit portraits), falls back to the icon
         public int rank, cost;
         public FactionId faction;
     }
@@ -188,8 +188,8 @@ public class Encyclopedia : MonoBehaviour
     {
         for (int i = 0; i < rows.Count; i++) HoloSkin.SetOn(rows[i], i == index);
         var e = list[index];
-        icon.sprite = e.icon;
-        icon.enabled = e.icon != null;
+        icon.sprite = e.picture != null ? e.picture : e.icon;
+        icon.enabled = icon.sprite != null;
         head.text = e.head;
         body.text = e.body;
     }
@@ -265,6 +265,7 @@ public class Encyclopedia : MonoBehaviour
         extra += Section("COUNTERED BY", Names(weak));
         var e = Make(d.displayName, $"{d.role}  ·  ${d.cost}", d.icon, (int)d.role, d.cost, Tooltip.For(d), extra);
         e.faction = d.faction;
+        e.picture = d.portrait;
         return e;
     }
 

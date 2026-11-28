@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: DataHarvester
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Data Harvester
+  faction: 0
   role: 0
   description: Mines ore and drives it to a refinery for credits. Red ore pays 2.5x.
     Can't fight, but very tough.
   icon: {fileID: 21300000, guid: a6b7ec6f70b492644bddf4e522031f46, type: 3}
+  portrait: {fileID: 21300000, guid: 3ef709f01329da34bb311872c7aac766, type: 3}
   cost: 600
   buildTime: 10
   squadSize: 1

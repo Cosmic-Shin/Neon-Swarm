@@ -369,10 +369,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Building
   unitPrefabs:
+  - {fileID: 6336989920265486010, guid: 8176aa756ed59554ab15a713fc9cd37e, type: 3}
+  - {fileID: 4894003908973689205, guid: a79558f6fedf8384680bb4043fbf97af, type: 3}
   - {fileID: 5088480349963638667, guid: a26ba43a0bed46047bb5e4077da65090, type: 3}
   - {fileID: 8940628678244014047, guid: 176d54fe91eb4264e9ebf4cf6fd43f27, type: 3}
+  - {fileID: 4937051058390647176, guid: b61c6c01d7c3b5d4da622890e7b37910, type: 3}
   - {fileID: 1311824468429307756, guid: c850d11a0c4c522409add692a658e16c, type: 3}
+  - {fileID: 8685993427015899460, guid: 3ae37c7924e5f0c4087055899b00b1ae, type: 3}
   - {fileID: 5492559470931749634, guid: 0b36443e6326f8a49a5ca52476ef7bd2, type: 3}
+  - {fileID: 461989146149275063, guid: 3b76d7f7cfaa2054088d032a87cc3fea, type: 3}
   - {fileID: 553797314167880183, guid: 097c3958997c04a4aa76d30fa0422c97, type: 3}
   upgrades: []
   spawnPoint: {fileID: 4844030624882847255}

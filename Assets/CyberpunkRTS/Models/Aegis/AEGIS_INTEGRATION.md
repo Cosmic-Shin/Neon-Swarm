@@ -45,7 +45,7 @@ settings, prefabs, data, research, AI profiles, construction kit, FX, neutral pi
 | Suppressor | EMPCentipede | Stun on hit, `P_AegisEMP`, `SUP_PulsePoint` |
 | Lancer | CrusherTarantula | Railgun (`P_AegisRailSlug`), turret aims via `AimPivot` on `LAN_TurretPivot` |
 | Bastion | MortarScarab + **Deployer** | Must deploy (601-620) before firing, undeploys (621-640) to move; `BAS_TurretPivot` aims |
-| Paladin | BulwarkTick + ShieldField | Personal shield (`PAL_ShieldDome`, -30% damage to itself and adjacent allies) |
+| Paladin | BulwarkTick + ShieldField | Personal shield (`PAL_ShieldDome`, -15% damage to itself and adjacent allies) |
 | Colossus | QueenArachne | Elite (Command Spire Mk III), twin lances `COL_LanceMuzzle` |
 | Interceptor | HornetInterceptor | Air-to-air missiles `INT_Muzzle` |
 | Gunship | DragonflyGunship | `GUN_Muzzle` |
@@ -53,10 +53,32 @@ settings, prefabs, data, research, AI profiles, construction kit, FX, neutral pi
 | Carrier | MothMothership | Drops Peacekeepers at `CAR_DropPoint` (PodDrop style) |
 | Dominion | MantaLeviathan | Elite sky fortress, `DOM_Muzzle` L/R |
 | PatrolDrone | SentryDrone | Launched by the Drone Bay |
+| **Role fill-ins** | | Aegis counterparts for the Hive-only units (README "Role fill-ins") |
+| Cadet | Hackling | Barracks Bay. Squad of 3, hits air + ground, `CDT_Muzzle`, `P_AegisTracer` |
+| Sapper | Ratline | Barracks Bay. Squad of 3, building damage x1.3, `SAP_Muzzle`, `P_AegisCharge` (Proj_AegisCharge) |
+| Override | NetrunnerHive | Barracks Bay, Elite (Mk III). Stun on hit, `OVR_Muzzle`, `P_AegisHackBolt` |
+| Warden | WireWeaver | Barracks Bay. Slow on hit, `WAR_Muzzle`, `P_AegisNet` + `Stasis_Aegis` (FX_AegisStasis) where it lands |
+| Breaker | Chromejaw | Motor Pool. `Ability.Charge`, melee, `BRK_Muzzle` on the right gauntlet; wreck |
+| Hailstorm | Overclock | Motor Pool, Elite (Mk III). `Ability.Overheat`, `HAL_Muzzle` (HAL_Barrels spin is in the Attack clip); wreck |
+| Seeker | LocustDrone | Airfield. Squad of 5 flyers, `SEK_Muzzle`; also the Mothership's drone |
+| Hammerhead | BeetleBomber | Airfield. Splash bombs `P_AegisBomb` from `HAM_BombPoint`, crater scorch; wreck |
+| Mothership | LocustCarrier + SwarmBay | Airfield. Launches up to 4 Seekers from `MOM_LaunchPoint0-3` in turn (`SwarmBay.launchFrom`), docks them back to rebuild; own gun `MOM_Muzzle`; wreck |
+| Tribunal | JellyfishDreadnought | Airfield, Elite (Mk III). `WeaponStyle.ShockPulse` from `TRB_PulsePoint`, stuns ground units in its splash radius; `ShockField_Aegis` (FX_AegisShockField) is spawned by `Attacker.Pulse` scaled to that radius; wreck |
+| Spotter | FireflySpotter | Airfield. Cheap scout flyer, `SPT_Muzzle`, `P_AegisTracer`; scale 3.5, hover 6 |
+
+Every Hive unit and building now has its own Aegis twin, so Hive AI build orders, unit weights and research filters map one-to-one.
+
+Aegis FX replacing the Hive ones (`AegisBuilder.FxSwap`, applied to every Aegis unit in `Visuals()`, sized to the Hive original by `Match()`):
+`Bolt_Chain` -> `Arc_Aegis` (FX_AegisArc), `Shock_Thin/Soft/Pulse` -> `Impact_Aegis_Thin/Soft/Pulse` (FX_AegisImpact), `Flash_Heavy` -> `Punch_Aegis`
+(FX_AegisPunch), `FX_Flame` -> `Flame_Aegis` (FX_AegisFlame, 2.2 x 2.2 x 6), `Scorch_*` -> `Scorch_Aegis_*` (FX_AegisScorch, each decal re-centred),
+`Flash_Rifle` -> `Flash_Aegis`, `P_SMGTracer` -> `P_AegisTracer`. Wrecks added for Collector, Gunship, Interceptor, Skylift, Carrier and the Arc Turret.
+`Fx` has `flicker` (emission dips, off with Reduce Flashing), `spin` (around world up) and `faceCamera`; `AegisBuilder.TuneFx()` sets them after the FX are built (arc crackle + random roll, rotating shock/stasis fields, punch star that faces the camera and lands on the Breaker's target).
 
 Every combat unit has its own controller (Idle/Walk/Attack/Death, plus Deploy/Undeploy for the Bastion) with the same parameters as the Hive
 `UnitLocomotion` controller (`Speed`, `Attack`) plus `Die`. Units with a wreck model use `UnitDeath.AnimateThenWreck` (Death 1-40, then
-`Wreck_Aegis_<Name>`); the rest break apart like Hive units. Stats: Hive counterpart, then HP x1.15, cost x1.15, speed x0.9 (see AegisBalance.md).
+`Wreck_Aegis_<Name>`); the rest break apart like Hive units. Stats: Hive counterpart, then HP x1.15, cost x1.05, speed x0.9, then the
+per-unit `Tuning` table in AegisBuilderExtras.cs (see AegisBalance.md).
+Portraits: `UnitData.portrait` (`UI/Portraits/Aegis|Hive/portrait_<Name>.png`) is shown on the selected-unit card, falling back to the icon.
 
 ## Buildings
 
@@ -73,6 +95,7 @@ Every combat unit has its own controller (Idle/Walk/Attack/Death, plus Deploy/Un
 | TechCenter | OverwatchSpire + Building | Long sight; researches the Defense and Elite branches |
 | ResearchLab | ResearchLab | Econ / Assault / Heavy / Support branches |
 | SentinelTurret / FlakBattery / RailBattery | Turret | Heads aim via `AimPivot` (`ST_Head`, `FB_Head`, `RB_Yaw`); RailBattery plays Fire 100-120 on each shot |
+| ArcTurret | ArcCoil (Turret `bolt`) | Chain arc `Arc_Aegis` from `AT_Muzzle`, `AT_Head` aims, Fire 100-112; BuildingLife spins the orb rings, Mk II capacitor pylons zap the orb, Mk III prong tips spark on each shot |
 | PulseWall | FirewallGate (drag line) | |
 | PulseGate | FirewallGate + **UnitGate** | Drag line; non-carving obstacle that switches off and plays Open/Close when friendly ground units are within 8 m |
 | PulsePost | FirewallGate | Single post |
@@ -105,23 +128,18 @@ and fires the Orbital Lance through the existing superweapon logic.
 `Assets/Prefabs/Aegis/Neutral/Neutral_Corp_*` are built on the DerelictOutpost prefab (OutpostCapture + Outpost) with a **CorpSite** component:
 CapturePoint (capture only), RepairBay (heals the owner's vehicles at `NRB_RepairPoint`), DataVault (+30 credits every 5 s to the owner),
 Outpost (70 m sight for the owner). Idle 1-60 loops; `Aegis_TeamColor` banners are grey when neutral and the owner's colour when captured.
-They are in `PrefabList` but not placed on any map yet.
-Props (`Prop_Aegis_*`, with colliders, static) are in the `MapProps` palette; existing maps were not changed.
+`MapBuilder.BuildCorp` places them on every map (symmetric per base) inside an Aegis plaza of `Prop_Aegis_*` props; the AI captures
+and garrisons them (`AIPlayer.Outposts.cs`).
 
 ## Stubbed / known gaps
 
-- **Pack export**: the Aegis unit FBX takes end at frame 249, so Attack (501+), Collector Harvest/Unload (301-449) and Bastion Deploy/Undeploy
-  (601-640) are not in the files. Controllers and Fire events are set up and pick the clips up automatically once the units are re-exported to frame 640
-  and the builder is re-run. Until then those states play nothing (units still fight, harvest and deploy on timers).
 - ExtractionRig is a passive income building like the Hive siphon; Collectors do not dock at `ER_DockPoint`.
 - Damage smoke and fire are the existing particle prefabs; only the sparks use the `FX_AegisDamage` meshes.
 - Medic heal and Technician repair beams are the existing line beams (Aegis colours); `ABeam_Heal` and the `ARep_Arc` mesh are not used.
 - Team colour uses shared tinted materials, not MaterialPropertyBlocks, because hit flashes already drive `_Color` through property blocks.
 - Pulse Gate opens for friendly units near it, but pathfinding does not route through a closed gate.
-- Neutral corporate pieces are not placed on the shipped maps.
 
 ## UI still to do
 
-UI skin (`HoloUI/Aegis`), cursors (`HoloCursors/Aegis`), emblem and lockup on menus, portraits (`UI/Portraits/Aegis|Hive`) in the HUD/encyclopedia,
-faction-specific HUD colours, and a proper faction picker screen. (A minimal faction button exists in the Skirmish and multiplayer lobby rows,
+Portraits in the encyclopedia (the HUD unit card has them), faction-specific HUD colours, and a proper faction picker screen. (A minimal faction button exists in the Skirmish and multiplayer lobby rows,
 and the v2 menu diorama is built.)

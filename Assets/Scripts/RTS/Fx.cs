@@ -8,6 +8,12 @@ public class Fx : MonoBehaviour
     [SerializeField] float scaleTo = 1f;
     [SerializeField, Range(0f, 1f)] float fadeStart = 0.5f;
     [SerializeField] bool randomRoll;
+    [Tooltip("0..1: random emission dips every frame (arcs, flames, energy fields)")]
+    [SerializeField, Range(0f, 1f)] float flicker;
+    [Tooltip("Degrees per second around world up (ground fields and rings)")]
+    [SerializeField] float spin;
+    [Tooltip("Turn +Z toward the camera on spawn (flat flashes like the punch star read face-on from the RTS camera)")]
+    [SerializeField] bool faceCamera;
 
     static readonly int ColorId = Shader.PropertyToID("_Color");
     static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
@@ -40,6 +46,8 @@ public class Fx : MonoBehaviour
         if (fx == null) return null;
         fx.size = size;
         fx.age = 0f;
+        if (fx.faceCamera && Camera.main != null) rotation = Quaternion.LookRotation(Camera.main.transform.position - position);
+        fx.transform.rotation = rotation;
         if (fx.randomRoll) fx.transform.rotation = rotation * Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
         fx.Apply(0f);
         return fx;
@@ -53,6 +61,7 @@ public class Fx : MonoBehaviour
         age += Time.deltaTime;
         float k = age / lifetime;
         if (k >= 1f) { FxPool.Despawn(gameObject); return; }
+        if (spin != 0f) transform.Rotate(Vector3.up, spin * Time.deltaTime, Space.World);
         Apply(k);
     }
 
@@ -60,6 +69,7 @@ public class Fx : MonoBehaviour
     {
         transform.localScale = Vector3.Scale(baseScale, size) * Mathf.Lerp(scaleFrom, scaleTo, k);
         float fade = k < fadeStart ? 1f : 1f - (k - fadeStart) / (1f - fadeStart);
+        if (flicker > 0f && !GameSettings.ReduceFlashing) fade *= 1f - flicker * Random.value;
         for (int i = 0; i < renderers.Length; i++)
         {
             if (renderers[i] is ParticleSystemRenderer) continue;

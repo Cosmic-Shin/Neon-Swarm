@@ -1,0 +1,8 @@
+{
+    "name": "GD5.CloudCodeDeploy",
+    "references": [
+        "Unity.Services.Core.Editor"
+    ],
+    "includePlatforms": [ "Editor" ],
+    "autoReferenced": false
+}

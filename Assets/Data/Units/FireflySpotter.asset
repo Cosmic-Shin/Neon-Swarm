@@ -13,9 +13,11 @@ MonoBehaviour:
   m_Name: FireflySpotter
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Firefly Spotter
+  faction: 0
   role: 1
   description: Air scout. Huge sight radius, flies over the fight, barely armed.
   icon: {fileID: 21300000, guid: ea58b92098886204e8cea33c32a949fb, type: 3}
+  portrait: {fileID: 21300000, guid: 2ff73c04f5f6680478db17300e4e0415, type: 3}
   cost: 350
   buildTime: 5
   squadSize: 1

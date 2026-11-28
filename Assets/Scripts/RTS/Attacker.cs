@@ -259,6 +259,8 @@ public class Attacker : MonoBehaviour
         Color c = ProductionFX.HoloColor(gameObject);
         Juice.Ring(ground, c, 1f, r, 0.4f, 0.4f);
         Juice.Flash(Flyer.Center(this), c, 6f, r * 2f, 0.3f);
+        if (data.visual.impact != null) Fx.Spawn(data.visual.impact, ground, Quaternion.Euler(0f, Random.value * 360f, 0f), r);
+        if (Juice.Seen(ground)) Juice.Shake(ground, 0.2f);   // shock-field decal, ~2 m model -> radius r
         Sfx.At(Snd.Zap, ground, 0.8f);
 
         hits.Clear();
@@ -346,6 +348,7 @@ public class Attacker : MonoBehaviour
         Vector3 flat = at - from; flat.y = 0f;
         if (v.impact != null) Fx.Spawn(v.impact, at, Quaternion.identity, splash > 0f ? r * 0.6f : r);
         if (splash > 0f) Sfx.At(Snd.BoomSmall, at, 0.4f);
+        if (splash >= 3.5f && Juice.Seen(at)) Juice.Shake(at, 0.04f * splash);   // bombs and shells thump; rifles stay quiet
         ImpactByWeapon(data.weapon, at, splash);
         if (t != null && !t.IsDead) UnitMotion.Knock(t, flat, 2f + 8f * Mathf.Clamp01(dmg / t.MaxHealth * 5f));
         bool rapid = data.attackCooldown < 1f;

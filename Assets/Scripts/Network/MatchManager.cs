@@ -76,6 +76,7 @@ public class MatchManager : MonoBehaviour
         if (!runner.IsRunning) yield break;
         foreach (var e in NetEntity.All) if (e != null) e.RefreshTeam();
         PlayerPrefs.SetString(RoomService.RejoinKey, runner.SessionInfo.Name);
+        PlayerPrefs.SetString(RoomService.RejoinKey + ".region", runner.SessionInfo.Region);
 
         if (Net.Watching || room.HasReturned(Net.LocalSlot))
         {

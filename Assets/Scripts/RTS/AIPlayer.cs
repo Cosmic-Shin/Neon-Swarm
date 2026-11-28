@@ -62,6 +62,7 @@ public partial class AIPlayer : MonoBehaviour
         if (!saving && !SavingForSilo) Produce();
         Army();
         Harass();
+        Outposts();
         FireSilo();
     }
 
@@ -502,7 +503,7 @@ public partial class AIPlayer : MonoBehaviour
         return worth;
     }
 
-    bool Away(SelectableUnit u) => wave.Contains(u) || harass.Contains(u);
+    bool Away(SelectableUnit u) => wave.Contains(u) || harass.Contains(u) || claimers.Contains(u);
 
     float Weight(UnitData d)
     {

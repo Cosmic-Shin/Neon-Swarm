@@ -18,6 +18,7 @@ MonoBehaviour:
   description: Railgun tank. Punches through heavy armour and fortifications from
     mid range.
   icon: {fileID: 21300000, guid: 63c4089cd5890634c860acaa33468b80, type: 3}
+  portrait: {fileID: 21300000, guid: 82fe61827636751459ac95372c368863, type: 3}
   cost: 1050
   buildTime: 10
   squadSize: 1
@@ -41,7 +42,7 @@ MonoBehaviour:
     speed: 70
     arc: 0
     muzzleFlash: {fileID: 2923620917300925078, guid: b9c1d30cf7234304ab27f85362607d76, type: 3}
-    impact: {fileID: 7867704074619241271, guid: 0b403134df61caa478fa749cf1fddf02, type: 3}
+    impact: {fileID: 1315336175251994556, guid: cb17035fda0077540b18371229145bbc, type: 3}
     scorch: {fileID: 0}
     hideBeam: 1
   style: 0

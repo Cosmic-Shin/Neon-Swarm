@@ -391,10 +391,12 @@ MonoBehaviour:
   unitPrefabs:
   - {fileID: 7346366123835847926, guid: 8939b56dc78aac14dbc99bec23e92938, type: 3}
   - {fileID: 5600165446547343627, guid: d76eec46b43a6fa40bc06a544ba4e14a, type: 3}
+  - {fileID: 1614259644205690612, guid: a368aa48a1141544b845aee89244df59, type: 3}
   - {fileID: 3500148894614944121, guid: 081474066864fa44e87adcea1acb5972, type: 3}
   - {fileID: 3634007982489371481, guid: bc7267fbb04446b49acb39feb1308979, type: 3}
   - {fileID: 7944815635716011959, guid: f8b602f7243eb5b409b40371570c01e6, type: 3}
   - {fileID: 7162276445732137534, guid: 55cd09f800cafab4c9c1bd1c3940d2b8, type: 3}
+  - {fileID: 8187436798354477508, guid: d3ed76261aafd8e4ba281530508caefd, type: 3}
   - {fileID: 479467735442790936, guid: b1613319a21b21c479472d6412c9d504, type: 3}
   upgrades: []
   spawnPoint: {fileID: 9171959143915014841}

@@ -25,6 +25,17 @@ public class CorpSite : MonoBehaviour
     {
         capture = GetComponent<OutpostCapture>();
         foreach (var t in GetComponentsInChildren<Transform>(true)) if (t.name == "NRB_RepairPoint") repairPoint = t;
+        if (!TryGetComponent(out life)) life = gameObject.AddComponent<BuildingLife>();
+    }
+
+    BuildingLife life;
+
+    void Captured(int owner)
+    {
+        if (!Juice.Seen(transform.position)) return;
+        // Outpost.CaptureFX already does the rings, burst and sky beam
+        Juice.Flash(transform.position + Vector3.up * 6f, owner < 0 ? Neutral : Net.ColorOf(owner), 4f, 30f, 0.5f);
+        life.Kick(owner < 0 ? -0.8f : 1f);
     }
 
     void Update()
@@ -32,6 +43,7 @@ public class CorpSite : MonoBehaviour
         int owner = Owner;
         if (owner != shownOwner)
         {
+            if (shownOwner != -99) Captured(owner);
             shownOwner = owner;
             TeamLook.ApplyColor(gameObject, owner < 0 ? Neutral : Net.ColorOf(owner));
         }

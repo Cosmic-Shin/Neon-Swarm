@@ -18,7 +18,8 @@ MonoBehaviour:
   description: Aegis line trooper. Fielded in squads of three with burst rifles.
     Cheap, dependable, everywhere.
   icon: {fileID: 21300000, guid: c3f3f688d275f4245ac5bfff9e7a06fd, type: 3}
-  cost: 525
+  portrait: {fileID: 21300000, guid: b78f2ac7abc59fe42afa1caaed57a4ec, type: 3}
+  cost: 550
   buildTime: 6
   squadSize: 3
   maxHealth: 100

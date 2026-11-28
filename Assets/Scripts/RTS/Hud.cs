@@ -236,7 +236,7 @@ public class Hud : MonoBehaviour
     {
         var d = u.Data;
         var h = u.GetComponent<Health>();
-        portrait.sprite = d.icon;
+        portrait.sprite = d.portrait != null ? d.portrait : d.icon;
         nameText.text = d.displayName.ToUpper();
         roleText.text = $"{d.role}  ·  {d.armor} armour" + (d.damage > 0f ? $"  ·  {d.weapon} weapon" : "");
         SetBar(hpFill, h.Fraction, h.Fraction > 0.5f ? High : h.Fraction > 0.25f ? Mid : Low);

@@ -136,7 +136,7 @@ public class FriendsPanel : MonoBehaviour
             bool canJoin = act?.room != null && act.room != FriendsHub.CurrentRoom && UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex == 0;
             bool canInvite = act != null && FriendsHub.CurrentRoom != null && act.room != FriendsHub.CurrentRoom;
             var buttons = new System.Collections.Generic.List<(string, Func<Task<string>>)>();
-            if (canJoin) { string room = act.room; buttons.Add(("JOIN", () => { Destroy(gameObject); MultiplayerMenu.JoinFriendRoom(room); return Task.FromResult<string>(null); })); }
+            if (canJoin) { string room = act.room, region = act.region; buttons.Add(("JOIN", () => { Destroy(gameObject); MultiplayerMenu.JoinFriendRoom(room, region); return Task.FromResult<string>(null); })); }
             if (canInvite) buttons.Add(("INVITE", async () => { var e = await FriendsHub.SendInvite(id); return e ?? "Invite sent."; }));
             var member = m;
             buttons.Add((unread > 0 ? $"VIEW ({unread})" : "VIEW", () => { OpenCard(member); return Task.FromResult<string>(null); }));
@@ -296,8 +296,14 @@ public class FriendsPanel : MonoBehaviour
         var lines = new System.Text.StringBuilder();
         if (FriendsHub.Chats.TryGetValue(cardId, out var chat))
             for (int i = Mathf.Max(0, chat.Count - 7); i < chat.Count; i++)
-                lines.AppendLine((chat[i].mine ? "<color=#4CFFFF>You:</color> " : $"<color=#FF40E0>{cardName}:</color> ") + chat[i].text);
-        cardChat.text = lines.Length > 0 ? lines.ToString() : "<color=#8A96B0>No messages yet. Messages last until you close the game.</color>";
+                lines.AppendLine($"<color=#5C6680>{Ago(chat[i].at)}</color>  " + (chat[i].mine ? "<color=#4CFFFF>You:</color> " : $"<color=#FF40E0>{cardName}:</color> ") + chat[i].text);
+        cardChat.text = lines.Length > 0 ? lines.ToString() : "<color=#8A96B0>No messages yet. Friends get your messages even if they're offline.</color>";
+    }
+
+    static string Ago(long at)
+    {
+        var d = System.DateTimeOffset.UtcNow - System.DateTimeOffset.FromUnixTimeMilliseconds(at);
+        return d.TotalMinutes < 1 ? "now" : d.TotalHours < 1 ? $"{(int)d.TotalMinutes}m" : d.TotalDays < 1 ? $"{(int)d.TotalHours}h" : $"{(int)d.TotalDays}d";
     }
 
     void CloseCard()
@@ -378,12 +384,13 @@ public class FriendsPanel : MonoBehaviour
     }
 
 
-    static (string from, string room)? waiting;
+    static (string from, string room, string region)? waiting;
 
     [RuntimeInitializeOnLoadMethod]
     static void HookInvites()
     {
         FriendsHub.Invited += ShowInvite;
+        FriendsHub.MissedMail += ShowMissed;
         FriendsHub.Messaged += (from, text) =>
         {
             if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != 0) Alerts.Show(from + ": " + text, Alerts.Info);
@@ -391,17 +398,36 @@ public class FriendsPanel : MonoBehaviour
         };
         UnityEngine.SceneManagement.SceneManager.activeSceneChanged += (old, scene) =>
         {
-            if (scene.buildIndex != 0 || waiting is not var (from, room)) return;
+            if (scene.buildIndex != 0 || waiting is not var (from, room, region)) return;
             waiting = null;
-            ShowInvite(from, room);
+            ShowInvite(from, room, region);
         };
     }
 
-    static void ShowInvite(string from, string room)
+    static void ShowMissed(string summary)
+    {
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != 0) { Alerts.Show(summary, Alerts.Info); return; }
+        Sfx.Play(Snd.Info);
+        var canvas = FindFirstObjectByType<Canvas>()?.rootCanvas;
+        if (!canvas) return;
+        var box = Box(canvas.transform, new Vector2(520f, 150f), "Tooltip");
+        box.name = "MissedMail";
+        box.anchorMin = box.anchorMax = Vector2.one;
+        box.anchoredPosition = new Vector2(-280f, -205f);   // below the player card
+        Label(box, "WHILE YOU WERE AWAY", new Vector2(0f, 42f), 24, TextAnchor.MiddleCenter, 480f).color = Color.white;
+        Label(box, summary, new Vector2(0f, 8f), 20, TextAnchor.MiddleCenter, 480f).color = Dim;
+        var go = box.gameObject;
+        Button(box, "READ", new Vector2(-110f, -45f), new Vector2(200f, 46f)).onClick.AddListener(() => { Destroy(go); Open(canvas); });
+        Button(box, "LATER", new Vector2(110f, -45f), new Vector2(200f, 46f)).onClick.AddListener(() => Destroy(go));
+        box.SetAsLastSibling();
+        Destroy(go, 15f);
+    }
+
+    static void ShowInvite(string from, string room, string region)
     {
         if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != 0)
         {
-            waiting = (from, room);
+            waiting = (from, room, region);
             Alerts.Show(from + " invited you to " + room + " (join from the menu)", Alerts.Info);
             return;
         }
@@ -412,7 +438,7 @@ public class FriendsPanel : MonoBehaviour
         var box = Box(canvas.transform, new Vector2(520f, 150f), "Tooltip");
         box.name = "FriendInvite";
         box.anchorMin = box.anchorMax = Vector2.one;
-        box.anchoredPosition = new Vector2(-280f, -95f);
+        box.anchoredPosition = new Vector2(-280f, -205f);   // below the player card
         Label(box, from.ToUpper() + " INVITED YOU", new Vector2(0f, 42f), 24, TextAnchor.MiddleCenter, 480f).color = Color.white;
         Label(box, "to room \"" + room + "\"", new Vector2(0f, 8f), 20, TextAnchor.MiddleCenter, 480f).color = Dim;
         var go = box.gameObject;
@@ -421,7 +447,7 @@ public class FriendsPanel : MonoBehaviour
             Destroy(go);
             var open = FindFirstObjectByType<FriendsPanel>();
             if (open) Destroy(open.gameObject);
-            MultiplayerMenu.JoinFriendRoom(room);
+            MultiplayerMenu.JoinFriendRoom(room, region);
         });
         Button(box, "IGNORE", new Vector2(110f, -45f), new Vector2(200f, 46f)).onClick.AddListener(() => Destroy(go));
         box.SetAsLastSibling();

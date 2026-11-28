@@ -28,7 +28,7 @@ MonoBehaviour:
     flat: 3
     roles: 
     units:
-    - {fileID: 11400000, guid: 8093395d27297d24ea582f0c233e709c, type: 2}
+    - {fileID: 11400000, guid: 76806e57ed1d3b44cbfe17ac218b4e7b, type: 2}
     buildings: []
     defenses: 0
   - stat: 2
@@ -36,6 +36,6 @@ MonoBehaviour:
     flat: 0
     roles: 
     units:
-    - {fileID: 11400000, guid: 469f6f589fb9c42498ba586b4a7b0928, type: 2}
+    - {fileID: 11400000, guid: 6a0fd24ccba727a4796ed4e1387e4a83, type: 2}
     buildings: []
     defenses: 0

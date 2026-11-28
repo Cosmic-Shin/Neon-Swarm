@@ -110,6 +110,31 @@ public static class ProfileService
         catch (System.Exception e) { Debug.LogWarning(e); return null; }
     }
 
+    // DMs go through Cloud Code (Assets/CloudCode/SendMail.js): the server writes the recipient's PROTECTED "inbox"
+    // and the sender's PROTECTED "sent" key. Protected = only the server writes, only the owner reads.
+    [System.Serializable] public class Mail { public string from, to, text; public long at; }
+    [System.Serializable] public class MailBox { public List<Mail> items = new(); }
+    [System.Serializable] class SendResult { public long at; }
+
+    public static async Task<long> SendMail(string to, string text) =>
+        (await Unity.Services.CloudCode.CloudCodeService.Instance.CallEndpointAsync<SendResult>("SendMail",
+            new Dictionary<string, object> { { "to", to }, { "text", text } })).at;
+
+    public static async Task<(MailBox inbox, MailBox sent)> LoadMail()
+    {
+        var data = await CloudSaveService.Instance.Data.Player.LoadAsync(new HashSet<string> { "inbox", "sent" },
+            new Unity.Services.CloudSave.Models.Data.Player.LoadOptions(new Unity.Services.CloudSave.Models.Data.Player.ProtectedReadAccessClassOptions()));
+        MailBox Get(string key) => data.TryGetValue(key, out var item) ? item.Value.GetAs<MailBox>() ?? new MailBox() : new MailBox();
+        return (Get("inbox"), Get("sent"));
+    }
+
+    // the first version kept a PUBLIC outbox under "mail" (readable by any player); wipe it
+    public static async Task DropPublicMail()
+    {
+        try { await CloudSaveService.Instance.Data.Player.DeleteAsync("mail", new Unity.Services.CloudSave.Models.Data.Player.DeleteOptions(new Unity.Services.CloudSave.Models.Data.Player.PublicWriteAccessClassOptions())); }
+        catch (System.Exception e) { if (!e.Message.Contains("not found", System.StringComparison.OrdinalIgnoreCase)) Debug.LogWarning(e); }
+    }
+
     static bool submitted;
     public static void Forget() { Current = null; publicGames = -1; submitted = false; }
 

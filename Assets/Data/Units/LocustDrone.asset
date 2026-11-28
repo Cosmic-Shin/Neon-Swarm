@@ -13,9 +13,11 @@ MonoBehaviour:
   m_Name: LocustDrone
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Locust Swarm
+  faction: 0
   role: 2
   description: Five tiny attack drones per order. Cheap, fast, die in one burst.
   icon: {fileID: 21300000, guid: b22a0b1c3266c494dbacf70b50155b15, type: 3}
+  portrait: {fileID: 21300000, guid: 0bd88788fcf50394a981667692f7e5e2, type: 3}
   cost: 450
   buildTime: 6
   squadSize: 5

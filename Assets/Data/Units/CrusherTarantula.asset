@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: CrusherTarantula
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Crusher Tarantula
+  faction: 0
   role: 3
   description: Siege tank. Very tough, 2.5x damage to buildings. Leads an assault
     on a base.
   icon: {fileID: 21300000, guid: 1413eaeb4987f3c46ad75774f32917e5, type: 3}
+  portrait: {fileID: 21300000, guid: 66a91c14d88923149b83f7773a276819, type: 3}
   cost: 1000
   buildTime: 10
   squadSize: 1

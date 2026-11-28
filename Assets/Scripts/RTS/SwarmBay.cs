@@ -8,6 +8,11 @@ public class SwarmBay : MonoBehaviour
     public int capacity = 4;
     public float rebuildTime = 6f;
     public float launchGap = 0.35f;
+    [Tooltip("Name prefix of hatch transforms to launch from in turn (e.g. MOM_LaunchPoint); empty = around the hull")]
+    public string launchFrom;
+
+    readonly List<Transform> hatches = new();
+    int nextHatch;
 
     readonly List<SelectableUnit> drones = new();
     int stock;
@@ -25,7 +30,13 @@ public class SwarmBay : MonoBehaviour
         stock = capacity;
     }
 
-    void Start() => color = ProductionFX.HoloColor(gameObject);
+    void Start()
+    {
+        color = ProductionFX.HoloColor(gameObject);
+        if (!string.IsNullOrEmpty(launchFrom))
+            foreach (var t in GetComponentsInChildren<Transform>(true)) if (t.name.StartsWith(launchFrom)) hatches.Add(t);
+        hatches.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+    }
 
     void Update()
     {
@@ -60,12 +71,15 @@ public class SwarmBay : MonoBehaviour
         stock--;
         nextLaunch = Time.time + launchGap;
         Vector2 r = Random.insideUnitCircle * 1.5f;
-        Vector3 at = transform.position + new Vector3(r.x, 0f, r.y);
+        Transform hatch = hatches.Count > 0 ? hatches[nextHatch++ % hatches.Count] : null;
+        Vector3 at = hatch != null ? new Vector3(hatch.position.x, transform.position.y, hatch.position.z) : transform.position + new Vector3(r.x, 0f, r.y);
         var d = Net.SpawnFor(health.team, dronePrefab.gameObject, at, transform.rotation).GetComponent<SelectableUnit>();
         Attacker.SetTeam(d, health.team);
         d.GetComponent<Health>().onDeath = () => Burnout(d);
         drones.Add(d);
-        Juice.Burst(Flyer.Center(this), color, 8, 6f, 0.12f, 0.4f);
+        Vector3 puff = hatch != null ? hatch.position : Flyer.Center(this);
+        Juice.Burst(puff, color, 8, 6f, 0.12f, 0.4f);
+        if (hatch != null) Juice.Flash(puff, color, 2f, 6f, 0.15f);
     }
 
     void Dock(SelectableUnit d)

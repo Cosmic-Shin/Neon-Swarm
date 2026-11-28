@@ -147,6 +147,12 @@ public static class MenuDioramaBuilder
         d.cam = cam;
         d.lookAt = look;
         d.aegisFront = aegisFront;
+        d.mothership = Get(byName, "DA_Mothership");
+        d.tribunal = Get(byName, "DA_Tribunal");
+        var seekers = new List<Transform>();
+        foreach (var n in new[] { "DA_Seeker0", "DA_Seeker1", "DA_Seeker2" }) if (Get(byName, n) is Transform s) seekers.Add(s);
+        d.seekers = seekers.ToArray();
+        d.breakers = new[] { Get(byName, "DA_Breaker0"), Get(byName, "DA_Breaker1") };
         d.harvester = Get(byName, "D_DataHarvester");
         var refinery = Get(byName, "D_DataRefinery");
         d.refineryDock = refinery != null ? Child(refinery, "Refinery_DockPoint") : null;
@@ -228,6 +234,22 @@ public static class MenuDioramaBuilder
         ("DA_Dominion",     new Vector3(22f, 6f, 4f)),
     };
 
+    // the role fill-ins: flank brawlers and a cheap squad in the line, a drone carrier and the titan in the air (front = joins the standoff shots)
+    static readonly (string name, string fbx, Vector3 pos, float scale, bool front)[] AegisNewcomers =
+    {
+        ("DA_Breaker0",  "Aegis_Breaker",   new Vector3(11.4f, 0f, -10.9f), 1f, false),
+        ("DA_Breaker1",  "Aegis_Breaker",   new Vector3(11.7f, 0f, -1.3f),  1f, false),
+        ("DA_Hailstorm", "Aegis_Hailstorm", new Vector3(13.6f, 0f, -3.3f),  1f, true),
+        ("DA_Cadet0",    "Aegis_Cadet",     new Vector3(12.7f, 0f, -11.8f), 1f, true),
+        ("DA_Cadet1",    "Aegis_Cadet",     new Vector3(13.4f, 0f, -12.4f), 1f, true),
+        ("DA_Cadet2",    "Aegis_Cadet",     new Vector3(12.3f, 0f, -12.7f), 1f, true),
+        ("DA_Mothership","Aegis_Mothership",new Vector3(17f, 5.4f, -5.9f),  1.2f, false),
+        ("DA_Seeker0",   "Aegis_Seeker",    new Vector3(15.5f, 4.8f, -6.9f),      1f, false),
+        ("DA_Seeker1",   "Aegis_Seeker",    new Vector3(17.5f, 5.2f, -7.4f),  1f, false),
+        ("DA_Seeker2",   "Aegis_Seeker",    new Vector3(16.5f, 5.8f, -4.4f),    1f, false),
+        ("DA_Tribunal",  "Aegis_Tribunal",  new Vector3(18.5f, 7.5f, 2.5f),   1.3f, false),
+    };
+
     public static readonly Vector3 LookAt = new(4f, 1f, -1f);
 
     static Transform[] Recompose(Transform root, Dictionary<string, Transform> byName)
@@ -260,6 +282,21 @@ public static class MenuDioramaBuilder
                 if (t.name.Contains("_Upgrade_Mk") || t.name.EndsWith("_Damage") || t.name.Contains("_Damage_")) t.gameObject.SetActive(false);
             foreach (var r in holder.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = ShadowCastingMode.On;
             byName[name] = holder.transform;
+        }
+        foreach (var (name, fbx, pos, scale, joinsFront) in AegisNewcomers)
+        {
+            var src = FindAsset(fbx) as GameObject;
+            if (src == null) continue;
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(src, root);
+            PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            Vector3 to = hiveArmy - new Vector3(pos.x, 0f, pos.z);
+            float yaw = Quaternion.LookRotation(to.normalized + new Vector3(0f, 0f, Random.Range(-0.1f, 0.1f))).eulerAngles.y;
+            go.transform.SetPositionAndRotation(pos, Quaternion.Euler(0f, yaw, 0f) * src.transform.localRotation);
+            Strip(go);
+            var holder = AegisActor(go, fbx, name, scale, yaw);
+            foreach (var r in holder.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = ShadowCastingMode.On;
+            byName[name] = holder.transform;
+            if (joinsFront) front.Add(holder.transform);
         }
         // the crate stack sat right in front of the lens
         if (Get(byName, "D_Crates0") is Transform crates) crates.position = new Vector3(-7f, 0f, -13f);

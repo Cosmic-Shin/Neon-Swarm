@@ -13,11 +13,13 @@ MonoBehaviour:
   m_Name: WaspTransport
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Wasp Dropship
+  faction: 0
   role: 4
   description: 'Air dropship. Carries 5 infantry: right-click it with units selected
     to board, select it and press U to drop them anywhere, even past walls. Door
     gun.'
   icon: {fileID: 21300000, guid: 8284b525898c030458c6c019b3516981, type: 3}
+  portrait: {fileID: 21300000, guid: b558a6850c69c53438c7d653fcd914a5, type: 3}
   cost: 600
   buildTime: 8
   squadSize: 1

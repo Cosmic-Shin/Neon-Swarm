@@ -13,9 +13,11 @@ MonoBehaviour:
   m_Name: DragonflyGunship
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Dragonfly Gunship
+  faction: 0
   role: 2
   description: All-round air gunship. Strafes ground targets with twin cannons.
   icon: {fileID: 21300000, guid: 8484f24f02adddc4f835516fc7dc15bb, type: 3}
+  portrait: {fileID: 21300000, guid: 61f0006fb2ba14645b906d1bc4c905f5, type: 3}
   cost: 700
   buildTime: 9
   squadSize: 1

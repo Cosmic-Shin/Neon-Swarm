@@ -27,6 +27,7 @@ public static class MapBuilder
         RemoveFeatures(scene);
         var clear = new List<(Vector3 at, float r)>();
         BuildFeatures(m, clear);
+        BuildCorp(m, clear);
         ClearRuins(scene, clear, m.Half);
         MarkBatching(scene);
         var surface = Object.FindFirstObjectByType<NavMeshSurface>();
@@ -41,7 +42,73 @@ public static class MapBuilder
     static void RemoveFeatures(UnityEngine.SceneManagement.Scene scene)
     {
         foreach (var g in scene.GetRootGameObjects())
-            if (g.name == "MapFeatures" || g.name == "ChasmNav") Object.DestroyImmediate(g);
+            if (g.name == "MapFeatures" || g.name == "ChasmNav" || g.name == CorpRoot) Object.DestroyImmediate(g);
+    }
+
+    // ---- corp districts: capturable Neutral_Corp sites, each in a small Aegis plaza; every base sits the same distance from the same kinds ----
+    const string CorpRoot = "CorpDistrict", CorpSites = "Assets/Prefabs/Aegis/Neutral", CorpProps = "Assets/Prefabs/Aegis/Props";
+    const CorpSite.Kind V = CorpSite.Kind.DataVault, R = CorpSite.Kind.RepairBay, O = CorpSite.Kind.Outpost;
+
+    static (Vector2 at, CorpSite.Kind kind)[] CorpLayout(GameMap m) => m.scene switch
+    {
+        "RTSSelection" => Enumerable.Range(0, 8).Select(i => (new Vector2(200f * Mathf.Cos(i * 45f * Mathf.Deg2Rad), 200f * Mathf.Sin(i * 45f * Mathf.Deg2Rad)), i % 2 == 0 ? V : R)).ToArray(),
+        "Map_Duel" => new[] { (new Vector2(120f, 0f), V), (new Vector2(-120f, 0f), R) },
+        "Map_TwinFront" => new[] { (new Vector2(75f, 0f), V), (new Vector2(-75f, 0f), R) },
+        "Map_BreachLine" => new[] { (new Vector2(75f, 0f), V), (new Vector2(-75f, 0f), R), (new Vector2(225f, 0f), O), (new Vector2(-225f, 0f), O) },
+        "Map_QuadCore" => new[] { (new Vector2(210f, 0f), V), (new Vector2(0f, 210f), R), (new Vector2(-210f, 0f), V), (new Vector2(0f, -210f), R) },
+        _ => new (Vector2, CorpSite.Kind)[0],
+    };
+
+    // local plaza layout: +z faces the map centre
+    static readonly (string prop, Vector3 at, float yaw)[] Plaza =
+    {
+        ("Streetlight", new(-14.5f, 0f, -14.5f), 45f), ("Streetlight", new(14.5f, 0f, -14.5f), -45f),
+        ("Streetlight", new(-14.5f, 0f, 14.5f), 135f), ("Streetlight", new(14.5f, 0f, 14.5f), -135f),
+        ("HoloAdPillar", new(-10.5f, 0f, 15.5f), 180f), ("HoloAdPillar", new(10.5f, 0f, 15.5f), 180f),
+        ("Planter", new(-5.5f, 0f, 15.5f), 0f), ("Planter", new(5.5f, 0f, 15.5f), 0f),
+        ("Barrier", new(-4f, 0f, -15.5f), 0f), ("Barrier", new(4f, 0f, -15.5f), 0f),
+        ("Crates", new(-10f, 0f, -15f), 10f), ("Crates", new(10f, 0f, -15f), -10f),
+        ("Checkpoint", new(19.5f, 0f, 0f), 90f), ("LandingPad", new(-20f, 0f, 0f), 0f),
+    };
+
+    static void BuildCorp(GameMap m, List<(Vector3 at, float r)> clear)
+    {
+        var layout = CorpLayout(m);
+        if (layout.Length == 0) return;
+        GameObject Load(string dir, string n) => AssetDatabase.LoadAssetAtPath<GameObject>($"{dir}/{n}.prefab");
+        var root = new GameObject(CorpRoot).transform;
+        var tile = Load(CorpProps, "Prop_Aegis_StreetTile");
+        for (int s = 0; s < layout.Length; s++)
+        {
+            Vector3 at = V3(layout[s].at);
+            var yaw = Quaternion.LookRotation(Flat(-at).sqrMagnitude > 1f ? -Flat(at).normalized : Vector3.forward);
+            var plaza = new GameObject($"CorpPlaza_{s}_{layout[s].kind}").transform;
+            plaza.SetParent(root, false);
+            plaza.SetPositionAndRotation(at, yaw);
+            plaza.gameObject.AddComponent<BuildingLife>();
+            for (int x = 0; x < 4; x++)
+                for (int z = 0; z < 4; z++)
+                {
+                    var t = ((GameObject)PrefabUtility.InstantiatePrefab(tile, plaza)).transform;
+                    t.localPosition = new Vector3((x - 1.5f) * 6.8f, 0f, (z - 1.5f) * 6.8f);
+                    t.localRotation = Quaternion.identity;
+                }
+            foreach (var (prop, local, turn) in Plaza)
+            {
+                var t = ((GameObject)PrefabUtility.InstantiatePrefab(Load(CorpProps, "Prop_Aegis_" + prop), plaza)).transform;
+                t.localPosition = local;
+                t.localRotation = Quaternion.Euler(0f, turn, 0f);
+            }
+            // the prop prefabs are batching-static; BuildingLife spins rings and lifts the boom, which batched meshes ignore
+            foreach (var t in plaza.GetComponentsInChildren<Transform>(true))
+                GameObjectUtility.SetStaticEditorFlags(t.gameObject, GameObjectUtility.GetStaticEditorFlags(t.gameObject) & ~StaticEditorFlags.BatchingStatic);
+            var site = ((GameObject)PrefabUtility.InstantiatePrefab(Load(CorpSites, "Neutral_Corp_" + layout[s].kind), root)).transform;
+            site.SetPositionAndRotation(at, yaw);
+            site.GetComponent<CorpSite>().kind = layout[s].kind;
+            foreach (var t in site.GetComponentsInChildren<Transform>(true))
+                GameObjectUtility.SetStaticEditorFlags(t.gameObject, GameObjectUtility.GetStaticEditorFlags(t.gameObject) & ~StaticEditorFlags.BatchingStatic);
+            clear.Add((at, 30f));
+        }
     }
 
     static void MarkBatching(UnityEngine.SceneManagement.Scene scene)
@@ -141,6 +208,7 @@ public static class MapBuilder
         foreach (Transform f in ore) clear.Add((f.position, 18f));
         foreach (var o in outposts) clear.Add((o, 18f));
         BuildFeatures(m, clear);
+        BuildCorp(m, clear);
         ClearRuins(scene, clear, half);
         MarkBatching(scene);
 

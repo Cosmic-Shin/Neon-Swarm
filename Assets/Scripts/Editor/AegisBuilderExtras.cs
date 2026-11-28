@@ -25,6 +25,9 @@ public static partial class AegisBuilder
         { "Gunship", "GUN_Muzzle" }, { "Carrier", "CAR_DropPoint" }, { "Colossus", "COL_LanceMuzzle" }, { "Technician", "TEC_ToolPoint" },
         { "AATrooper", "AAT_Muzzle" }, { "StrikeBike", "BIKE_Muzzle" }, { "Marksman", "MRK_Muzzle" }, { "Suppressor", "SUP_PulsePoint" },
         { "Watcher", "WAT_Muzzle" }, { "PatrolDrone", "PD_Muzzle" }, { "Dominion", "DOM_Muzzle" },
+        { "Breaker", "BRK_Muzzle" }, { "Cadet", "CDT_Muzzle" }, { "Hailstorm", "HAL_Muzzle" }, { "Warden", "WAR_Muzzle" },
+        { "Sapper", "SAP_Muzzle" }, { "Override", "OVR_Muzzle" }, { "Seeker", "SEK_Muzzle" }, { "Hammerhead", "HAM_BombPoint" },
+        { "Mothership", "MOM_Muzzle" }, { "Tribunal", "TRB_PulsePoint" }, { "Spotter", "SPT_Muzzle" },
     };
 
     static readonly Dictionary<string, string> Shots = new()
@@ -33,6 +36,8 @@ public static partial class AegisBuilder
         { "StrikeBike", "P_AegisTracer" }, { "Suppressor", "P_AegisEMP" }, { "Lancer", "P_AegisRailSlug" }, { "Bastion", "P_AegisShell" },
         { "Paladin", "P_AegisBolt" }, { "Colossus", "P_AegisRailSlug" }, { "Interceptor", "P_AegisMissile" }, { "Gunship", "P_AegisTracer" },
         { "Dominion", "P_AegisMissile" }, { "PatrolDrone", "P_AegisBolt" },
+        { "Cadet", "P_AegisTracer" }, { "Seeker", "P_AegisTracer" }, { "Hailstorm", "P_AegisTracer" }, { "Mothership", "P_AegisTracer" }, { "Spotter", "P_AegisTracer" },
+        { "Sapper", "P_AegisCharge" }, { "Override", "P_AegisHackBolt" }, { "Warden", "P_AegisNet" }, { "Hammerhead", "P_AegisBomb" },
     };
 
     static readonly Dictionary<string, string> ResearchNames = new()
@@ -101,12 +106,169 @@ public static partial class AegisBuilder
             ["Flash_Aegis"] = PartPrefab("Flash_Aegis", F("FX_AegisMuzzleFlashes"), "Flash_Rifle", FxDir, "AFlash_Cone"),
             ["Flash_AegisBike"] = PartPrefab("Flash_AegisBike", F("FX_AegisBikeFlash"), "Flash_Rifle", FxDir),
             ["AegisDmg_Spark"] = PartPrefab("AegisDmg_Spark", F("FX_AegisDamage"), "Flash_Rifle", FxDir, "ADmg_Spark"),
-            ["AegisRepair_Sparks"] = PartPrefab("AegisRepair_Sparks", F("FX_AegisRepair"), "Flash_Rifle", FxDir, "ARep_Spark", "ARep_Ring"),
+            // the FBX lays its parts out side by side: each prefab keeps one group and moves it back onto the origin
+            ["AegisRepair_Sparks"] = Centre(PartPrefab("AegisRepair_Sparks", F("FX_AegisRepair"), "Flash_Rifle", FxDir, "ARep_Spark"), "ARep_Spark", false),
+            ["AegisRepair_Ring"] = Match(Centre(PartPrefab("AegisRepair_Ring", F("FX_AegisRepair"), "Shock_Soft", FxDir, "ARep_Ring", "ARep_Wrench"), "ARep_Ring", false), "Shock_Soft"),
+            ["Beam_AegisRepair"] = Centre(PartPrefab("Beam_AegisRepair", F("FX_AegisRepair"), null, FxDir, "ARep_Arc"), "ARep_Arc", true),     // Repairer.beamMesh: 1 unit along +Z
+            ["Beam_AegisHeal"] = Centre(PartPrefab("Beam_AegisHeal", F("FX_AegisBeams"), null, FxDir, "ABeam_Heal"), "ABeam_HealCore", true),
             ["Lance_Beam"] = PartPrefab("Lance_Beam", F("FX_AegisBeams"), null, FxDir, "ABeam_OrbCore", "ABeam_OrbGlow", "ABeam_Orbital"),
             ["Lance_Impact"] = PartPrefab("Lance_Impact", F("FX_AegisBeams"), null, FxDir, "ABeam_OrbImpact"),
             ["Shield_Dome"] = PartPrefab("Shield_Dome", F("FX_AegisShield"), null, FxDir, "AShield_Dome"),
+            ["P_AegisCharge"] = PartPrefab("P_AegisCharge", P("Proj_AegisCharge"), "P_PlasmaShell", FxDir),
+            ["P_AegisHackBolt"] = PartPrefab("P_AegisHackBolt", P("Proj_AegisHackBolt"), "P_HackPacket", FxDir),
+            ["P_AegisNet"] = Rescale(PartPrefab("P_AegisNet", P("Proj_AegisNet"), "P_WebShot", FxDir), 2.8f),        // 0.57 m model: ~1.6 m net like the web shot
+            ["P_AegisBomb"] = Rescale(PartPrefab("P_AegisBomb", P("Proj_AegisBomb"), "P_PlasmaBomb", FxDir), 5.5f),
+            ["Stasis_Aegis"] = Rescale(PartPrefab("Stasis_Aegis", F("FX_AegisStasis"), "Web_Trap", FxDir), 1.6f),     // ~2.5 m slow field
+            // Aegis versions of the Hive FX the Aegis roster still borrowed (README "FX added for Claude Code's list"), sized like the Hive originals
+            ["Arc_Aegis"] = Match(PartPrefab("Arc_Aegis", F("FX_AegisArc"), "Bolt_Chain", FxDir), "Bolt_Chain"),
+            ["Impact_Aegis_Thin"] = Match(PartPrefab("Impact_Aegis_Thin", F("FX_AegisImpact"), "Shock_Thin", FxDir, "Impact_ThinRing"), "Shock_Thin"),
+            ["Impact_Aegis_Soft"] = Match(PartPrefab("Impact_Aegis_Soft", F("FX_AegisImpact"), "Shock_Soft", FxDir, "Impact_SoftRing"), "Shock_Soft"),
+            ["Impact_Aegis_Pulse"] = Match(PartPrefab("Impact_Aegis_Pulse", F("FX_AegisImpact"), "Shock_Pulse", FxDir, "Impact_PulseWall"), "Shock_Pulse"),
+            ["Punch_Aegis"] = Match(PartPrefab("Punch_Aegis", F("FX_AegisPunch"), "Flash_Heavy", FxDir), "Flash_Heavy"),
+            ["Flame_Aegis"] = FxTiming(Rescale(PartPrefab("Flame_Aegis", F("FX_AegisFlame"), "Flash_Heavy", FxDir), new Vector3(2.2f, 2.2f, 6f)), 0.22f, 0.4f, 0.3f),   // 0.92 m cone -> ~5.5 m long, ~0.8 m wide; spawned every 0.07 s so each puff is short
+            ["Scorch_Aegis_Crater"] = Decal("Scorch_Aegis_Crater", "Scorch_Crater"),
+            ["Scorch_Aegis_Round"] = Decal("Scorch_Aegis_Round", "Scorch_Round"),
+            ["Scorch_Aegis_BurnStreak"] = Decal("Scorch_Aegis_BurnStreak", "Scorch_BurnStreak"),
+            ["Scorch_Aegis_Splat"] = Decal("Scorch_Aegis_Splat", "Scorch_Splat"),
+            ["ShockField_Aegis"] = FxTiming(PartPrefab("ShockField_Aegis", F("FX_AegisShockField"), "Shock_Soft", FxDir), 0.9f, 0.35f, 0.45f),   // 2 m wide: Attacker.Pulse scales it by the radius; lingers so the field reads
         };
         return d;
+    }
+
+    // Hive FX -> Aegis FX, applied to every Aegis unit's visuals (and Tribunal's arc) in Visuals()
+    static readonly Dictionary<string, string> FxSwap = new()
+    {
+        { "Bolt_Chain", "Arc_Aegis" }, { "Shock_Thin", "Impact_Aegis_Thin" }, { "Shock_Soft", "Impact_Aegis_Soft" }, { "Shock_Pulse", "Impact_Aegis_Pulse" },
+        { "Flash_Heavy", "Punch_Aegis" }, { "FX_Flame", "Flame_Aegis" }, { "Flash_Rifle", "Flash_Aegis" }, { "P_SMGTracer", "P_AegisTracer" },
+        { "Scorch_Crater", "Scorch_Aegis_Crater" }, { "Scorch_Round", "Scorch_Aegis_Round" }, { "Scorch_BurnStreak", "Scorch_Aegis_BurnStreak" }, { "Scorch_Splat", "Scorch_Aegis_Splat" },
+    };
+
+    static GameObject Swap(GameObject hive) => hive != null && FxSwap.TryGetValue(hive.name, out var own) && fx.TryGetValue(own, out var go) && go != null ? go : hive;
+
+    static float MaxSize(GameObject prefab)
+    {
+        var b = new Bounds();
+        bool any = false;
+        foreach (var r in prefab.GetComponentsInChildren<Renderer>(true))
+        {
+            if (r is ParticleSystemRenderer) continue;
+            if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+        }
+        return any ? Mathf.Max(b.size.x, b.size.y, b.size.z) : 0f;
+    }
+
+    static GameObject Match(GameObject prefab, string hive)
+    {
+        var src = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefabs/FX/{hive}.prefab");
+        if (prefab == null || src == null) return prefab;
+        float own = MaxSize(prefab), want = MaxSize(src);
+        return own > 0.0001f ? Rescale(prefab, prefab.transform.localScale.x * want / own) : prefab;
+    }
+
+    // FX_AegisScorch lays its decals out on a grid: keep one, put it back on the origin, size it like the Hive decal
+    static GameObject Decal(string name, string part)
+    {
+        var prefab = PartPrefab(name, $"{Models}/FX/FX_AegisScorch.fbx", part, FxDir, part);
+        if (prefab == null) return null;
+        string path = AssetDatabase.GetAssetPath(prefab);
+        var root = PrefabUtility.LoadPrefabContents(path);
+        try
+        {
+            var inst = root.transform.GetChild(0);
+            Transform main = null;
+            foreach (Transform c in inst) if (c.name.StartsWith(part) && !c.name.Contains("Embers") && !c.name.Contains("Pit")) main = c;
+            if (main != null)
+            {
+                Vector3 off = main.localPosition;
+                off.z = 0f;   // Blender Z (height) stays
+                foreach (Transform c in inst) c.localPosition -= off;
+            }
+            prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+        return Match(prefab, part);
+    }
+
+    // Move the kept parts so `pivotPart` sits on the origin. beam = true: it starts at the origin, runs along +Z and is scaled to exactly 1 unit long.
+    static GameObject Centre(GameObject prefab, string pivotPart, bool beam)
+    {
+        if (prefab == null) return null;
+        string path = AssetDatabase.GetAssetPath(prefab);
+        var root = PrefabUtility.LoadPrefabContents(path);
+        try
+        {
+            var inst = root.transform.GetChild(0);
+            Renderer pivot = null;
+            foreach (var r in inst.GetComponentsInChildren<Renderer>(true)) if (r.name.StartsWith(pivotPart)) { pivot = r; break; }
+            if (pivot == null) return prefab;
+            Bounds b = pivot.bounds;
+            Vector3 centre = inst.InverseTransformPoint(b.center);
+            if (beam)
+            {
+                Vector3 axis = inst.InverseTransformDirection(Vector3.forward);   // +Z in Unity
+                float len = Vector3.Scale(inst.InverseTransformVector(b.size), axis).magnitude;
+                Vector3 start = centre - axis.normalized * len * 0.5f;
+                foreach (Transform c in inst) c.localPosition -= start;
+                root.transform.localScale = Vector3.one;
+                inst.localScale = Vector3.one / Mathf.Max(0.01f, b.size.z);
+            }
+            else foreach (Transform c in inst) c.localPosition -= centre;
+            prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+        return prefab;
+    }
+
+    static GameObject FxTiming(GameObject prefab, float life, float scaleFrom, float fadeStart) => FxTune(prefab, life, scaleFrom, -1f, fadeStart);
+
+    // negative / null = keep the template's value
+    static GameObject FxTune(GameObject prefab, float life = -1f, float scaleFrom = -1f, float scaleTo = -1f, float fadeStart = -1f, bool? roll = null, float flicker = -1f, float spin = float.NaN)
+    {
+        if (prefab == null || !prefab.TryGetComponent(out Fx f)) return prefab;
+        var so = new SerializedObject(f);
+        if (life >= 0f) so.FindProperty("lifetime").floatValue = life;
+        if (scaleFrom >= 0f) so.FindProperty("scaleFrom").floatValue = scaleFrom;
+        if (scaleTo >= 0f) so.FindProperty("scaleTo").floatValue = scaleTo;
+        if (fadeStart >= 0f) so.FindProperty("fadeStart").floatValue = fadeStart;
+        if (roll.HasValue) so.FindProperty("randomRoll").boolValue = roll.Value;
+        if (flicker >= 0f) so.FindProperty("flicker").floatValue = flicker;
+        if (!float.IsNaN(spin)) so.FindProperty("spin").floatValue = spin;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        AssetDatabase.SaveAssetIfDirty(prefab);
+        return prefab;
+    }
+
+    static void SetFxBool(GameObject prefab, string field, bool value)
+    {
+        if (prefab == null || !prefab.TryGetComponent(out Fx f)) return;
+        var so = new SerializedObject(f);
+        so.FindProperty(field).boolValue = value;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        AssetDatabase.SaveAssetIfDirty(prefab);
+    }
+
+    // juice pass on the Aegis FX (after they are built and sized)
+    static void TuneFx()
+    {
+        GameObject F(string n) => fx.TryGetValue(n, out var g) ? g : null;
+        FxTune(F("Arc_Aegis"), life: 0.14f, roll: true, flicker: 0.6f);                         // every zap forks differently and crackles
+        FxTune(F("Punch_Aegis"), life: 0.2f, scaleFrom: 0.6f, scaleTo: 1.8f, fadeStart: 0.25f);   // was a 0.08 s blink: now a readable impact pop
+        SetFxBool(F("Punch_Aegis"), "faceCamera", true);
+        FxTune(F("Flame_Aegis"), flicker: 0.35f);
+        FxTune(F("ShockField_Aegis"), flicker: 0.4f, spin: 90f);
+        FxTune(F("Stasis_Aegis"), flicker: 0.15f, spin: 25f);                                    // slow-turning snare field reads as "active"
+        FxTune(F("Impact_Aegis_Pulse"), spin: 60f);
+    }
+
+    static GameObject Rescale(GameObject prefab, float scale) => Rescale(prefab, Vector3.one * scale);
+
+    static GameObject Rescale(GameObject prefab, Vector3 scale)
+    {
+        if (prefab == null) return null;
+        string path = AssetDatabase.GetAssetPath(prefab);
+        var root = PrefabUtility.LoadPrefabContents(path);
+        try { root.transform.localScale = scale; return PrefabUtility.SaveAsPrefabAsset(root, path); }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
     }
 
     static AnimatorController FreshController(string path)
@@ -165,9 +327,12 @@ public static partial class AegisBuilder
         ["Lancer"] = d => d.maxHealth = 760f,        // 3 vs 3 Crushers: 2 alive at 920, still 2 alive at 820
         ["Paladin"] = d => d.maxHealth = 320f,       // Bulwark parity: the shield is its edge (won 8 then 5 of 12 left with more HP)
         ["Suppressor"] = d => d.damage = 10.5f,      // stun-splash is swingy: lost at 10, won 5-of-6 at 11
-        ["Watcher"] = d => d.maxHealth = 75f,
-        ["Interceptor"] = d => d.damage = 11f,       // attack clip (0.46 s) is longer than its 0.4 s cooldown
+        ["Watcher"] = d => { d.maxHealth = 75f; d.cost += 25; },
+        ["Interceptor"] = d => { d.damage = 11f; d.cost += 25; },   // attack clip (0.46 s) is longer than its 0.4 s cooldown
         ["StrikeBike"] = d => d.maxHealth = 160f,    // 12 vs 12 Striders: 6 left
+        // 2026-11-27 value-per-credit pass: these three beat their Hive twins by 7-13% per credit
+        ["Peacekeeper"] = d => d.cost += 25,
+        ["Colossus"] = d => d.splash = 2.5f,         // weakest Aegis elite and no ability; Queen Arachne has 2.5 splash + Brood
     };
 
     static void Balance(U u, UnitData d)
@@ -184,11 +349,19 @@ public static partial class AegisBuilder
 
     static void Visuals(U u, UnitData d)
     {
-        if (!Shots.TryGetValue(u.name, out var shot) || !fx.TryGetValue(shot, out var proj) || proj == null) return;
         d.visual ??= new WeaponVisual();
+        d.visual.projectile = Swap(d.visual.projectile);
+        d.visual.muzzleFlash = Swap(d.visual.muzzleFlash);
+        d.visual.impact = Swap(d.visual.impact);
+        d.visual.scorch = Swap(d.visual.scorch);
+        if (d.style == UnitData.WeaponStyle.ShockPulse) d.extra = Swap(d.extra);   // Tribunal tendril arcs (other units' extra is a unit prefab)
+        if (u.name == "Tribunal") d.visual.impact = fx.TryGetValue("ShockField_Aegis", out var field) ? field : null;   // Attacker.Pulse sizes it to the radius
+        if (u.name == "Breaker") { d.visual.hideBeam = true; d.visual.impact = d.visual.muzzleFlash; d.visual.muzzleFlash = null; }   // melee: the Punch_Aegis pop lands on the target, no laser line
+        if (!Shots.TryGetValue(u.name, out var shot) || !fx.TryGetValue(shot, out var proj) || proj == null) return;
         d.visual.projectile = proj;
         d.visual.hideBeam = true;
-        d.visual.muzzleFlash = u.name == "StrikeBike" ? fx["Flash_AegisBike"] : fx["Flash_Aegis"];
+        d.visual.muzzleFlash = u.name == "StrikeBike" ? fx["Flash_AegisBike"] : u.name is "Hammerhead" or "Warden" ? null : fx["Flash_Aegis"];
+        if (u.name == "Warden") d.visual.impact = fx["Stasis_Aegis"];
     }
 
     static RuntimeAnimatorController CombatController(string aegis)
@@ -247,15 +420,28 @@ public static partial class AegisBuilder
                 rep.beamFrom = "TEC_ToolPoint";
                 rep.beamColor = Amber;
                 rep.sparkFx = fx.TryGetValue("AegisRepair_Sparks", out var s) ? s : null;
+                rep.beamMesh = fx.TryGetValue("Beam_AegisRepair", out var arc) ? arc : null;
+                rep.beamWidth = 2.5f;
             }
             else
             {
                 rep.structures = false;
                 rep.roles = new[] { UnitData.Role.Infantry, UnitData.Role.Support, UnitData.Role.Scout };
                 rep.beamFrom = "MED_BeamPoint";
+                rep.beamColor = Amber;
+                rep.beamMesh = fx.TryGetValue("Beam_AegisHeal", out var heal) ? heal : null;
+                rep.beamWidth = 4f;
             }
+            rep.groundRing = fx.TryGetValue("AegisRepair_Ring", out var ring) ? ring : null;
         }
         if (u.name == "Skylift" && root.TryGetComponent(out Transport carrier)) carrier.vehicles = true;
+        if (u.name == "Mothership" && root.TryGetComponent(out SwarmBay bay))
+        {
+            // Seeker is built earlier in Units, so its prefab is already saved
+            var seeker = AssetDatabase.LoadAssetAtPath<GameObject>($"{UnitDir}/Aegis_Seeker.prefab");
+            bay.dronePrefab = seeker != null ? seeker.GetComponent<SelectableUnit>() : null;
+            bay.launchFrom = "MOM_LaunchPoint";
+        }
         if (u.name == "Bastion" && !root.TryGetComponent(out Deployer _)) root.AddComponent<Deployer>();
         if (u.name == "Paladin")
         {
@@ -312,6 +498,19 @@ public static partial class AegisBuilder
         }
 
         if (b.name == "DroneBay" && !root.TryGetComponent(out Gate _)) root.AddComponent<Gate>();
+        if (b.name == "ExtractionRig" && Part(inst.transform, "ER_DockPoint") is Transform erDock)
+        {
+            // forward drop-off: Collectors unload at ER_DockPoint for 75% of a Refinery's rate (and a bit slower); the siphon trickle stays
+            var refinery = root.TryGetComponent(out Refinery had) ? had : root.AddComponent<Refinery>();
+            var full = AssetDatabase.LoadAssetAtPath<GameObject>($"{BuildingDir}/Aegis_Refinery.prefab");
+            float rate = full != null && full.TryGetComponent(out Refinery fr) ? fr.creditsPerUnit : 1f;
+            refinery.creditsPerUnit = rate * 0.75f;
+            refinery.unloadTimeMultiplier = 1.3f;
+            var d = inst.transform.Find("Refinery_DockPoint") ?? new GameObject("Refinery_DockPoint").transform;
+            d.SetParent(inst.transform, true);
+            d.position = new Vector3(erDock.position.x, 0f, erDock.position.z);
+            refinery.dockPoint = d;
+        }
         if (b.name == "PulseGate")
         {
             if (!root.TryGetComponent(out UnitGate _)) root.AddComponent<UnitGate>();
@@ -333,10 +532,21 @@ public static partial class AegisBuilder
         }
         if (root.TryGetComponent(out Turret turret))
         {
-            string shot = b.name == "FlakBattery" ? "P_AegisFlak" : b.name == "RailBattery" ? "P_AegisRailSlug" : "P_AegisTracer";
             var so = new SerializedObject(turret);
-            so.FindProperty("visual.projectile").objectReferenceValue = fx[shot];
-            so.FindProperty("visual.muzzleFlash").objectReferenceValue = fx["Flash_Aegis"];
+            if (b.name == "ArcTurret")
+            {
+                // chain-zap like the Arc Coil: the Aegis arc mesh jumps from AT_Muzzle through each target
+                so.FindProperty("bolt").objectReferenceValue = fx.TryGetValue("Arc_Aegis", out var arc) ? arc : null;
+                so.FindProperty("visual.projectile").objectReferenceValue = null;
+                so.FindProperty("visual.muzzleFlash").objectReferenceValue = null;
+                so.FindProperty("visual.impact").objectReferenceValue = fx.TryGetValue("Impact_Aegis_Thin", out var ring) ? ring : null;
+            }
+            else
+            {
+                string shot = b.name == "FlakBattery" ? "P_AegisFlak" : b.name == "RailBattery" ? "P_AegisRailSlug" : "P_AegisTracer";
+                so.FindProperty("visual.projectile").objectReferenceValue = fx[shot];
+                so.FindProperty("visual.muzzleFlash").objectReferenceValue = fx["Flash_Aegis"];
+            }
             so.FindProperty("visual.hideBeam").boolValue = true;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
@@ -347,8 +557,7 @@ public static partial class AegisBuilder
     {
         var map = new Dictionary<UnitData, UnitData>();
         foreach (var u in Units) if (Twin<UnitData>(u.twin) is UnitData h && !map.ContainsKey(h)) map[h] = units[u.name];
-        foreach (var (h, a) in new[] { ("Hackling", "Peacekeeper"), ("Ratline", "StrikeBike"), ("WireWeaver", "Suppressor"), ("Chromejaw", "Paladin"), ("Overclock", "Colossus"), ("NetrunnerHive", "Colossus"),
-            ("FireflySpotter", "Interceptor"), ("LocustDrone", "Gunship"), ("BeetleBomber", "Gunship"), ("LocustCarrier", "Carrier"), ("JellyfishDreadnought", "Dominion") })
+        foreach (var (h, a) in new (string, string)[0])   // every Hive unit has its own Aegis twin in Units now
             if (Twin<UnitData>(h) is UnitData hd && !map.ContainsKey(hd)) map[hd] = units[a];
         return map;
     }
@@ -460,7 +669,7 @@ public static partial class AegisBuilder
                 box.center = b.center;
                 box.size = b.size;
             }
-            foreach (var t in root.GetComponentsInChildren<Transform>(true)) GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic | StaticEditorFlags.NavigationStatic);
+            foreach (var t in root.GetComponentsInChildren<Transform>(true)) GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic);   // NavMeshSurface collects all geometry; NavigationStatic is obsolete
             props.Add(PrefabUtility.SaveAsPrefabAsset(root, $"{PropDir}/{fbx.name}.prefab"));
             Object.DestroyImmediate(root);
         }
@@ -478,7 +687,7 @@ public static partial class AegisBuilder
         sb.AppendLine("<!--");
         sb.AppendLine("Aegis placeholder balance (generated by Tools > GD5 > Build Aegis Faction, AegisBuilder.Balance).");
         sb.AppendLine("Each Aegis unit copies the stats of its closest Hive counterpart with the same role, then:");
-        sb.AppendLine("HP x1.15, cost x1.15 (rounded to 25), move speed x0.9 (UnitData.moveSpeed when set, otherwise the NavMeshAgent speed).");
+        sb.AppendLine("HP x1.15, cost x1.05 (rounded to 25), move speed x0.9 (UnitData.moveSpeed when set, otherwise the NavMeshAgent speed), then the per-unit Tuning table.");
         sb.AppendLine("Edit the tables in AegisBuilder.cs and re-run the tool; hand edits to the assets are overwritten.");
         sb.AppendLine("-->");
         sb.AppendLine();

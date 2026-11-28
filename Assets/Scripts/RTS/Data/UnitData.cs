@@ -10,6 +10,8 @@ public class UnitData : ScriptableObject
     public Role role = Role.Infantry;
     [TextArea] public string description;
     public Sprite icon;
+    [Tooltip("Bigger art for the selected-unit card; falls back to the icon")]
+    public Sprite portrait;
     public int cost = 300;
     public float buildTime = 5f;
     [Min(1)] public int squadSize = 1;

@@ -13,9 +13,11 @@ MonoBehaviour:
   m_Name: Strider
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Strider
+  faction: 0
   role: 1
   description: 'Skirmisher. Fast with good range: hit and run.'
   icon: {fileID: 21300000, guid: b9e056255596eb0498d5d7e498fadbc0, type: 3}
+  portrait: {fileID: 21300000, guid: b15ce3b40833240428a476ef46d1785d, type: 3}
   cost: 650
   buildTime: 7
   squadSize: 2

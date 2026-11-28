@@ -18,7 +18,8 @@ MonoBehaviour:
   description: Aegis super-heavy walker. Twin plasma lances melt anything in front
     of it. Needs Command Spire Mk III.
   icon: {fileID: 21300000, guid: 3f874a7894fbde948ba8aaf7246d209e, type: 3}
-  cost: 1700
+  portrait: {fileID: 21300000, guid: fedd76c0bd06d6745978068e31d4b961, type: 3}
+  cost: 1675
   buildTime: 14
   squadSize: 1
   maxHealth: 860
@@ -29,7 +30,7 @@ MonoBehaviour:
   hitsAir: 1
   moveSpeed: 7.2
   sight: 0
-  splash: 0
+  splash: 2.5
   stunOnHit: 0
   slowOnHit: 0
   buildingDamage: 1
@@ -41,8 +42,8 @@ MonoBehaviour:
     speed: 70
     arc: 0
     muzzleFlash: {fileID: 2923620917300925078, guid: b9c1d30cf7234304ab27f85362607d76, type: 3}
-    impact: {fileID: 4146322954805676179, guid: 33e5a119a58d8fb478e254cd3a518a77, type: 3}
-    scorch: {fileID: 7155740820297735006, guid: fadf7a13a4c768842931814b1e56278f, type: 3}
+    impact: {fileID: 1150249284091546001, guid: cf627cd643410a44d91115bb0b158479, type: 3}
+    scorch: {fileID: 4249684035753552487, guid: 91b3bd13946f42e4894202d379540954, type: 3}
     hideBeam: 1
   style: 0
   muzzles: COL_LanceMuzzle

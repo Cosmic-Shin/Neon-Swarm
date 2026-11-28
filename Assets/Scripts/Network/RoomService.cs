@@ -77,9 +77,20 @@ public class RoomService : MonoBehaviour
         return await StartRoom(room, true, !friendsOnly);
     }
 
-    public Task<string> Join(string room) => StartRoom(room, false);
+    // region: the host's Photon region (from an invite / friend presence); null = our best region
+    public Task<string> Join(string room, string region = null) => StartRoom(room, false, region: region);
 
-    public Task<string> JoinOrCreate(string room, bool visible) => StartRoom(room, true, visible);
+    static Fusion.Photon.Realtime.FusionAppSettings InRegion(string region)
+    {
+        var s = Fusion.Photon.Realtime.PhotonAppSettings.Global.AppSettings.GetCopy();
+        s.FixedRegion = region;
+        return s;
+    }
+
+    public string Region =>Runner && Runner.IsRunning && Runner.SessionInfo != null ? Runner.SessionInfo.Region : null;
+
+    public Task<string> JoinOrCreate(string room, bool visible, string region = null) => StartRoom(room, true, visible, region: region);
+    public static string AgainRegion;
 
     public Task<string> QuickMatch()
     {
@@ -97,7 +108,8 @@ public class RoomService : MonoBehaviour
 
     public const string RejoinKey = "rejoin.room";
     public static string RejoinRoom => PlayerPrefs.GetString(RejoinKey, "");
-    public static void ForgetRejoin() => PlayerPrefs.DeleteKey(RejoinKey);
+    public static string RejoinRegion => PlayerPrefs.GetString(RejoinKey + ".region", "") is var r && r.Length > 0 ? r : null;
+    public static void ForgetRejoin() { PlayerPrefs.DeleteKey(RejoinKey); PlayerPrefs.DeleteKey(RejoinKey + ".region"); }
 
     public static (string room, bool visible, int credits, int minutes, int map)? Again;
 
@@ -110,6 +122,7 @@ public class RoomService : MonoBehaviour
         int hash = name.LastIndexOf(" #");
         int round = hash > 0 && int.TryParse(name[(hash + 2)..], out int n) ? n + 1 : 2;
         if (hash > 0 && round > 2) name = name[..hash];
+        AgainRegion = info.Region;
         Again = (name + " #" + round, info.IsVisible, state ? state.Credits : 0, state ? state.Minutes : 0, state ? state.Map : 0);
     }
 
@@ -144,7 +157,7 @@ public class RoomService : MonoBehaviour
     static int LiveScene(SessionInfo r) =>
         r != null && r.IsValid && IsLive(r) && r.Properties.TryGetValue("scene", out var s) ? (int)s.PropertyValue : -1;
 
-    async Task<string> StartRoom(string room, bool create, bool visible = true, int scene = -1)
+    async Task<string> StartRoom(string room, bool create, bool visible = true, int scene = -1, string region = null)
     {
         if (scene < 0) scene = LiveScene(Rooms.Find(r => r.Name == room));
         if (scene >= 0 && UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != scene)
@@ -154,14 +167,15 @@ public class RoomService : MonoBehaviour
             LoadingScreen.Load(scene);
             while (UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != scene) await Task.Yield();
         }
-        try { return await EnterRoom(room, create, visible, scene); }
+        try { return await EnterRoom(room, create, visible, scene, region); }
         finally { LateJoin = false; }
     }
 
     public static bool LateJoin { get; private set; }
 
-    async Task<string> EnterRoom(string room, bool create, bool visible, int scene)
+    async Task<string> EnterRoom(string room, bool create, bool visible, int scene, string region)
     {
+        if (inRoom || (region != null && Runner && Region != region)) await Leave();   // e.g. accepting an invite while in another room, or the host is in another region
         if (!Runner) Runner = NewRunner();
         var result = await Runner.StartGame(new StartGameArgs
         {
@@ -172,7 +186,12 @@ public class RoomService : MonoBehaviour
             IsVisible = visible,
             SessionProperties = new System.Collections.Generic.Dictionary<string, SessionProperty> { { "host", AccountService.Username ?? "Player" }, { "live", 0 }, { "scene", -1 } },
             SceneManager = Runner.GetComponent<NetworkSceneManagerDefault>(),
+            CustomPhotonAppSettings = region == null ? null : InRegion(region),
         });
+#if DEVELOPMENT_BUILD
+        Debug.Log("[GD5] enter room " + room + " -> " + (result.Ok ? "ok, region " + Region : result.ShutdownReason.ToString()));
+        if (result.Ok && FriendsHub.DevArg("-autoready")) AutoReady(System.Environment.GetCommandLineArgs());
+#endif
         if (!result.Ok)
         {
             if (room == RejoinRoom && result.ShutdownReason is ShutdownReason.GameNotFound or ShutdownReason.GameClosed) ForgetRejoin();
@@ -188,7 +207,7 @@ public class RoomService : MonoBehaviour
         }
         if (scene < 0 && LiveScene(Runner.SessionInfo) is int live && live >= 0)
         {
-            return await StartRoom(room, false, visible, live);
+            return await StartRoom(room, false, visible, live, region);
         }
         inRoom = true;
         FriendsHub.SetRoom(room);

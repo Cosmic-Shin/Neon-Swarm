@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
+  m_Name: Warden
+  m_EditorClassIdentifier: Assembly-CSharp::UnitData
+  displayName: Warden
+  faction: 1
+  role: 4
+  description: Snare trooper. Fires stasis nets that leave a slowing field where
+    they land.
+  icon: {fileID: 21300000, guid: c37cbd499b7c73548add42db4f490ea3, type: 3}
+  portrait: {fileID: 21300000, guid: 18a8eca959f8d904695ac5d8e85f45cf, type: 3}
+  cost: 725
+  buildTime: 8
+  squadSize: 1
+  maxHealth: 160
+  damage: 8
+  range: 13
+  attackCooldown: 1
+  hitsGround: 1
+  hitsAir: 0
+  moveSpeed: 9
+  sight: 0
+  splash: 0
+  stunOnHit: 0
+  slowOnHit: 3
+  buildingDamage: 1
+  armor: 0
+  weapon: 1
+  ability: 0
+  visual:
+    projectile: {fileID: 3827939018313312655, guid: d726ef1be8edde94b93887b0d28d958a, type: 3}
+    speed: 30
+    arc: 0
+    muzzleFlash: {fileID: 0}
+    impact: {fileID: 7055390788376147125, guid: 71097b0a37915dd4aa3b28c72692233b, type: 3}
+    scorch: {fileID: 0}
+    hideBeam: 1
+  style: 0
+  muzzles: WAR_Muzzle
+  extra: {fileID: 0}

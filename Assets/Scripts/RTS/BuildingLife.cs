@@ -55,6 +55,8 @@ public class BuildingLife : MonoBehaviour
         Func<float> working = () => building != null && building.Producing >= 0 ? 1f : 0.25f;
         var turret = GetComponent<Turret>();
 
+        if (TryGetComponent(out CorpSite site)) { Corp(site); return; }
+        if (P("PST_Slab") != null) { CorpPlaza(); return; }
         // Aegis first: their prefabs were cloned from Hive templates and can keep template parts (Aegis_DroneBay has Hangar_Pad)
         if (P("CS_TowerCore") != null) AegisSpire();
         else if (P("FR_Core") != null) AegisReactor();
@@ -70,6 +72,7 @@ public class BuildingLife : MonoBehaviour
         else if (P("RB_Coil0") != null) AegisRail(turret);
         else if (P("PG_Field") != null || P("PW_Field") != null || P("PP_Light0") != null) AegisWall();
         else if (P("MF_Eye0") != null) AegisMines();
+        else if (P("AT_Orb") != null) AegisArc(turret);
         else if (P("DB_PadRing") != null) { var bay = GetComponent<DroneHangar>(); AegisFactory(bay != null ? () => bay.Busy ? 1f : 0.25f : working, "DB"); }
         else if (P("AF_PadRing") != null) AegisFactory(working, "AF");
         else if (P("BB_DoorLight") != null) AegisFactory(working, "BB");
@@ -91,6 +94,76 @@ public class BuildingLife : MonoBehaviour
         else if (P("Hangar_Pad") != null) { var bay = GetComponent<DroneHangar>(); Hangar(bay != null ? () => bay.Busy ? 1f : 0.25f : working); }
         else if (P("Hive_Hall") != null) Hive(working);
         else if (P("Aerie_Base") != null) Aerie();
+    }
+
+    // ---------------- map corp districts: neutral sites + the Aegis street props around them ----------------
+
+    void Corp(CorpSite site)
+    {
+        Func<float> owned = () => site.Owner >= 0 ? 1.6f : 0.55f;   // neutral sites idle dim, captured ones run hot
+        Glow(@"^N(CP|DV|OP|RB)_(BaseGlow-?1|PlinthGlow|PadGlow|HeaderGlow|PillarGlow-?1|HoloDash|HoloRing)$", () => owned() * (0.85f + 0.15f * Mathf.Sin(Time.time * 2f)));
+        Glow(@"^N(CP|DV)_Core\d?$", () => owned() * (0.6f + Heartbeat(0.8f)));
+        Chase(@"^NCP_SpireLine\d$", 5f);
+        Chase(@"^NDV_Slot\d$", 3f);
+        Chase(@"^NOP_Window\d$", 1.5f);
+        Spin(P("NCP_Holo"), 35f);
+        Spin(P("NOP_Sensor"), 50f, () => site.Owner >= 0 ? 1.5f : 0.3f);
+        Blink(@"^NOP_SensorGlow$", 0.8f);
+        Glow(@"^NRB_Tool-?1$", () => site.Owner >= 0 && Random.value < 0.3f ? 3f : 0.5f);
+        if (site.kind == CorpSite.Kind.DataVault) Motes(P("NDV_Cores") ?? transform, new Color(0.55f, 0.6f, 0.7f), -0.3f, 1.5f);
+    }
+
+    void CorpPlaza()
+    {
+        Glitch(@"^PHA_Screen\d$");
+        var lines = Ps(@"^PHA_Line\d\d$");   // PHA_Line{column}{row}: rows light in turn like a ticker
+        if (lines.Count > 0) glowTicks.Add(dt => { int lit = (int)(Time.time * 4f) % 4; foreach (var t in lines) SetGlow(t, t.name[^1] - '0' == lit ? 3f : 0.4f); });
+        foreach (var t in Ps(@"^PHA_RingA$")) Spin(t, 40f);
+        foreach (var t in Ps(@"^PHA_RingB$")) Spin(t, -65f);
+        foreach (var t in Ps(@"^PHA_Logo$")) Bob(t, 0.12f, 0.35f, Random.value);
+        Glow(@"^PHA_Logo$", () => 0.7f + Heartbeat(0.5f));
+        Chase(@"^PLP_Light\d$", 6f);
+        Glow(@"^PLP_Ring$", () => 0.5f + Mathf.PingPong(Time.time * 0.8f, 1f));
+        Glow(@"^PAB_Light$", () => Mathf.Repeat(Time.time * 1.2f, 1f) < 0.5f ? 2.5f : 0.2f);
+        Glow(@"^PAB_LightB$", () => Mathf.Repeat(Time.time * 1.2f, 1f) >= 0.5f ? 2.5f : 0.2f);
+        Blink(@"^PCK_RoofLight$", 0.7f);
+        Glow(@"^(PST_Strip-?1|PPL_Light|PCR_Label\d)$", () => 0.75f + 0.25f * Mathf.Sin(Time.time * 1.3f));
+        Flicker(@"^PSL_Lamp$");
+        foreach (var boom in Ps(@"^PCK_Boom$")) BoomGate(boom);
+    }
+
+    void BoomGate(Transform boom)
+    {
+        Quaternion rest = boom.localRotation;
+        float open = 0f, target = 0f;
+        Every(7f, 14f, () => true, () => target = 1f);
+        ticks.Add(dt =>
+        {
+            open = Mathf.MoveTowards(open, target, dt * 0.8f);
+            if (open >= 1f) target = 0f;
+            boom.localRotation = rest * Quaternion.Euler(0f, 75f *Mathf.SmoothStep(0f, 1f, Mathf.Min(1f, open * 1.6f)), 0f);   // FBX is X-rotated: local Y is the hinge
+        });
+    }
+
+    void Flicker(string pattern)
+    {
+        var list = Ps(pattern);
+        if (list.Count == 0) return;
+        var until = new float[list.Count];
+        var level = new float[list.Count];
+        glowTicks.Add(dt =>
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (Time.time >= until[i])
+                {
+                    bool dip = !GameSettings.ReduceFlashing && Random.value < 0.05f;
+                    level[i] = dip ? 0.1f : 1f;
+                    until[i] = Time.time + (dip ? Random.Range(0.04f, 0.15f) : Random.Range(1f, 6f));
+                }
+                SetGlow(list[i], level[i]);
+            }
+        });
     }
 
     // ---------------- Aegis Corp: amber running lights, team stripes, clean corporate pulses ----------------
@@ -251,6 +324,34 @@ public class BuildingLife : MonoBehaviour
         Glow(@"^ST_Eye$", () => t != null && t.Aim != null ? (Mathf.Repeat(Time.time * 6f, 1f) < 0.5f ? 3f : 0.4f) : 1f);
         Glow(@"^ST_MuzzleGlow-?1$", () => 0.3f + 1.2f * Charge(t) + 4f * Flare(t, 0.15f));
         OnShot(t, () => { foreach (var m in Ps(@"^ST2?_Muzzle-?1$")) if (m.gameObject.activeInHierarchy) Juice.Burst(m.position, new Color(1f, 0.8f, 0.4f), 4, 4f, 0.06f, 0.2f); });
+    }
+
+    // Arc Turret: the Idle clip turns AT_CoilSpin and hums AT_Orb, so script drives the free orb rings, lights and zaps
+    void AegisArc(Turret t)
+    {
+        Color arc = new(1f, 0.75f, 0.45f);
+        AegisCommon("AT");
+        Spin(P("AT_OrbRing"), 70f, () => 1f + 4f * Charge(t));
+        Spin(P("AT_OrbRingB"), -110f, () => 1f + 4f * Charge(t));
+        Glow(@"^AT_(OrbCore|OrbRing|OrbRingB)$", () => (0.6f + 0.4f * Mathf.Sin(Time.time * 8f)) * (1f + 3f * Flare(t, 0.3f)));
+        Glow(@"^AT_Eye$", () => t != null && t.Aim != null ? (Mathf.Repeat(Time.time * 6f, 1f) < 0.5f ? 3f : 0.4f) : 1f);
+        Chase(@"^AT_CapLight\d$", 3f);
+        Glow(@"^AT2_PylonOrb\d$", () => 0.5f + 1.5f * Charge(t) + 3f * Flare(t, 0.2f));
+        Glow(@"^AT3_ProngTip\d$", () => 0.4f + 2f * Charge(t));
+        var orb = P("AT_Orb");
+        var pylons = Ps(@"^AT2_PylonOrb\d$");
+        Every(0.2f, 0.7f, () => orb != null && t != null && t.Online && pylons.Exists(p => p.gameObject.activeInHierarchy), () =>
+        {
+            var live = pylons.FindAll(p => p.gameObject.activeInHierarchy);
+            Zap(live[Random.Range(0, live.Count)].position, orb.position, arc, 0.12f);   // Mk II capacitors feed the orb
+        });
+        OnShot(t, () =>
+        {
+            if (orb == null) return;
+            Juice.Flash(orb.position, arc, 8f, 14f, 0.2f);
+            Juice.Burst(orb.position, arc, 14, 7f, 0.1f, 0.35f, 0.2f);
+            foreach (var tip in Ps(@"^AT3_ProngTip\d$")) if (tip.gameObject.activeInHierarchy) Zap(tip.position, orb.position, arc, 0.1f);
+        });
     }
 
     void AegisFlak(Turret t)

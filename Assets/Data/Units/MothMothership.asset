@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: MothMothership
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Moth Mothership
+  faction: 0
   role: 5
   description: Titan. Rains Skitter pods from its bay (up to 4 at a time) while its
     guns fire. Long sight.
   icon: {fileID: 21300000, guid: 6e6a45df05484bd47a3176b0b9f99513, type: 3}
+  portrait: {fileID: 21300000, guid: 75e4cb725446f0d44ae13bc9895238d7, type: 3}
   cost: 2600
   buildTime: 28
   squadSize: 1

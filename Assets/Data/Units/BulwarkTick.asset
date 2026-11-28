@@ -13,9 +13,11 @@ MonoBehaviour:
   m_Name: BulwarkTick
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Bulwark Tick
+  faction: 0
   role: 3
   description: Tank. Very tough but slow and low damage. Soaks fire for the army.
   icon: {fileID: 21300000, guid: c77169262093f8343a83d628768845e5, type: 3}
+  portrait: {fileID: 21300000, guid: a615e864e2341ef429abc6f54d47258c, type: 3}
   cost: 600
   buildTime: 7
   squadSize: 2

@@ -4,7 +4,7 @@ using UnityEngine;
 
 public partial class RoomState
 {
-    const int MaxOutposts = 16;
+    const int MaxOutposts = 32;   // outposts + corp sites (Wasteland has 17)
     [Networked, Capacity(MaxOutposts)] NetworkArray<int> OutOwner => default;
     [Networked, Capacity(MaxOutposts)] NetworkArray<int> OutCapturing => default;
     [Networked, Capacity(MaxOutposts)] NetworkArray<float> OutProgress => default;

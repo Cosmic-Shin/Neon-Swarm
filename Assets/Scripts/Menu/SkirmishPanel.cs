@@ -110,7 +110,12 @@ public class SkirmishPanel : MonoBehaviour
             var faction = Instantiate(team, row.transform);
             faction.name = "Faction";
             Place(faction.transform, -334f, 80f);
-            faction.onClick.AddListener(() => { var s = seats[seat]; s.faction = (s.faction + 1) % Mathf.Max(1, Faction.All.Length); });
+            faction.onClick.AddListener(() =>
+            {
+                var s = seats[seat];
+                if (seat == 0) FactionPicker.Show(transform, s.faction, f => s.faction = f);   // your seat: full picker
+                else s.faction = (s.faction + 1) % Mathf.Max(1, Faction.All.Length);       // AI seats: quick cycle
+            });
             factions[i] = faction;
             var remove = Instantiate(team, row.transform);
             remove.name = "Remove";

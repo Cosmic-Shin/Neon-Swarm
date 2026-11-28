@@ -32,6 +32,60 @@ public class MapDressing : MonoBehaviour
         Searchlights();
         OrePools();
         BasePads();
+        CorpZones();
+    }
+
+    // ---- corp districts: a capture halo under each site (owner colour, fills while being taken) + a patrol drone over the plaza ----
+    readonly List<(OutpostCapture site, Material halo, Material ring)> corpZones = new();
+    readonly List<(Transform t, Vector3 centre, float radius, float speed, float phase)> drones = new();
+
+    void CorpZones()
+    {
+        var soft = Tex(64, 64, Soft);
+        var ring = Tex(128, 128, (x, y) => { float d = Vector2.Distance(new Vector2(x, y), Vector2.one * 0.5f) * 2f; return Mathf.Clamp01(1f - Mathf.Abs(d - 0.9f) * 14f); });
+        foreach (var site in FindObjectsByType<CorpSite>(FindObjectsSortMode.None))
+        {
+            if (!site.TryGetComponent(out OutpostCapture cap)) continue;
+            Vector3 at = site.transform.position;
+            var halo = Glow(soft, CorpSite.Neutral, 1f);
+            var edge = Glow(ring, CorpSite.Neutral, 1.5f);
+            FlatQuad("CorpHalo", new Vector3(at.x, 0.45f, at.z), 26f, halo);
+            FlatQuad("CorpRing", new Vector3(at.x, 0.46f, at.z), 30f, edge);
+            corpZones.Add((cap, halo, edge));
+
+            var drone = new GameObject("CorpDrone").transform;
+            drone.SetParent(root, false);
+            var light = FlatQuad("Light", Vector3.zero, 0.9f, Glow(soft, new Color(1f, 0.6f, 0.3f), 2.5f));
+            light.SetParent(drone, false);
+            var trail = drone.gameObject.AddComponent<TrailRenderer>();
+            trail.sharedMaterial = Juice.Additive;
+            trail.time = 0.6f;
+            trail.startWidth = 0.25f;
+            trail.endWidth = 0f;
+            trail.startColor = new Color(1f, 0.6f, 0.3f, 0.6f);
+            trail.endColor = new Color(1f, 0.6f, 0.3f, 0f);
+            trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            drones.Add((drone, at, 17f, Random.Range(0.25f, 0.4f) * (Random.value < 0.5f ? -1f : 1f), Random.value * 10f));
+        }
+    }
+
+    void CorpTick(float t, Quaternion face)
+    {
+        foreach (var (d, centre, radius, speed, phase) in drones)
+        {
+            float a = t * speed + phase;
+            d.position = centre + new Vector3(Mathf.Cos(a) * radius, 9f + Mathf.Sin(a * 3f) * 0.6f, Mathf.Sin(a) * radius);
+            d.GetChild(0).rotation = face;
+        }
+        foreach (var (cap, halo, edge) in corpZones)
+        {
+            if (cap == null) continue;
+            Color c = cap.IsOwned ? Net.ColorOf(cap.ownerTeam) : cap.capturingTeam >= 0 ? Color.Lerp(CorpSite.Neutral, Net.ColorOf(cap.capturingTeam), cap.progress) : CorpSite.Neutral;
+            float busy = cap.capturingTeam >= 0 && !cap.IsOwned ? 0.5f + 0.5f * Mathf.Sin(t * 10f) : 0.5f + 0.5f * Mathf.Sin(t * 1.4f);
+            float k = cap.IsOwned ? 0.22f : 0.1f;
+            halo.SetColor(TintId, new Color(c.r, c.g, c.b, k * (0.7f + 0.3f * busy)));
+            edge.SetColor(TintId, new Color(c.r * 1.5f, c.g * 1.5f, c.b * 1.5f, (cap.IsOwned ? 0.8f : 0.45f) * (0.6f + 0.4f * busy)));
+        }
     }
 
 
@@ -357,6 +411,7 @@ public class MapDressing : MonoBehaviour
         }
 
         foreach (var (pivot, speed) in searchlights) pivot.Rotate(0f, speed * dt, 0f, Space.World);
+        CorpTick(t, face);
 
         if (t < nextSlow) return;
         nextSlow = t + 0.5f;

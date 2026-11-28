@@ -18,6 +18,7 @@ MonoBehaviour:
   description: Hovering medic that pulses repair nanites into wounded units around
     it.
   icon: {fileID: 21300000, guid: e409985ab77ace4479286a2128ca3c3f, type: 3}
+  portrait: {fileID: 21300000, guid: 341df6a3238d8b14cb8ccb498417027b, type: 3}
   cost: 375
   buildTime: 6
   squadSize: 1
@@ -40,7 +41,7 @@ MonoBehaviour:
     projectile: {fileID: 0}
     speed: 60
     arc: 0
-    muzzleFlash: {fileID: 2368381330221681213, guid: 6e0553d6e46b9a7418595bfa45d2018c, type: 3}
+    muzzleFlash: {fileID: 2923620917300925078, guid: b9c1d30cf7234304ab27f85362607d76, type: 3}
     impact: {fileID: 0}
     scorch: {fileID: 0}
     hideBeam: 0

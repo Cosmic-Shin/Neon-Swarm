@@ -18,7 +18,8 @@ MonoBehaviour:
   description: Fast scout drone with a wide sensor sweep. Barely armed; use it to
     find the enemy.
   icon: {fileID: 21300000, guid: 1c7b292de95a5504498f04cbcd84dfed, type: 3}
-  cost: 375
+  portrait: {fileID: 21300000, guid: a6c76015053093348b6fce0e18e2dbe3, type: 3}
+  cost: 400
   buildTime: 5
   squadSize: 3
   maxHealth: 75

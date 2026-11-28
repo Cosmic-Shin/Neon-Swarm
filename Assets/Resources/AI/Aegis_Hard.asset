@@ -28,6 +28,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 1ce02de00dd9b8b45af728000989b426, type: 2}
   - {fileID: 11400000, guid: d4a1ef7eeecd64b4aaea5b9b7b6a143b, type: 2}
   - {fileID: 11400000, guid: 38216cf077fff194a82006fdce44d9df, type: 2}
+  - {fileID: 11400000, guid: f644ecc5171340143bcb32da9dfd398f, type: 2}
   - {fileID: 11400000, guid: 606dfd25079e5204dafdc67cb0510875, type: 2}
   - {fileID: 11400000, guid: a2ff063a4353d5e42a96c5ae446f13fe, type: 2}
   - {fileID: 11400000, guid: 203c53e06f5a960489746f72e67e25c5, type: 2}
@@ -39,14 +40,17 @@ MonoBehaviour:
   lateGame:
   - {fileID: 11400000, guid: 606dfd25079e5204dafdc67cb0510875, type: 2}
   - {fileID: 11400000, guid: 203c53e06f5a960489746f72e67e25c5, type: 2}
+  - {fileID: 11400000, guid: f644ecc5171340143bcb32da9dfd398f, type: 2}
   - {fileID: 11400000, guid: 2ec9e03f3713a4d449ca24da2c5eb0a5, type: 2}
   - {fileID: 11400000, guid: 1ce02de00dd9b8b45af728000989b426, type: 2}
   armyShare: 0.6
   harvesters: 8
   units:
   - unit: {fileID: 11400000, guid: 469f6f589fb9c42498ba586b4a7b0928, type: 2}
-    weight: 4
-  - unit: {fileID: 11400000, guid: 8f91ccb2140cf8c49ae467537309d0c0, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: 6a0fd24ccba727a4796ed4e1387e4a83, type: 2}
+    weight: 2
+  - unit: {fileID: 11400000, guid: a404c17ca54e0934baf0f9425eab4699, type: 2}
     weight: 2
   - unit: {fileID: 11400000, guid: d383d20a229a4724f85cb5b9fd471c03, type: 2}
     weight: 1
@@ -63,14 +67,24 @@ MonoBehaviour:
   - unit: {fileID: 11400000, guid: f026533051a681945894e8071aa3f6fd, type: 2}
     weight: 1
   - unit: {fileID: 11400000, guid: 27b5955802cb0ed4cb3d13f9c4a6ff28, type: 2}
-    weight: 4
+    weight: 2
+  - unit: {fileID: 11400000, guid: 28d66f14483a67248b1572552ac635fc, type: 2}
+    weight: 1
   - unit: {fileID: 11400000, guid: b0a7a8d399957db4dadac2788f6dcb90, type: 2}
     weight: 1
+  - unit: {fileID: 11400000, guid: 16ac03c28c5280e458fd0847e5805358, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: bb1f459c3d015ea4eb355d0fc7c6f266, type: 2}
+    weight: 1
   - unit: {fileID: 11400000, guid: 8093395d27297d24ea582f0c233e709c, type: 2}
-    weight: 3
-  - unit: {fileID: 11400000, guid: 48995184b8428b340a1e61d65e19abe9, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 76806e57ed1d3b44cbfe17ac218b4e7b, type: 2}
+    weight: 1
+  - unit: {fileID: 11400000, guid: 32b73e4edb1f1e6488a056705dc97f26, type: 2}
     weight: 1
   - unit: {fileID: 11400000, guid: 3bd4c5b0cd3840d4b95a50c895423960, type: 2}
+    weight: 0.6
+  - unit: {fileID: 11400000, guid: b48fb6be14c4dac4cb799ba0701a9320, type: 2}
     weight: 0.6
   firstAttack: 210
   waveValue: 3500

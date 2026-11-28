@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: beae6f73befe7f54cbf7876792024e27, type: 3}
+  m_Name: Tribunal
+  m_EditorClassIdentifier: Assembly-CSharp::UnitData
+  displayName: Tribunal
+  faction: 1
+  role: 5
+  description: Titan. Drops low and shocks everything beneath it, stunning ground
+    units in a wide field. Needs Command Spire Mk III.
+  icon: {fileID: 21300000, guid: 9bc1380b56d13254593319b50cce972b, type: 3}
+  portrait: {fileID: 21300000, guid: 33bd4dea6f8f6d146ade3078672dc35f, type: 3}
+  cost: 2525
+  buildTime: 25
+  squadSize: 1
+  maxHealth: 1265
+  damage: 24
+  range: 5
+  attackCooldown: 1
+  hitsGround: 1
+  hitsAir: 0
+  moveSpeed: 4.5
+  sight: 0
+  splash: 5
+  stunOnHit: 1
+  slowOnHit: 0
+  buildingDamage: 1
+  armor: 1
+  weapon: 0
+  ability: 0
+  visual:
+    projectile: {fileID: 546401249373042527, guid: 5e7af672ccd6fc8488c8389bb87f0881, type: 3}
+    speed: 90
+    arc: 0
+    muzzleFlash: {fileID: 2923620917300925078, guid: b9c1d30cf7234304ab27f85362607d76, type: 3}
+    impact: {fileID: 1271380832783618921, guid: 9eb3b0ff67d29a245ae399a94b0d6079, type: 3}
+    scorch: {fileID: 0}
+    hideBeam: 0
+  style: 3
+  muzzles: TRB_PulsePoint
+  extra: {fileID: 8720312357281417603, guid: db877a8ee9385e745a4daf2d26b078a8, type: 3}

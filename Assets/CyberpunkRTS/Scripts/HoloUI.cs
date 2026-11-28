@@ -25,12 +25,17 @@ public static class HoloUI
 
     static readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
 
+    /// <summary>GD5 edit: faction skin folder ("" or "Aegis/"); sprites load from HoloUI/<Skin><name> first, then the default set.</summary>
+    public static string Skin = "";
+
     public static Sprite Get(string name)
     {
-        if (cache.TryGetValue(name, out var s) && s) return s;
-        s = Resources.Load<Sprite>("HoloUI/" + name);
+        string key = Skin + name;
+        if (cache.TryGetValue(key, out var s) && s) return s;
+        if (Skin.Length > 0) s = Resources.Load<Sprite>("HoloUI/" + key);
+        if (!s) s = Resources.Load<Sprite>("HoloUI/" + name);
         if (!s) Debug.LogWarning("[HoloUI] Missing sprite HoloUI/" + name);
-        cache[name] = s;
+        cache[key] = s;
         return s;
     }
 

@@ -59,7 +59,7 @@ public class CursorManager : MonoBehaviour
         { CursorKind.ScrollDownLeft, new[] { new Vector2(8, 24), new Vector2(12, 36), new Vector2(15, 49) } },
     };
 
-    readonly Dictionary<(CursorKind, int), Texture2D> cache = new Dictionary<(CursorKind, int), Texture2D>();
+    readonly Dictionary<(string, CursorKind, int), Texture2D> cache = new Dictionary<(string, CursorKind, int), Texture2D>();
     CursorKind current = CursorKind.Default;
     int currentSize = -1;
     bool hasCurrent;
@@ -137,10 +137,12 @@ public class CursorManager : MonoBehaviour
 
     Texture2D Load(CursorKind kind, int size)
     {
-        if (cache.TryGetValue((kind, size), out var t) && t) return t;
-        t = Resources.Load<Texture2D>($"HoloCursors/Cursor_{kind}_{size}");
+        string skin = HoloUI.Skin;   // GD5 edit: faction cursor set (HoloCursors/Aegis/...) with the default as fallback
+        if (cache.TryGetValue((skin, kind, size), out var t) && t) return t;
+        if (skin.Length > 0) t = Resources.Load<Texture2D>($"HoloCursors/{skin}Cursor_{kind}_{size}");
+        if (!t) t = Resources.Load<Texture2D>($"HoloCursors/Cursor_{kind}_{size}");
         if (!t) Debug.LogWarning($"[CursorManager] Missing HoloCursors/Cursor_{kind}_{size}");
-        cache[(kind, size)] = t;
+        cache[(skin, kind, size)] = t;
         return t;
     }
 

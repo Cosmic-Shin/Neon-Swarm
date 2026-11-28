@@ -50,11 +50,11 @@ public class MultiplayerMenu : MonoBehaviour
         if (error == null && pending is var (label, go)) { pending = null; EnterWith(label, go); }
     }
 
-    public static void JoinFriendRoom(string room) => Open("Joining room...", () => RoomService.Instance.Join(room));
+    public static void JoinFriendRoom(string room, string region = null) => Open("Joining room...", () => RoomService.Instance.Join(room, region));
 
     public static void PlayAgain()
     {
-        if (RoomService.Again is var (room, visible, _, _, _)) Open("Joining your group...", () => RoomService.Instance.JoinOrCreate(room, visible));
+        if (RoomService.Again is var (room, visible, _, _, _)) Open("Joining your group...", () => RoomService.Instance.JoinOrCreate(room, visible, RoomService.AgainRegion));
     }
 
     static void Open(string label, System.Func<System.Threading.Tasks.Task<string>> go)
@@ -129,7 +129,7 @@ public class MultiplayerMenu : MonoBehaviour
             var rb = Instantiate(roomTemplate, roomList);
             rb.gameObject.SetActive(true);
             rb.GetComponentInChildren<Text>().text = "<color=#FFB040>REJOIN</color>    " + rejoin;
-            rb.onClick.AddListener(() => Enter(false, rejoin));
+            rb.onClick.AddListener(() => EnterWith("Rejoining...", () => RoomService.Instance.Join(rejoin, RoomService.RejoinRegion)));
             shown++;
         }
         var rooms = all.FindAll(r => r.IsOpen && r.IsVisible);
@@ -140,7 +140,7 @@ public class MultiplayerMenu : MonoBehaviour
             b.gameObject.SetActive(true);
             string host = RoomService.HostOf(room), pals = FriendsIn(room.Name);
             string state = room.Name == rejoin ? "<color=#FFB040>REJOIN</color>    " : RoomService.IsLive(room) ? "<color=#FFB040>IN GAME · WATCH</color>    " : "";
-            b.GetComponentInChildren<Text>().text = state + room.Name + "    " + room.PlayerCount + "/" + room.MaxPlayers
+            b.GetComponentInChildren<Text>().text = state + room.Name + "    " + room.PlayerCount + "/" + RoomService.MaxPlayers
                 + (pals.Length > 0 ? "    <color=#60FF90>" + pals + "</color>"
                    : host != null ? "    <color=#8A96B0>host " + host + "</color>" : "");
             string name = room.Name;

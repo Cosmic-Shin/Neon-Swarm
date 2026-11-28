@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: MortarScarab
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Mortar Scarab
+  faction: 0
   role: 3
   description: 'Artillery. Long-range shells that splash 5m. Fragile: needs a spotter
     and an escort.'
   icon: {fileID: 21300000, guid: e5423299109ae1a4ea2c3892cf2bd987, type: 3}
+  portrait: {fileID: 21300000, guid: e3bf912bf5079764289178e3ae59fa12, type: 3}
   cost: 700
   buildTime: 8
   squadSize: 1

@@ -13,9 +13,11 @@ MonoBehaviour:
   m_Name: SentryDrone
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   displayName: Sentry Drone
+  faction: 0
   role: 1
   description: Interceptor drone from the Drone Hangar. Fast, rapid fire, fragile.
   icon: {fileID: 21300000, guid: e85328fea441aae4fb106820fd43dcdf, type: 3}
+  portrait: {fileID: 21300000, guid: caa030834a855a043b0e56dcf136bf65, type: 3}
   cost: 500
   buildTime: 6
   squadSize: 3

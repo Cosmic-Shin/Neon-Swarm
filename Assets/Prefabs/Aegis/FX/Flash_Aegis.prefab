@@ -140,6 +140,9 @@ MonoBehaviour:
   scaleTo: 1
   fadeStart: 0
   randomRoll: 1
+  flicker: 0
+  spin: 0
+  faceCamera: 0
 --- !u!1 &6296767820768616938
 GameObject:
   m_ObjectHideFlags: 0

@@ -11,6 +11,12 @@ public class Repairer : MonoBehaviour
     public string beamFrom;
     public Color beamColor;
     public GameObject sparkFx;
+    [Tooltip("Optional mesh beam, 1 unit long along +Z from its origin; stretched to each target every frame")]
+    public GameObject beamMesh;
+    public float beamWidth = 3f;
+    [Tooltip("Optional Fx spawned on the ground under the target with each sparkle")]
+    public GameObject groundRing;
+    readonly List<Transform> meshes = new();
     Transform origin;
 
     const int BeamPoints = 8;
@@ -32,7 +38,11 @@ public class Repairer : MonoBehaviour
 
     Color Tint => beamColor.a > 0f ? beamColor : Juice.Heal;
 
-    void OnDisable() { foreach (var b in beams) if (b != null) b.enabled = false; }
+    void OnDisable()
+    {
+        foreach (var b in beams) if (b != null) b.enabled = false;
+        foreach (var m in meshes) if (m != null) m.gameObject.SetActive(false);
+    }
 
     void Update()
     {
@@ -51,8 +61,15 @@ public class Repairer : MonoBehaviour
                 Beam(used++, h);
                 if (sparkle) Juice.Burst(h.transform.position + Vector3.up * 1.5f, Tint, 2, 1.5f, 0.2f, 0.6f, 3f);
                 if (sparkle && sparkFx != null) Fx.Spawn(sparkFx, h.transform.position + Vector3.up * (h.TryGetComponent(out Structure _) ? 2.5f : 1f), Quaternion.identity, 1f);
+                if (sparkle && groundRing != null && Random.value < 0.5f)
+                {
+                    var p = h.transform.position;
+                    float size = h.TryGetComponent(out Collider c) ? Mathf.Max(c.bounds.extents.x, c.bounds.extents.z) : 1f;
+                    Fx.Spawn(groundRing, new Vector3(p.x, 0.1f, p.z), Quaternion.Euler(0f, Random.value * 360f, 0f), Mathf.Clamp(size, 0.8f, 6f));
+                }
             }
         for (int i = used; i < beams.Count; i++) beams[i].enabled = false;
+        for (int i = used; i < meshes.Count; i++) meshes[i].gameObject.SetActive(false);
     }
 
     void Beam(int i, Health target)
@@ -75,6 +92,23 @@ public class Repairer : MonoBehaviour
         var beam = beams[i];
         beam.enabled = true;
         Vector3 from = origin != null ? origin.position : transform.position + Vector3.up * 1.5f, to = target.transform.position + Vector3.up * (target.TryGetComponent(out Structure _) ? 2.5f : 1f);
+        if (beamMesh != null)
+        {
+            if (i >= meshes.Count)
+            {
+                var m = Instantiate(beamMesh, transform).transform;
+                m.name = "BeamMesh";
+                meshes.Add(m);
+            }
+            var mesh = meshes[i];
+            mesh.gameObject.SetActive(true);
+            mesh.SetPositionAndRotation(from, Quaternion.LookRotation(to - from) * Quaternion.Euler(0f, 0f, Time.time * 360f));
+            float w = beamWidth * (0.85f + 0.3f * Mathf.PerlinNoise(Time.time * 9f, i));   // crackle
+            mesh.localScale = Vector3.one;
+            mesh.localScale = new Vector3(w / mesh.lossyScale.x, w / mesh.lossyScale.y, Vector3.Distance(from, to) / mesh.lossyScale.z);
+            beam.startWidth = 0.05f;   // the line becomes a soft glow around the mesh
+            beam.endWidth = 0.12f;
+        }
         Vector3 side = Vector3.Cross(to - from, Vector3.up).normalized;
         for (int p = 0; p < BeamPoints; p++)
         {

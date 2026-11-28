@@ -97,6 +97,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: FX_Scorch
+    second: {fileID: 2100000, guid: b3fe4e485406be54a88964a2a2943583, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Neutral_Glow
     second: {fileID: 2100000, guid: 8da4d949f05e09147a7ce405486bf926, type: 2}
   - first:
